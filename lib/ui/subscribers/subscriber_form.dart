@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../data/repositories/subscriber_registration_repository.dart';
-import 'subscriber_details_section.dart';
-import 'subscription_details_section.dart';
+import '../../data/repositories/subscriber_registration_repository.dart';
+import 'widgets/subscriber_details_section.dart';
+import 'widgets/subscription_details_section.dart';
 import 'view_models/add_subscriber_form_view_model.dart';
 
 class AddSubscriberForm extends StatefulWidget {

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'providers/database_provider.dart';
 import 'theme/app_theme.dart';
-import 'ui/app_shell.dart';
+import 'providers/router_provider.dart';
 
 void main() {
   runApp(const ProviderScope(child: MainApp()));
@@ -17,11 +17,11 @@ class MainApp extends ConsumerWidget {
     // Resolving the repository initializes its database dependency at startup.
     ref.watch(subscriberRepositoryProvider);
 
-    return MaterialApp(
+    return MaterialApp.router(
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
-      home: const AppShell(),
+      routerConfig: ref.watch(routerProvider),
     );
   }
 }

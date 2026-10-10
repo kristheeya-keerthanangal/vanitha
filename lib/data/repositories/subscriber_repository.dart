@@ -4,10 +4,68 @@ import 'package:drift/drift.dart';
 
 import '../app_database.dart';
 
+enum SubscriberSort { number, name }
+
+class SubscriberPage {
+  const SubscriberPage({required this.rows, required this.total});
+  final List<Subscriber> rows;
+  final int total;
+}
+
 class SubscriberRepository {
   SubscriberRepository(this._database);
 
   final AppDatabase _database;
+
+  Future<SubscriberPage> getSubscribersPage({
+    int offset = 0,
+    int limit = 25,
+    String search = '',
+    SubscriberSort sortBy = SubscriberSort.name,
+    bool ascending = true,
+  }) {
+    if (offset < 0 || ![10, 25, 50].contains(limit)) {
+      throw ArgumentError('Invalid pagination parameters');
+    }
+    final literal = search
+        .trim()
+        .replaceAll('\\', '\\\\')
+        .replaceAll('%', '\\%')
+        .replaceAll('_', '\\_');
+    final filter = _subscribersFilter(literal);
+    return _database.transaction(() async {
+      final count = _database.subscribers.id.count();
+      final countQuery = _database.selectOnly(_database.subscribers)
+        ..addColumns([count])
+        ..where(filter);
+      final total = (await countQuery.getSingle()).read(count)!;
+      final Expression<Object> column = sortBy == SubscriberSort.number
+          ? _database.subscribers.id
+          : _database.subscribers.name.collate(Collate.noCase);
+      final query = _database.select(_database.subscribers)
+        ..where((_) => filter)
+        ..orderBy([
+          (_) => OrderingTerm(
+            expression: column,
+            mode: ascending ? OrderingMode.asc : OrderingMode.desc,
+          ),
+          (row) => OrderingTerm.asc(row.id),
+        ])
+        ..limit(limit, offset: offset);
+      return SubscriberPage(rows: await query.get(), total: total);
+    });
+  }
+
+  Expression<bool> _subscribersFilter(String literal) {
+    final table = _database.subscribers;
+    final active = table.archivedAt.isNull();
+    if (literal.isEmpty) return active;
+    final pattern = '%$literal%';
+    return active &
+        (table.name.like(pattern, escapeChar: '\\') |
+            table.email.like(pattern, escapeChar: '\\') |
+            table.phone.like(pattern, escapeChar: '\\'));
+  }
 
   Future<Subscriber> createSubscriber({
     required String subscriberType,

@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vanithabodhini/data/app_database.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_registration_repository.dart';
 import 'package:vanithabodhini/theme/app_theme.dart';
-import 'package:vanithabodhini/ui/subscriber_form.dart';
+import 'package:vanithabodhini/ui/subscribers/subscriber_form.dart';
 
 void main() {
   late AppDatabase database;

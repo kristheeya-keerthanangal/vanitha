@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../../data/repositories/subscriber_registration_repository.dart';
+import '../../../data/repositories/subscriber_registration_repository.dart';
 
 class AddSubscriberFormViewModel extends ChangeNotifier {
   AddSubscriberFormViewModel(this._repository);

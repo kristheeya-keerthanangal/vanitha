@@ -1,32 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'app_navigation_rail.dart';
-import 'dashboard_page.dart';
-import 'subscribers_page.dart';
-import 'view_models/app_shell_view_model.dart';
 
-class AppShell extends ConsumerWidget {
-  const AppShell({super.key});
+class AppShell extends StatelessWidget {
+  const AppShell({super.key, required this.selectedIndex, required this.child});
+  final int selectedIndex;
+  final Widget child;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selectedIndex = ref.watch(appShellViewModelProvider);
-    final viewModel = ref.read(appShellViewModelProvider.notifier);
-
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Row(
         children: [
           AppNavigationRail(
             selectedIndex: selectedIndex,
-            onDestinationSelected: viewModel.selectDestination,
+            onDestinationSelected: (index) =>
+                context.go(index == 1 ? '/subscribers' : '/dashboard'),
           ),
           const VerticalDivider(thickness: 1, width: 1),
-          Expanded(
-            child: selectedIndex == 1
-                ? const SubscribersPage()
-                : const DashboardPage(),
-          ),
+          Expanded(child: child),
         ],
       ),
     );

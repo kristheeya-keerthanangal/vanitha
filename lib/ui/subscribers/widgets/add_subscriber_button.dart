@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/database_provider.dart';
-import 'subscriber_form.dart';
+import '../../../providers/database_provider.dart';
+import '../subscriber_form.dart';
+import '../view_models/subscribers_view_model.dart';
 
 class AddSubscriberButton extends ConsumerWidget {
   const AddSubscriberButton({super.key});
@@ -18,6 +19,7 @@ class AddSubscriberButton extends ConsumerWidget {
           ),
         );
         if (added == true && context.mounted) {
+          ref.read(subscribersViewModelProvider).refresh();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Subscriber added successfully')),
           );

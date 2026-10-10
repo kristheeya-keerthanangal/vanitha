@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'package:vanithabodhini/theme/app_theme.dart';
-import 'package:vanithabodhini/ui/app_shell.dart';
+import 'package:drift/native.dart';
+import 'package:vanithabodhini/data/app_database.dart';
+import 'package:vanithabodhini/providers/database_provider.dart';
+import 'package:vanithabodhini/main.dart';
 
 void main() {
   testWidgets('switches between dashboard and subscribers', (tester) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
     await tester.pumpWidget(
       ProviderScope(
-        child: MaterialApp(theme: AppTheme.light, home: const AppShell()),
+        overrides: [databaseProvider.overrideWithValue(database)],
+        child: const MainApp(),
       ),
     );
 
@@ -18,6 +22,9 @@ void main() {
     expect(find.byIcon(Icons.dashboard), findsNWidgets(2));
 
     await tester.tap(find.text('Subscribers'));
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
     await tester.pumpAndSettle();
 
     expect(find.text('Subscribers'), findsNWidgets(2));
