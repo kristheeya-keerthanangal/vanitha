@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'providers/database_provider.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const ProviderScope(child: MainApp()));
@@ -15,8 +16,11 @@ class MainApp extends ConsumerWidget {
     // Resolving the repository initializes its database dependency at startup.
     ref.watch(subscriberRepositoryProvider);
 
-    return const MaterialApp(
-      home: Scaffold(body: Center(child: Text('Hello World!'))),
+    return MaterialApp(
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.system,
+      home: const Scaffold(body: Center(child: Text('Hello World!'))),
     );
   }
 }
