@@ -98,4 +98,24 @@ void main() {
     expect(softDeleted.archivedAt, isNotNull);
     expect(await repository.getSubscriber(created.id), isNull);
   });
+
+  test('does not audit archive and restore no-op mutations', () async {
+    final created = await repository.createSubscriber(
+      subscriberType: 'individual',
+      name: 'Idempotent Subscriber',
+    );
+
+    await repository.archiveSubscriber(created.id);
+    final afterArchive = await database.select(database.auditLogs).get();
+    expect(afterArchive, hasLength(2));
+
+    await repository.archiveSubscriber(created.id);
+    expect(await database.select(database.auditLogs).get(), hasLength(2));
+
+    await repository.restoreSubscriber(created.id);
+    expect(await database.select(database.auditLogs).get(), hasLength(3));
+
+    await repository.restoreSubscriber(created.id);
+    expect(await database.select(database.auditLogs).get(), hasLength(3));
+  });
 }

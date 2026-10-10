@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
 import 'tables/subscribers.dart';
+import 'tables/subscriptions.dart';
 
 part 'app_database.g.dart';
 
@@ -10,13 +11,13 @@ part 'app_database.g.dart';
 /// Tables will be added here as the domain model is defined. Keeping the
 /// database entry point in place now gives those tables a single migration
 /// and lifecycle boundary.
-@DriftDatabase(tables: [Subscribers, AuditLogs])
+@DriftDatabase(tables: [Subscribers, AuditLogs, Subscriptions])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
-      : super(executor ?? driftDatabase(name: 'vanithabodhini'));
+    : super(executor ?? driftDatabase(name: 'vanithabodhini'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -24,6 +25,8 @@ class AppDatabase extends _$AppDatabase {
     onUpgrade: (m, from, to) async {
       if (from < 2) {
         await m.createAll();
+      } else if (from < 3) {
+        await m.createTable(subscriptions);
       }
     },
   );

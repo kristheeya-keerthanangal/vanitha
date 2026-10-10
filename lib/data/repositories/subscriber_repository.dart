@@ -85,13 +85,16 @@ class SubscriberRepository {
   }
 
   Future<Subscriber> updateSubscriber(Subscriber subscriber) async {
-    final previous = await getSubscriber(subscriber.id, includeArchived: true);
-    if (previous == null) {
-      throw StateError('Subscriber ${subscriber.id} was not found');
-    }
-
-    final updated = subscriber.copyWith(updatedAt: _now());
     return _database.transaction(() async {
+      final previous = await getSubscriber(
+        subscriber.id,
+        includeArchived: true,
+      );
+      if (previous == null) {
+        throw StateError('Subscriber ${subscriber.id} was not found');
+      }
+
+      final updated = subscriber.copyWith(updatedAt: _now());
       await (_database.update(_database.subscribers)
             ..where((row) => row.id.equals(subscriber.id)))
           .write(updated.toCompanion(false));
@@ -111,42 +114,31 @@ class SubscriberRepository {
   /// Deletes a subscriber according to the domain's soft-delete rule.
   Future<Subscriber> deleteSubscriber(int id) => archiveSubscriber(id);
 
-  Future<Subscriber> archiveSubscriber(int id) async {
-    final subscriber = await getSubscriber(id, includeArchived: true);
-    if (subscriber == null) {
-      throw StateError('Subscriber $id was not found');
-    }
-    if (subscriber.archivedAt != null) return subscriber;
+  Future<Subscriber> archiveSubscriber(int id) =>
+      _changeArchiveState(id, archive: true);
 
-    return _changeArchiveState(subscriber, _now());
-  }
+  Future<Subscriber> restoreSubscriber(int id) =>
+      _changeArchiveState(id, archive: false);
 
-  Future<Subscriber> restoreSubscriber(int id) async {
-    final subscriber = await getSubscriber(id, includeArchived: true);
-    if (subscriber == null) {
-      throw StateError('Subscriber $id was not found');
-    }
-    if (subscriber.archivedAt == null) return subscriber;
-
-    return _changeArchiveState(subscriber, null);
-  }
-
-  Future<Subscriber> _changeArchiveState(
-    Subscriber subscriber,
-    String? archivedAt,
-  ) async {
-    final updated = subscriber.copyWith(
-      updatedAt: _now(),
-      archivedAt: Value(archivedAt),
-    );
-
+  Future<Subscriber> _changeArchiveState(int id, {required bool archive}) {
     return _database.transaction(() async {
-      await (_database.update(_database.subscribers)
-            ..where((row) => row.id.equals(subscriber.id)))
-          .write(updated.toCompanion(false));
-      final saved = await getSubscriber(subscriber.id, includeArchived: true);
+      final subscriber = await getSubscriber(id, includeArchived: true);
+      if (subscriber == null) {
+        throw StateError('Subscriber $id was not found');
+      }
+      if ((subscriber.archivedAt != null) == archive) return subscriber;
+
+      final now = _now();
+      final updated = subscriber.copyWith(
+        updatedAt: now,
+        archivedAt: Value(archive ? now : null),
+      );
+      await (_database.update(
+        _database.subscribers,
+      )..where((row) => row.id.equals(id))).write(updated.toCompanion(false));
+      final saved = await getSubscriber(id, includeArchived: true);
       if (saved == null) {
-        throw StateError('Subscriber ${subscriber.id} was not updated');
+        throw StateError('Subscriber $id was not updated');
       }
       await _writeAudit(
         subscriberId: saved.id,

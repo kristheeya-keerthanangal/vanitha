@@ -1192,14 +1192,645 @@ class AuditLogsCompanion extends UpdateCompanion<AuditLog> {
   }
 }
 
+class $SubscriptionsTable extends Subscriptions
+    with TableInfo<$SubscriptionsTable, Subscription> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SubscriptionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _subscriberIdMeta = const VerificationMeta(
+    'subscriberId',
+  );
+  @override
+  late final GeneratedColumn<int> subscriberId = GeneratedColumn<int>(
+    'subscriber_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES subscribers (id)',
+    ),
+  );
+  static const VerificationMeta _editionMeta = const VerificationMeta(
+    'edition',
+  );
+  @override
+  late final GeneratedColumn<String> edition = GeneratedColumn<String>(
+    'edition',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (edition IN (\'online\', \'offline\'))',
+  );
+  static const VerificationMeta _planTypeMeta = const VerificationMeta(
+    'planType',
+  );
+  @override
+  late final GeneratedColumn<String> planType = GeneratedColumn<String>(
+    'plan_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints:
+        'NOT NULL CHECK (plan_type IN (\'annual\', \'multi_year\', \'lifetime\'))',
+  );
+  static const VerificationMeta _durationYearsMeta = const VerificationMeta(
+    'durationYears',
+  );
+  @override
+  late final GeneratedColumn<int> durationYears = GeneratedColumn<int>(
+    'duration_years',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (duration_years > 0)',
+  );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<String> startDate = GeneratedColumn<String>(
+    'start_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _expiryDateMeta = const VerificationMeta(
+    'expiryDate',
+  );
+  @override
+  late final GeneratedColumn<String> expiryDate = GeneratedColumn<String>(
+    'expiry_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _paymentStatusMeta = const VerificationMeta(
+    'paymentStatus',
+  );
+  @override
+  late final GeneratedColumn<String> paymentStatus = GeneratedColumn<String>(
+    'payment_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints:
+        'NOT NULL CHECK (payment_status IN (\'paid\', \'unpaid\'))',
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<String> createdAt = GeneratedColumn<String>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT CURRENT_TIMESTAMP',
+    defaultValue: const CustomExpression('CURRENT_TIMESTAMP'),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT CURRENT_TIMESTAMP',
+    defaultValue: const CustomExpression('CURRENT_TIMESTAMP'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    subscriberId,
+    edition,
+    planType,
+    durationYears,
+    startDate,
+    expiryDate,
+    paymentStatus,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'subscriptions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Subscription> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('subscriber_id')) {
+      context.handle(
+        _subscriberIdMeta,
+        subscriberId.isAcceptableOrUnknown(
+          data['subscriber_id']!,
+          _subscriberIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_subscriberIdMeta);
+    }
+    if (data.containsKey('edition')) {
+      context.handle(
+        _editionMeta,
+        edition.isAcceptableOrUnknown(data['edition']!, _editionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_editionMeta);
+    }
+    if (data.containsKey('plan_type')) {
+      context.handle(
+        _planTypeMeta,
+        planType.isAcceptableOrUnknown(data['plan_type']!, _planTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_planTypeMeta);
+    }
+    if (data.containsKey('duration_years')) {
+      context.handle(
+        _durationYearsMeta,
+        durationYears.isAcceptableOrUnknown(
+          data['duration_years']!,
+          _durationYearsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_durationYearsMeta);
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('expiry_date')) {
+      context.handle(
+        _expiryDateMeta,
+        expiryDate.isAcceptableOrUnknown(data['expiry_date']!, _expiryDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_expiryDateMeta);
+    }
+    if (data.containsKey('payment_status')) {
+      context.handle(
+        _paymentStatusMeta,
+        paymentStatus.isAcceptableOrUnknown(
+          data['payment_status']!,
+          _paymentStatusMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_paymentStatusMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Subscription map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Subscription(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      subscriberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}subscriber_id'],
+      )!,
+      edition: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}edition'],
+      )!,
+      planType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plan_type'],
+      )!,
+      durationYears: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_years'],
+      )!,
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}start_date'],
+      )!,
+      expiryDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}expiry_date'],
+      )!,
+      paymentStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payment_status'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SubscriptionsTable createAlias(String alias) {
+    return $SubscriptionsTable(attachedDatabase, alias);
+  }
+}
+
+class Subscription extends DataClass implements Insertable<Subscription> {
+  final int id;
+  final int subscriberId;
+  final String edition;
+  final String planType;
+  final int durationYears;
+  final String startDate;
+  final String expiryDate;
+  final String paymentStatus;
+  final String createdAt;
+  final String updatedAt;
+  const Subscription({
+    required this.id,
+    required this.subscriberId,
+    required this.edition,
+    required this.planType,
+    required this.durationYears,
+    required this.startDate,
+    required this.expiryDate,
+    required this.paymentStatus,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['subscriber_id'] = Variable<int>(subscriberId);
+    map['edition'] = Variable<String>(edition);
+    map['plan_type'] = Variable<String>(planType);
+    map['duration_years'] = Variable<int>(durationYears);
+    map['start_date'] = Variable<String>(startDate);
+    map['expiry_date'] = Variable<String>(expiryDate);
+    map['payment_status'] = Variable<String>(paymentStatus);
+    map['created_at'] = Variable<String>(createdAt);
+    map['updated_at'] = Variable<String>(updatedAt);
+    return map;
+  }
+
+  SubscriptionsCompanion toCompanion(bool nullToAbsent) {
+    return SubscriptionsCompanion(
+      id: Value(id),
+      subscriberId: Value(subscriberId),
+      edition: Value(edition),
+      planType: Value(planType),
+      durationYears: Value(durationYears),
+      startDate: Value(startDate),
+      expiryDate: Value(expiryDate),
+      paymentStatus: Value(paymentStatus),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Subscription.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Subscription(
+      id: serializer.fromJson<int>(json['id']),
+      subscriberId: serializer.fromJson<int>(json['subscriberId']),
+      edition: serializer.fromJson<String>(json['edition']),
+      planType: serializer.fromJson<String>(json['planType']),
+      durationYears: serializer.fromJson<int>(json['durationYears']),
+      startDate: serializer.fromJson<String>(json['startDate']),
+      expiryDate: serializer.fromJson<String>(json['expiryDate']),
+      paymentStatus: serializer.fromJson<String>(json['paymentStatus']),
+      createdAt: serializer.fromJson<String>(json['createdAt']),
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'subscriberId': serializer.toJson<int>(subscriberId),
+      'edition': serializer.toJson<String>(edition),
+      'planType': serializer.toJson<String>(planType),
+      'durationYears': serializer.toJson<int>(durationYears),
+      'startDate': serializer.toJson<String>(startDate),
+      'expiryDate': serializer.toJson<String>(expiryDate),
+      'paymentStatus': serializer.toJson<String>(paymentStatus),
+      'createdAt': serializer.toJson<String>(createdAt),
+      'updatedAt': serializer.toJson<String>(updatedAt),
+    };
+  }
+
+  Subscription copyWith({
+    int? id,
+    int? subscriberId,
+    String? edition,
+    String? planType,
+    int? durationYears,
+    String? startDate,
+    String? expiryDate,
+    String? paymentStatus,
+    String? createdAt,
+    String? updatedAt,
+  }) => Subscription(
+    id: id ?? this.id,
+    subscriberId: subscriberId ?? this.subscriberId,
+    edition: edition ?? this.edition,
+    planType: planType ?? this.planType,
+    durationYears: durationYears ?? this.durationYears,
+    startDate: startDate ?? this.startDate,
+    expiryDate: expiryDate ?? this.expiryDate,
+    paymentStatus: paymentStatus ?? this.paymentStatus,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  Subscription copyWithCompanion(SubscriptionsCompanion data) {
+    return Subscription(
+      id: data.id.present ? data.id.value : this.id,
+      subscriberId: data.subscriberId.present
+          ? data.subscriberId.value
+          : this.subscriberId,
+      edition: data.edition.present ? data.edition.value : this.edition,
+      planType: data.planType.present ? data.planType.value : this.planType,
+      durationYears: data.durationYears.present
+          ? data.durationYears.value
+          : this.durationYears,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      expiryDate: data.expiryDate.present
+          ? data.expiryDate.value
+          : this.expiryDate,
+      paymentStatus: data.paymentStatus.present
+          ? data.paymentStatus.value
+          : this.paymentStatus,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Subscription(')
+          ..write('id: $id, ')
+          ..write('subscriberId: $subscriberId, ')
+          ..write('edition: $edition, ')
+          ..write('planType: $planType, ')
+          ..write('durationYears: $durationYears, ')
+          ..write('startDate: $startDate, ')
+          ..write('expiryDate: $expiryDate, ')
+          ..write('paymentStatus: $paymentStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    subscriberId,
+    edition,
+    planType,
+    durationYears,
+    startDate,
+    expiryDate,
+    paymentStatus,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Subscription &&
+          other.id == this.id &&
+          other.subscriberId == this.subscriberId &&
+          other.edition == this.edition &&
+          other.planType == this.planType &&
+          other.durationYears == this.durationYears &&
+          other.startDate == this.startDate &&
+          other.expiryDate == this.expiryDate &&
+          other.paymentStatus == this.paymentStatus &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
+  final Value<int> id;
+  final Value<int> subscriberId;
+  final Value<String> edition;
+  final Value<String> planType;
+  final Value<int> durationYears;
+  final Value<String> startDate;
+  final Value<String> expiryDate;
+  final Value<String> paymentStatus;
+  final Value<String> createdAt;
+  final Value<String> updatedAt;
+  const SubscriptionsCompanion({
+    this.id = const Value.absent(),
+    this.subscriberId = const Value.absent(),
+    this.edition = const Value.absent(),
+    this.planType = const Value.absent(),
+    this.durationYears = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.expiryDate = const Value.absent(),
+    this.paymentStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  SubscriptionsCompanion.insert({
+    this.id = const Value.absent(),
+    required int subscriberId,
+    required String edition,
+    required String planType,
+    required int durationYears,
+    required String startDate,
+    required String expiryDate,
+    required String paymentStatus,
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  }) : subscriberId = Value(subscriberId),
+       edition = Value(edition),
+       planType = Value(planType),
+       durationYears = Value(durationYears),
+       startDate = Value(startDate),
+       expiryDate = Value(expiryDate),
+       paymentStatus = Value(paymentStatus);
+  static Insertable<Subscription> custom({
+    Expression<int>? id,
+    Expression<int>? subscriberId,
+    Expression<String>? edition,
+    Expression<String>? planType,
+    Expression<int>? durationYears,
+    Expression<String>? startDate,
+    Expression<String>? expiryDate,
+    Expression<String>? paymentStatus,
+    Expression<String>? createdAt,
+    Expression<String>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (subscriberId != null) 'subscriber_id': subscriberId,
+      if (edition != null) 'edition': edition,
+      if (planType != null) 'plan_type': planType,
+      if (durationYears != null) 'duration_years': durationYears,
+      if (startDate != null) 'start_date': startDate,
+      if (expiryDate != null) 'expiry_date': expiryDate,
+      if (paymentStatus != null) 'payment_status': paymentStatus,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  SubscriptionsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? subscriberId,
+    Value<String>? edition,
+    Value<String>? planType,
+    Value<int>? durationYears,
+    Value<String>? startDate,
+    Value<String>? expiryDate,
+    Value<String>? paymentStatus,
+    Value<String>? createdAt,
+    Value<String>? updatedAt,
+  }) {
+    return SubscriptionsCompanion(
+      id: id ?? this.id,
+      subscriberId: subscriberId ?? this.subscriberId,
+      edition: edition ?? this.edition,
+      planType: planType ?? this.planType,
+      durationYears: durationYears ?? this.durationYears,
+      startDate: startDate ?? this.startDate,
+      expiryDate: expiryDate ?? this.expiryDate,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (subscriberId.present) {
+      map['subscriber_id'] = Variable<int>(subscriberId.value);
+    }
+    if (edition.present) {
+      map['edition'] = Variable<String>(edition.value);
+    }
+    if (planType.present) {
+      map['plan_type'] = Variable<String>(planType.value);
+    }
+    if (durationYears.present) {
+      map['duration_years'] = Variable<int>(durationYears.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<String>(startDate.value);
+    }
+    if (expiryDate.present) {
+      map['expiry_date'] = Variable<String>(expiryDate.value);
+    }
+    if (paymentStatus.present) {
+      map['payment_status'] = Variable<String>(paymentStatus.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<String>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SubscriptionsCompanion(')
+          ..write('id: $id, ')
+          ..write('subscriberId: $subscriberId, ')
+          ..write('edition: $edition, ')
+          ..write('planType: $planType, ')
+          ..write('durationYears: $durationYears, ')
+          ..write('startDate: $startDate, ')
+          ..write('expiryDate: $expiryDate, ')
+          ..write('paymentStatus: $paymentStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $SubscribersTable subscribers = $SubscribersTable(this);
   late final $AuditLogsTable auditLogs = $AuditLogsTable(this);
+  late final $SubscriptionsTable subscriptions = $SubscriptionsTable(this);
   late final Index idxSubscribersName = Index(
     'idx_subscribers_name',
     'CREATE INDEX idx_subscribers_name ON subscribers (name COLLATE NOCASE)',
+  );
+  late final Index idxSubscriptionsSubscriber = Index(
+    'idx_subscriptions_subscriber',
+    'CREATE INDEX idx_subscriptions_subscriber ON subscriptions (subscriber_id)',
+  );
+  late final Index idxSubscriptionsExpiryDate = Index(
+    'idx_subscriptions_expiry_date',
+    'CREATE INDEX idx_subscriptions_expiry_date ON subscriptions (expiry_date)',
   );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -1208,7 +1839,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     subscribers,
     auditLogs,
+    subscriptions,
     idxSubscribersName,
+    idxSubscriptionsSubscriber,
+    idxSubscriptionsExpiryDate,
   ];
 }
 
@@ -1264,6 +1898,24 @@ final class $$SubscribersTableReferences
     ).filter((f) => f.subscriberId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_auditLogsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$SubscriptionsTable, List<Subscription>>
+  _subscriptionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.subscriptions,
+    aliasName: 'subscribers__id__subscriptions__subscriber_id',
+  );
+
+  $$SubscriptionsTableProcessedTableManager get subscriptionsRefs {
+    final manager = $$SubscriptionsTableTableManager(
+      $_db,
+      $_db.subscriptions,
+    ).filter((f) => f.subscriberId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_subscriptionsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -1365,6 +2017,31 @@ class $$SubscribersTableFilterComposer
           }) => $$AuditLogsTableFilterComposer(
             $db: $db,
             $table: $db.auditLogs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> subscriptionsRefs(
+    Expression<bool> Function($$SubscriptionsTableFilterComposer f) f,
+  ) {
+    final $$SubscriptionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.subscriptions,
+      getReferencedColumn: (t) => t.subscriberId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubscriptionsTableFilterComposer(
+            $db: $db,
+            $table: $db.subscriptions,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -1540,6 +2217,31 @@ class $$SubscribersTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> subscriptionsRefs<T extends Object>(
+    Expression<T> Function($$SubscriptionsTableAnnotationComposer a) f,
+  ) {
+    final $$SubscriptionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.subscriptions,
+      getReferencedColumn: (t) => t.subscriberId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubscriptionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.subscriptions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$SubscribersTableTableManager
@@ -1555,7 +2257,7 @@ class $$SubscribersTableTableManager
           $$SubscribersTableUpdateCompanionBuilder,
           (Subscriber, $$SubscribersTableReferences),
           Subscriber,
-          PrefetchHooks Function({bool auditLogsRefs})
+          PrefetchHooks Function({bool auditLogsRefs, bool subscriptionsRefs})
         > {
   $$SubscribersTableTableManager(_$AppDatabase db, $SubscribersTable table)
     : super(
@@ -1640,38 +2342,63 @@ class $$SubscribersTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({auditLogsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (auditLogsRefs) db.auditLogs],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (auditLogsRefs)
-                    await $_getPrefetchedData<
-                      Subscriber,
-                      $SubscribersTable,
-                      AuditLog
-                    >(
-                      currentTable: table,
-                      referencedTable: $$SubscribersTableReferences
-                          ._auditLogsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$SubscribersTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).auditLogsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where(
-                            (e) => e.subscriberId == item.id,
-                          ),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({auditLogsRefs = false, subscriptionsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (auditLogsRefs) db.auditLogs,
+                    if (subscriptionsRefs) db.subscriptions,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (auditLogsRefs)
+                        await $_getPrefetchedData<
+                          Subscriber,
+                          $SubscribersTable,
+                          AuditLog
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SubscribersTableReferences
+                              ._auditLogsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SubscribersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).auditLogsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.subscriberId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (subscriptionsRefs)
+                        await $_getPrefetchedData<
+                          Subscriber,
+                          $SubscribersTable,
+                          Subscription
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SubscribersTableReferences
+                              ._subscriptionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SubscribersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).subscriptionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.subscriberId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -1688,7 +2415,7 @@ typedef $$SubscribersTableProcessedTableManager =
       $$SubscribersTableUpdateCompanionBuilder,
       (Subscriber, $$SubscribersTableReferences),
       Subscriber,
-      PrefetchHooks Function({bool auditLogsRefs})
+      PrefetchHooks Function({bool auditLogsRefs, bool subscriptionsRefs})
     >;
 typedef $$AuditLogsTableCreateCompanionBuilder =
     AuditLogsCompanion Function({
@@ -2007,6 +2734,423 @@ typedef $$AuditLogsTableProcessedTableManager =
       AuditLog,
       PrefetchHooks Function({bool subscriberId})
     >;
+typedef $$SubscriptionsTableCreateCompanionBuilder =
+    SubscriptionsCompanion Function({
+      Value<int> id,
+      required int subscriberId,
+      required String edition,
+      required String planType,
+      required int durationYears,
+      required String startDate,
+      required String expiryDate,
+      required String paymentStatus,
+      Value<String> createdAt,
+      Value<String> updatedAt,
+    });
+typedef $$SubscriptionsTableUpdateCompanionBuilder =
+    SubscriptionsCompanion Function({
+      Value<int> id,
+      Value<int> subscriberId,
+      Value<String> edition,
+      Value<String> planType,
+      Value<int> durationYears,
+      Value<String> startDate,
+      Value<String> expiryDate,
+      Value<String> paymentStatus,
+      Value<String> createdAt,
+      Value<String> updatedAt,
+    });
+
+final class $$SubscriptionsTableReferences
+    extends BaseReferences<_$AppDatabase, $SubscriptionsTable, Subscription> {
+  $$SubscriptionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $SubscribersTable _subscriberIdTable(_$AppDatabase db) => db
+      .subscribers
+      .createAlias('subscriptions__subscriber_id__subscribers__id');
+
+  $$SubscribersTableProcessedTableManager get subscriberId {
+    final $_column = $_itemColumn<int>('subscriber_id')!;
+
+    final manager = $$SubscribersTableTableManager(
+      $_db,
+      $_db.subscribers,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_subscriberIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$SubscriptionsTableFilterComposer
+    extends Composer<_$AppDatabase, $SubscriptionsTable> {
+  $$SubscriptionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get edition => $composableBuilder(
+    column: $table.edition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get planType => $composableBuilder(
+    column: $table.planType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationYears => $composableBuilder(
+    column: $table.durationYears,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get expiryDate => $composableBuilder(
+    column: $table.expiryDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get paymentStatus => $composableBuilder(
+    column: $table.paymentStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$SubscribersTableFilterComposer get subscriberId {
+    final $$SubscribersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.subscriberId,
+      referencedTable: $db.subscribers,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubscribersTableFilterComposer(
+            $db: $db,
+            $table: $db.subscribers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SubscriptionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SubscriptionsTable> {
+  $$SubscriptionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get edition => $composableBuilder(
+    column: $table.edition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get planType => $composableBuilder(
+    column: $table.planType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationYears => $composableBuilder(
+    column: $table.durationYears,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get expiryDate => $composableBuilder(
+    column: $table.expiryDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get paymentStatus => $composableBuilder(
+    column: $table.paymentStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$SubscribersTableOrderingComposer get subscriberId {
+    final $$SubscribersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.subscriberId,
+      referencedTable: $db.subscribers,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubscribersTableOrderingComposer(
+            $db: $db,
+            $table: $db.subscribers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SubscriptionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SubscriptionsTable> {
+  $$SubscriptionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get edition =>
+      $composableBuilder(column: $table.edition, builder: (column) => column);
+
+  GeneratedColumn<String> get planType =>
+      $composableBuilder(column: $table.planType, builder: (column) => column);
+
+  GeneratedColumn<int> get durationYears => $composableBuilder(
+    column: $table.durationYears,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<String> get expiryDate => $composableBuilder(
+    column: $table.expiryDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get paymentStatus => $composableBuilder(
+    column: $table.paymentStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$SubscribersTableAnnotationComposer get subscriberId {
+    final $$SubscribersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.subscriberId,
+      referencedTable: $db.subscribers,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubscribersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.subscribers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SubscriptionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SubscriptionsTable,
+          Subscription,
+          $$SubscriptionsTableFilterComposer,
+          $$SubscriptionsTableOrderingComposer,
+          $$SubscriptionsTableAnnotationComposer,
+          $$SubscriptionsTableCreateCompanionBuilder,
+          $$SubscriptionsTableUpdateCompanionBuilder,
+          (Subscription, $$SubscriptionsTableReferences),
+          Subscription,
+          PrefetchHooks Function({bool subscriberId})
+        > {
+  $$SubscriptionsTableTableManager(_$AppDatabase db, $SubscriptionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SubscriptionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SubscriptionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SubscriptionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> subscriberId = const Value.absent(),
+                Value<String> edition = const Value.absent(),
+                Value<String> planType = const Value.absent(),
+                Value<int> durationYears = const Value.absent(),
+                Value<String> startDate = const Value.absent(),
+                Value<String> expiryDate = const Value.absent(),
+                Value<String> paymentStatus = const Value.absent(),
+                Value<String> createdAt = const Value.absent(),
+                Value<String> updatedAt = const Value.absent(),
+              }) => SubscriptionsCompanion(
+                id: id,
+                subscriberId: subscriberId,
+                edition: edition,
+                planType: planType,
+                durationYears: durationYears,
+                startDate: startDate,
+                expiryDate: expiryDate,
+                paymentStatus: paymentStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int subscriberId,
+                required String edition,
+                required String planType,
+                required int durationYears,
+                required String startDate,
+                required String expiryDate,
+                required String paymentStatus,
+                Value<String> createdAt = const Value.absent(),
+                Value<String> updatedAt = const Value.absent(),
+              }) => SubscriptionsCompanion.insert(
+                id: id,
+                subscriberId: subscriberId,
+                edition: edition,
+                planType: planType,
+                durationYears: durationYears,
+                startDate: startDate,
+                expiryDate: expiryDate,
+                paymentStatus: paymentStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SubscriptionsTable, Subscription>(table),
+                  $$SubscriptionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({subscriberId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (subscriberId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.subscriberId,
+                                referencedTable: $$SubscriptionsTableReferences
+                                    ._subscriberIdTable(db),
+                                referencedColumn: $$SubscriptionsTableReferences
+                                    ._subscriberIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SubscriptionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SubscriptionsTable,
+      Subscription,
+      $$SubscriptionsTableFilterComposer,
+      $$SubscriptionsTableOrderingComposer,
+      $$SubscriptionsTableAnnotationComposer,
+      $$SubscriptionsTableCreateCompanionBuilder,
+      $$SubscriptionsTableUpdateCompanionBuilder,
+      (Subscription, $$SubscriptionsTableReferences),
+      Subscription,
+      PrefetchHooks Function({bool subscriberId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2015,4 +3159,6 @@ class $AppDatabaseManager {
       $$SubscribersTableTableManager(_db, _db.subscribers);
   $$AuditLogsTableTableManager get auditLogs =>
       $$AuditLogsTableTableManager(_db, _db.auditLogs);
+  $$SubscriptionsTableTableManager get subscriptions =>
+      $$SubscriptionsTableTableManager(_db, _db.subscriptions);
 }

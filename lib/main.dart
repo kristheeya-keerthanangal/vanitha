@@ -12,15 +12,11 @@ class MainApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Opening the provider initializes the local SQLite database at startup.
-    ref.watch(databaseProvider);
+    // Resolving the repository initializes its database dependency at startup.
+    ref.watch(subscriberRepositoryProvider);
 
     return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
-      ),
+      home: Scaffold(body: Center(child: Text('Hello World!'))),
     );
   }
 }
