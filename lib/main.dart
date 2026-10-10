@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'providers/database_provider.dart';
 import 'theme/app_theme.dart';
+import 'ui/app_shell.dart';
 
 void main() {
   runApp(const ProviderScope(child: MainApp()));
@@ -20,7 +21,7 @@ class MainApp extends ConsumerWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
-      home: const Scaffold(body: Center(child: Text('Hello World!'))),
+      home: const AppShell(),
     );
   }
 }
