@@ -17,8 +17,13 @@ class Subscriptions extends Table {
     "NOT NULL CHECK (plan_type IN ('annual', 'multi_year', 'lifetime'))",
   )();
 
-  IntColumn get durationYears =>
-      integer().customConstraint('NOT NULL CHECK (duration_years > 0)')();
+  IntColumn get durationYears => integer().customConstraint('''
+    NOT NULL CHECK (
+      (plan_type = 'annual' AND duration_years = 1) OR
+      (plan_type = 'multi_year' AND duration_years > 1) OR
+      (plan_type = 'lifetime' AND duration_years = 10)
+    )
+  ''')();
 
   TextColumn get startDate => text()();
   TextColumn get expiryDate => text()();

@@ -1260,7 +1260,8 @@ class $SubscriptionsTable extends Subscriptions
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL CHECK (duration_years > 0)',
+    $customConstraints:
+        '    NOT NULL CHECK (\n      (plan_type = \'annual\' AND duration_years = 1) OR\n      (plan_type = \'multi_year\' AND duration_years > 1) OR\n      (plan_type = \'lifetime\' AND duration_years = 10)\n    )\n  ',
   );
   static const VerificationMeta _startDateMeta = const VerificationMeta(
     'startDate',

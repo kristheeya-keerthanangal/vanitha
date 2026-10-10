@@ -43,6 +43,30 @@ void main() {
     expect(await repository.getSubscription(created.id), created);
   });
 
+  test('uses fixed durations for annual and lifetime plans', () async {
+    final annual = await repository.createSubscription(
+      subscriberId: subscriberId,
+      edition: 'online',
+      planType: 'annual',
+      durationYears: 99,
+      startDate: DateTime(2026, 2, 10),
+      paymentStatus: 'paid',
+    );
+    final lifetime = await repository.createSubscription(
+      subscriberId: subscriberId,
+      edition: 'online',
+      planType: 'lifetime',
+      durationYears: 1,
+      startDate: DateTime(2026, 2, 10),
+      paymentStatus: 'paid',
+    );
+
+    expect(annual.durationYears, 1);
+    expect(annual.expiryDate, '2027-02-10');
+    expect(lifetime.durationYears, 10);
+    expect(lifetime.expiryDate, '2036-02-10');
+  });
+
   test('lists subscriptions for a subscriber in start-date order', () async {
     await repository.createSubscription(
       subscriberId: subscriberId,
@@ -56,7 +80,7 @@ void main() {
       subscriberId: subscriberId,
       edition: 'online',
       planType: 'lifetime',
-      durationYears: 50,
+      durationYears: 10,
       startDate: DateTime(2026, 1, 1),
       paymentStatus: 'paid',
     );
@@ -74,21 +98,21 @@ void main() {
     final created = await repository.createSubscription(
       subscriberId: subscriberId,
       edition: 'online',
-      planType: 'annual',
-      durationYears: 1,
+      planType: 'multi_year',
+      durationYears: 2,
       startDate: DateTime(2026, 2, 10),
       paymentStatus: 'unpaid',
     );
 
     final updated = await repository.updateSubscription(
       created.copyWith(
-        durationYears: 2,
+        durationYears: 3,
         startDate: '2026-03-15',
         paymentStatus: 'paid',
       ),
     );
 
-    expect(updated.expiryDate, '2028-03-15');
+    expect(updated.expiryDate, '2029-03-15');
     expect(updated.updatedAt, isNot(created.updatedAt));
   });
 

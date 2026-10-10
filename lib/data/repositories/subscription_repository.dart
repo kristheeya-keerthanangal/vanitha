@@ -17,7 +17,8 @@ class SubscriptionRepository {
   }) async {
     final now = _now();
     final normalizedStartDate = _dateOnly(startDate);
-    final expiryDate = _addYears(normalizedStartDate, durationYears);
+    final effectiveDuration = _durationForPlan(planType, durationYears);
+    final expiryDate = _addYears(normalizedStartDate, effectiveDuration);
 
     final id = await _database
         .into(_database.subscriptions)
@@ -26,7 +27,7 @@ class SubscriptionRepository {
             subscriberId: subscriberId,
             edition: edition,
             planType: planType,
-            durationYears: durationYears,
+            durationYears: effectiveDuration,
             startDate: _formatDate(normalizedStartDate),
             expiryDate: _formatDate(expiryDate),
             paymentStatus: paymentStatus,
@@ -60,8 +61,13 @@ class SubscriptionRepository {
 
   Future<Subscription> updateSubscription(Subscription subscription) async {
     final startDate = _parseDate(subscription.startDate);
+    final effectiveDuration = _durationForPlan(
+      subscription.planType,
+      subscription.durationYears,
+    );
     final updated = subscription.copyWith(
-      expiryDate: _formatDate(_addYears(startDate, subscription.durationYears)),
+      durationYears: effectiveDuration,
+      expiryDate: _formatDate(_addYears(startDate, effectiveDuration)),
       updatedAt: _now(),
     );
     final changed =
@@ -94,6 +100,20 @@ class SubscriptionRepository {
 
   DateTime _addYears(DateTime date, int years) =>
       DateTime.utc(date.year + years, date.month, date.day);
+
+  int _durationForPlan(String planType, int requestedDuration) {
+    switch (planType) {
+      case 'annual':
+        return 1;
+      case 'lifetime':
+        return 10;
+      case 'multi_year':
+        if (requestedDuration > 1) return requestedDuration;
+        throw ArgumentError('A multi-year plan must be longer than one year');
+      default:
+        throw ArgumentError('Unsupported subscription plan: $planType');
+    }
+  }
 
   DateTime _parseDate(String value) {
     final parsed = DateTime.tryParse(value);

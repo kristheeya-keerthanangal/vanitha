@@ -1,0 +1,30 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../providers/database_provider.dart';
+import 'subscriber_form.dart';
+
+class AddSubscriberButton extends ConsumerWidget {
+  const AddSubscriberButton({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return FilledButton.icon(
+      onPressed: () async {
+        final added = await showDialog<bool>(
+          context: context,
+          builder: (context) => AddSubscriberForm(
+            repository: ref.read(subscriberRegistrationRepositoryProvider),
+          ),
+        );
+        if (added == true && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Subscriber added successfully')),
+          );
+        }
+      },
+      icon: const Icon(Icons.person_add),
+      label: const Text('Add subscriber'),
+    );
+  }
+}

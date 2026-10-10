@@ -17,7 +17,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'vanithabodhini'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -28,9 +28,42 @@ class AppDatabase extends _$AppDatabase {
       } else if (from < 3) {
         await m.createTable(subscriptions);
       }
+      if (from < 4) {
+        final existingSubscriptions = await select(subscriptions).get();
+        for (final subscription in existingSubscriptions) {
+          final durationYears = switch (subscription.planType) {
+            'annual' => 1,
+            'lifetime' => 10,
+            'multi_year' =>
+              subscription.durationYears < 2 ? 2 : subscription.durationYears,
+            _ => subscription.durationYears,
+          };
+          final startDate = DateTime.tryParse(subscription.startDate);
+          final expiryDate = startDate == null
+              ? subscription.expiryDate
+              : _formatDate(_addYears(startDate, durationYears));
+          await (update(
+            subscriptions,
+          )..where((row) => row.id.equals(subscription.id))).write(
+            SubscriptionsCompanion(
+              durationYears: Value(durationYears),
+              expiryDate: Value(expiryDate),
+            ),
+          );
+        }
+        await m.alterTable(TableMigration(subscriptions));
+      }
     },
   );
 }
+
+DateTime _addYears(DateTime date, int years) =>
+    DateTime.utc(date.year + years, date.month, date.day);
+
+String _formatDate(DateTime date) =>
+    '${date.year.toString().padLeft(4, '0')}-'
+    '${date.month.toString().padLeft(2, '0')}-'
+    '${date.day.toString().padLeft(2, '0')}';
 
 extension SubscriberDisplayNumber on Subscriber {
   String get displayNumber => 'SUB-${id.toString().padLeft(6, '0')}';

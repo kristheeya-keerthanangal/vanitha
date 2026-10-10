@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_database.dart';
 import '../data/repositories/subscriber_repository.dart';
+import '../data/repositories/subscriber_registration_repository.dart';
 import '../data/repositories/subscription_repository.dart';
 
 /// The database is an infrastructure dependency. UI code should depend on
@@ -19,3 +20,8 @@ final subscriberRepositoryProvider = Provider<SubscriberRepository>((ref) {
 final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
   return SubscriptionRepository(ref.watch(databaseProvider));
 });
+
+final subscriberRegistrationRepositoryProvider =
+    Provider<SubscriberRegistrationRepository>((ref) {
+      return SubscriberRegistrationRepository(ref.watch(databaseProvider));
+    });
