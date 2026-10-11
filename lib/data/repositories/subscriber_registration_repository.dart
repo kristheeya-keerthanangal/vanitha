@@ -15,9 +15,7 @@ class SubscriberRegistrationRepository {
   final AppDatabase _database;
 
   Future<SubscriberRegistration> registerSubscriber({
-    required String subscriberType,
     required String name,
-    String? contactPersonName,
     String? email,
     String? phone,
     String? postalAddress,
@@ -40,9 +38,7 @@ class SubscriberRegistrationRepository {
           .into(_database.subscribers)
           .insert(
             SubscribersCompanion.insert(
-              subscriberType: subscriberType,
               name: name.trim(),
-              contactPersonName: Value(_optional(contactPersonName)),
               email: Value(_optional(email)),
               phone: Value(_optional(phone)),
               postalAddress: Value(_optional(postalAddress)),

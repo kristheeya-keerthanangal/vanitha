@@ -20,7 +20,6 @@ void main() {
 
   test('creates and reads a subscriber with an audit entry', () async {
     final created = await repository.createSubscriber(
-      subscriberType: 'individual',
       name: 'Anita Rao',
       email: 'anita@example.com',
     );
@@ -32,10 +31,7 @@ void main() {
   });
 
   test('updates a subscriber and records before-and-after values', () async {
-    final created = await repository.createSubscriber(
-      subscriberType: 'organization',
-      name: 'Original Name',
-    );
+    final created = await repository.createSubscriber(name: 'Original Name');
 
     final updated = await repository.updateSubscriber(
       created.copyWith(
@@ -57,12 +53,10 @@ void main() {
     'searches active subscribers and can include archived records',
     () async {
       final active = await repository.createSubscriber(
-        subscriberType: 'individual',
         name: 'Active Subscriber',
         phone: '555-0100',
       );
       final archived = await repository.createSubscriber(
-        subscriberType: 'individual',
         name: 'Archived Subscriber',
       );
       await repository.archiveSubscriber(archived.id);
@@ -81,10 +75,7 @@ void main() {
   );
 
   test('archives, restores, and soft-deletes subscribers', () async {
-    final created = await repository.createSubscriber(
-      subscriberType: 'individual',
-      name: 'Archive Me',
-    );
+    final created = await repository.createSubscriber(name: 'Archive Me');
 
     final archived = await repository.archiveSubscriber(created.id);
     expect(archived.archivedAt, isNotNull);
@@ -101,7 +92,6 @@ void main() {
 
   test('does not audit archive and restore no-op mutations', () async {
     final created = await repository.createSubscriber(
-      subscriberType: 'individual',
       name: 'Idempotent Subscriber',
     );
 

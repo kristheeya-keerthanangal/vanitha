@@ -16,7 +16,6 @@ void main() {
     subscriberRepository = SubscriberRepository(database);
     repository = SubscriptionRepository(database);
     subscriberId = (await subscriberRepository.createSubscriber(
-      subscriberType: 'individual',
       name: 'Anita Rao',
     )).id;
   });

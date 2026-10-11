@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'app_text_form_field.dart';
-import 'app_dropdown_form_field.dart';
 import '../view_models/add_subscriber_form_view_model.dart';
 
 class SubscriberDetailsSection extends StatelessWidget {
@@ -15,17 +14,6 @@ class SubscriberDetailsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionTitle(title: 'Subscriber details'),
-        AppDropdownFormField(
-          label: 'Subscriber type',
-          value: viewModel.subscriberType,
-          values: const {
-            'individual': 'Individual',
-            'organization': 'Organization',
-          },
-          onChanged: viewModel.setSubscriberType,
-          validator: (value) =>
-              viewModel.validateSelection(value, 'Subscriber type'),
-        ),
         const SizedBox(height: 12),
         AppTextFormField(
           label: 'Name',
@@ -33,12 +21,6 @@ class SubscriberDetailsSection extends StatelessWidget {
           onChanged: viewModel.setName,
           validator: (value) =>
               viewModel.validateRequired(value, 'Enter a name'),
-        ),
-        const SizedBox(height: 12),
-        AppTextFormField(
-          label: 'Contact person name',
-          initialValue: viewModel.contactPersonName,
-          onChanged: viewModel.setContactPersonName,
         ),
         const SizedBox(height: 12),
         AppTextFormField(

@@ -23,11 +23,6 @@ class SubscribersTableSource extends DataTableSource {
       cells: [
         DataCell(Text(row.displayNumber)),
         DataCell(Text(row.name)),
-        DataCell(
-          Text(
-            row.subscriberType == 'individual' ? 'Individual' : 'Organization',
-          ),
-        ),
         DataCell(Text(row.email ?? '—')),
         DataCell(Text(row.phone ?? '—')),
       ],

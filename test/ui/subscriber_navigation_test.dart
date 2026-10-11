@@ -29,12 +29,7 @@ void main() {
     await tester.runAsync(() async {
       await database
           .into(database.subscribers)
-          .insert(
-            SubscribersCompanion.insert(
-              subscriberType: 'individual',
-              name: 'Narrow Reader',
-            ),
-          );
+          .insert(SubscribersCompanion.insert(name: 'Narrow Reader'));
     });
     container.read(routerProvider).go('/subscribers');
     await tester.pumpWidget(
@@ -42,6 +37,9 @@ void main() {
     );
     await tester.runAsync(container.read(subscribersViewModelProvider).refresh);
     await tester.pumpAndSettle();
+    expect(find.text('Search subscribers'), findsOneWidget);
+    expect(find.text('Enter Name, email or phone'), findsOneWidget);
+    expect(find.byIcon(Icons.search), findsOneWidget);
     expect(find.byType(PaginatedDataTable), findsOneWidget);
     expect(tester.takeException(), isNull);
     container.read(routerProvider).go('/subscribers/1');
@@ -74,7 +72,6 @@ void main() {
         (batch) => batch.insertAll(database.subscribers, [
           for (var i = 0; i < 55; i++)
             SubscribersCompanion.insert(
-              subscriberType: 'individual',
               name: 'Reader ${i.toString().padLeft(3, '0')}',
             ),
         ]),

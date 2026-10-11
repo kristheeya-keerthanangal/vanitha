@@ -76,7 +76,6 @@ class _SubscribersTableState extends State<SubscribersTable> {
           onSort: (_, ascending) =>
               model.changeSort(SubscriberSort.name, ascending),
         ),
-        const DataColumn(label: Text('Type')),
         const DataColumn(label: Text('Email')),
         const DataColumn(label: Text('Phone')),
       ],

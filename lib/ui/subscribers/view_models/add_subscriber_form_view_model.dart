@@ -7,9 +7,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
 
   final SubscriberRegistrationRepository _repository;
 
-  String? subscriberType;
   String name = '';
-  String contactPersonName = '';
   String email = '';
   String phone = '';
   String postalAddress = '';
@@ -35,15 +33,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
         '${date.day.toString().padLeft(2, '0')}';
   }
 
-  void setSubscriberType(String? value) {
-    subscriberType = value;
-    notifyListeners();
-  }
-
   void setName(String value) => _set(() => name = value);
-
-  void setContactPersonName(String value) =>
-      _set(() => contactPersonName = value);
 
   void setEmail(String value) => _set(() => email = value);
 
@@ -119,8 +109,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
   Future<bool> save() async {
     final selectedPlan = planType;
     final selectedStartDate = startDate;
-    if (subscriberType == null ||
-        name.trim().isEmpty ||
+    if (name.trim().isEmpty ||
         edition == null ||
         selectedPlan == null ||
         paymentStatus == null ||
@@ -142,9 +131,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       await _repository.registerSubscriber(
-        subscriberType: subscriberType!,
         name: name,
-        contactPersonName: contactPersonName,
         email: email,
         phone: phone,
         postalAddress: postalAddress,

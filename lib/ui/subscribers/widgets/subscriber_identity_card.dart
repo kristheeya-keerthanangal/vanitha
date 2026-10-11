@@ -11,9 +11,6 @@ class SubscriberIdentityCard extends StatelessWidget {
     fields: {
       'Subscriber number': subscriber.displayNumber,
       'Name': subscriber.name,
-      'Type': subscriber.subscriberType == 'individual'
-          ? 'Individual'
-          : 'Organization',
       'Created': subscriber.createdAt,
       'Updated': subscriber.updatedAt,
     },

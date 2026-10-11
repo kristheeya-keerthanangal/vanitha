@@ -8,10 +8,6 @@ class SubscriberContactCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DetailsCard(
     title: 'Contact details',
-    fields: {
-      'Contact person': subscriber.contactPersonName,
-      'Email': subscriber.email,
-      'Phone': subscriber.phone,
-    },
+    fields: {'Email': subscriber.email, 'Phone': subscriber.phone},
   );
 }

@@ -68,9 +68,7 @@ class SubscriberRepository {
   }
 
   Future<Subscriber> createSubscriber({
-    required String subscriberType,
     required String name,
-    String? contactPersonName,
     String? email,
     String? phone,
     String? postalAddress,
@@ -86,9 +84,7 @@ class SubscriberRepository {
           .into(_database.subscribers)
           .insert(
             SubscribersCompanion.insert(
-              subscriberType: subscriberType,
               name: name,
-              contactPersonName: Value(contactPersonName),
               email: Value(email),
               phone: Value(phone),
               postalAddress: Value(postalAddress),

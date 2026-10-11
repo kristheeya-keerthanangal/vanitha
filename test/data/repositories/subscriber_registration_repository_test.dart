@@ -19,7 +19,6 @@ void main() {
 
   test('creates a subscriber and subscription atomically', () async {
     final result = await repository.registerSubscriber(
-      subscriberType: 'individual',
       name: 'Anita Rao',
       email: 'anita@example.com',
       edition: 'online',
@@ -38,7 +37,6 @@ void main() {
   test('rolls back the subscriber when subscription creation fails', () async {
     expect(
       repository.registerSubscriber(
-        subscriberType: 'individual',
         name: 'Invalid Subscription',
         edition: 'invalid',
         planType: 'annual',

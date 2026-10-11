@@ -17,7 +17,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'vanithabodhini'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -52,6 +52,20 @@ class AppDatabase extends _$AppDatabase {
           );
         }
         await m.alterTable(TableMigration(subscriptions));
+      }
+      if (from < 5) {
+        // Reset data created with the previous subscriber model.
+        await delete(subscriptions).go();
+        await delete(auditLogs).go();
+        await delete(subscribers).go();
+        await m.alterTable(TableMigration(subscribers));
+      }
+      if (from < 6) {
+        // Reset data again after removing contact-person details.
+        await delete(subscriptions).go();
+        await delete(auditLogs).go();
+        await delete(subscribers).go();
+        await m.alterTable(TableMigration(subscribers));
       }
     },
   );

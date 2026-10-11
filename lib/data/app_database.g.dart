@@ -22,19 +22,6 @@ class $SubscribersTable extends Subscribers
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
-  static const VerificationMeta _subscriberTypeMeta = const VerificationMeta(
-    'subscriberType',
-  );
-  @override
-  late final GeneratedColumn<String> subscriberType = GeneratedColumn<String>(
-    'subscriber_type',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints:
-        'NOT NULL CHECK (subscriber_type IN (\'individual\', \'organization\'))',
-  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -45,18 +32,6 @@ class $SubscribersTable extends Subscribers
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL CHECK (LENGTH(TRIM(name)) > 0)',
   );
-  static const VerificationMeta _contactPersonNameMeta = const VerificationMeta(
-    'contactPersonName',
-  );
-  @override
-  late final GeneratedColumn<String> contactPersonName =
-      GeneratedColumn<String>(
-        'contact_person_name',
-        aliasedName,
-        true,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-      );
   static const VerificationMeta _emailMeta = const VerificationMeta('email');
   @override
   late final GeneratedColumn<String> email = GeneratedColumn<String>(
@@ -166,9 +141,7 @@ class $SubscribersTable extends Subscribers
   @override
   List<GeneratedColumn> get $columns => [
     id,
-    subscriberType,
     name,
-    contactPersonName,
     email,
     phone,
     postalAddress,
@@ -195,17 +168,6 @@ class $SubscribersTable extends Subscribers
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
-    if (data.containsKey('subscriber_type')) {
-      context.handle(
-        _subscriberTypeMeta,
-        subscriberType.isAcceptableOrUnknown(
-          data['subscriber_type']!,
-          _subscriberTypeMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_subscriberTypeMeta);
-    }
     if (data.containsKey('name')) {
       context.handle(
         _nameMeta,
@@ -213,15 +175,6 @@ class $SubscribersTable extends Subscribers
       );
     } else if (isInserting) {
       context.missing(_nameMeta);
-    }
-    if (data.containsKey('contact_person_name')) {
-      context.handle(
-        _contactPersonNameMeta,
-        contactPersonName.isAcceptableOrUnknown(
-          data['contact_person_name']!,
-          _contactPersonNameMeta,
-        ),
-      );
     }
     if (data.containsKey('email')) {
       context.handle(
@@ -299,18 +252,10 @@ class $SubscribersTable extends Subscribers
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
-      subscriberType: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}subscriber_type'],
-      )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
-      contactPersonName: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}contact_person_name'],
-      ),
       email: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}email'],
@@ -362,9 +307,7 @@ class $SubscribersTable extends Subscribers
 
 class Subscriber extends DataClass implements Insertable<Subscriber> {
   final int id;
-  final String subscriberType;
   final String name;
-  final String? contactPersonName;
   final String? email;
   final String? phone;
   final String? postalAddress;
@@ -377,9 +320,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
   final String? archivedAt;
   const Subscriber({
     required this.id,
-    required this.subscriberType,
     required this.name,
-    this.contactPersonName,
     this.email,
     this.phone,
     this.postalAddress,
@@ -395,11 +336,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['subscriber_type'] = Variable<String>(subscriberType);
     map['name'] = Variable<String>(name);
-    if (!nullToAbsent || contactPersonName != null) {
-      map['contact_person_name'] = Variable<String>(contactPersonName);
-    }
     if (!nullToAbsent || email != null) {
       map['email'] = Variable<String>(email);
     }
@@ -432,11 +369,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
   SubscribersCompanion toCompanion(bool nullToAbsent) {
     return SubscribersCompanion(
       id: Value(id),
-      subscriberType: Value(subscriberType),
       name: Value(name),
-      contactPersonName: contactPersonName == null && nullToAbsent
-          ? const Value.absent()
-          : Value(contactPersonName),
       email: email == null && nullToAbsent
           ? const Value.absent()
           : Value(email),
@@ -471,11 +404,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Subscriber(
       id: serializer.fromJson<int>(json['id']),
-      subscriberType: serializer.fromJson<String>(json['subscriberType']),
       name: serializer.fromJson<String>(json['name']),
-      contactPersonName: serializer.fromJson<String?>(
-        json['contactPersonName'],
-      ),
       email: serializer.fromJson<String?>(json['email']),
       phone: serializer.fromJson<String?>(json['phone']),
       postalAddress: serializer.fromJson<String?>(json['postalAddress']),
@@ -493,9 +422,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'subscriberType': serializer.toJson<String>(subscriberType),
       'name': serializer.toJson<String>(name),
-      'contactPersonName': serializer.toJson<String?>(contactPersonName),
       'email': serializer.toJson<String?>(email),
       'phone': serializer.toJson<String?>(phone),
       'postalAddress': serializer.toJson<String?>(postalAddress),
@@ -511,9 +438,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
 
   Subscriber copyWith({
     int? id,
-    String? subscriberType,
     String? name,
-    Value<String?> contactPersonName = const Value.absent(),
     Value<String?> email = const Value.absent(),
     Value<String?> phone = const Value.absent(),
     Value<String?> postalAddress = const Value.absent(),
@@ -526,11 +451,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
     Value<String?> archivedAt = const Value.absent(),
   }) => Subscriber(
     id: id ?? this.id,
-    subscriberType: subscriberType ?? this.subscriberType,
     name: name ?? this.name,
-    contactPersonName: contactPersonName.present
-        ? contactPersonName.value
-        : this.contactPersonName,
     email: email.present ? email.value : this.email,
     phone: phone.present ? phone.value : this.phone,
     postalAddress: postalAddress.present
@@ -547,13 +468,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
   Subscriber copyWithCompanion(SubscribersCompanion data) {
     return Subscriber(
       id: data.id.present ? data.id.value : this.id,
-      subscriberType: data.subscriberType.present
-          ? data.subscriberType.value
-          : this.subscriberType,
       name: data.name.present ? data.name.value : this.name,
-      contactPersonName: data.contactPersonName.present
-          ? data.contactPersonName.value
-          : this.contactPersonName,
       email: data.email.present ? data.email.value : this.email,
       phone: data.phone.present ? data.phone.value : this.phone,
       postalAddress: data.postalAddress.present
@@ -577,9 +492,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
   String toString() {
     return (StringBuffer('Subscriber(')
           ..write('id: $id, ')
-          ..write('subscriberType: $subscriberType, ')
           ..write('name: $name, ')
-          ..write('contactPersonName: $contactPersonName, ')
           ..write('email: $email, ')
           ..write('phone: $phone, ')
           ..write('postalAddress: $postalAddress, ')
@@ -597,9 +510,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
   @override
   int get hashCode => Object.hash(
     id,
-    subscriberType,
     name,
-    contactPersonName,
     email,
     phone,
     postalAddress,
@@ -616,9 +527,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
       identical(this, other) ||
       (other is Subscriber &&
           other.id == this.id &&
-          other.subscriberType == this.subscriberType &&
           other.name == this.name &&
-          other.contactPersonName == this.contactPersonName &&
           other.email == this.email &&
           other.phone == this.phone &&
           other.postalAddress == this.postalAddress &&
@@ -633,9 +542,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
 
 class SubscribersCompanion extends UpdateCompanion<Subscriber> {
   final Value<int> id;
-  final Value<String> subscriberType;
   final Value<String> name;
-  final Value<String?> contactPersonName;
   final Value<String?> email;
   final Value<String?> phone;
   final Value<String?> postalAddress;
@@ -648,9 +555,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
   final Value<String?> archivedAt;
   const SubscribersCompanion({
     this.id = const Value.absent(),
-    this.subscriberType = const Value.absent(),
     this.name = const Value.absent(),
-    this.contactPersonName = const Value.absent(),
     this.email = const Value.absent(),
     this.phone = const Value.absent(),
     this.postalAddress = const Value.absent(),
@@ -664,9 +569,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
   });
   SubscribersCompanion.insert({
     this.id = const Value.absent(),
-    required String subscriberType,
     required String name,
-    this.contactPersonName = const Value.absent(),
     this.email = const Value.absent(),
     this.phone = const Value.absent(),
     this.postalAddress = const Value.absent(),
@@ -677,13 +580,10 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
-  }) : subscriberType = Value(subscriberType),
-       name = Value(name);
+  }) : name = Value(name);
   static Insertable<Subscriber> custom({
     Expression<int>? id,
-    Expression<String>? subscriberType,
     Expression<String>? name,
-    Expression<String>? contactPersonName,
     Expression<String>? email,
     Expression<String>? phone,
     Expression<String>? postalAddress,
@@ -697,9 +597,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (subscriberType != null) 'subscriber_type': subscriberType,
       if (name != null) 'name': name,
-      if (contactPersonName != null) 'contact_person_name': contactPersonName,
       if (email != null) 'email': email,
       if (phone != null) 'phone': phone,
       if (postalAddress != null) 'postal_address': postalAddress,
@@ -715,9 +613,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
 
   SubscribersCompanion copyWith({
     Value<int>? id,
-    Value<String>? subscriberType,
     Value<String>? name,
-    Value<String?>? contactPersonName,
     Value<String?>? email,
     Value<String?>? phone,
     Value<String?>? postalAddress,
@@ -731,9 +627,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
   }) {
     return SubscribersCompanion(
       id: id ?? this.id,
-      subscriberType: subscriberType ?? this.subscriberType,
       name: name ?? this.name,
-      contactPersonName: contactPersonName ?? this.contactPersonName,
       email: email ?? this.email,
       phone: phone ?? this.phone,
       postalAddress: postalAddress ?? this.postalAddress,
@@ -753,14 +647,8 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
-    if (subscriberType.present) {
-      map['subscriber_type'] = Variable<String>(subscriberType.value);
-    }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
-    }
-    if (contactPersonName.present) {
-      map['contact_person_name'] = Variable<String>(contactPersonName.value);
     }
     if (email.present) {
       map['email'] = Variable<String>(email.value);
@@ -799,9 +687,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
   String toString() {
     return (StringBuffer('SubscribersCompanion(')
           ..write('id: $id, ')
-          ..write('subscriberType: $subscriberType, ')
           ..write('name: $name, ')
-          ..write('contactPersonName: $contactPersonName, ')
           ..write('email: $email, ')
           ..write('phone: $phone, ')
           ..write('postalAddress: $postalAddress, ')
@@ -1850,9 +1736,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 typedef $$SubscribersTableCreateCompanionBuilder =
     SubscribersCompanion Function({
       Value<int> id,
-      required String subscriberType,
       required String name,
-      Value<String?> contactPersonName,
       Value<String?> email,
       Value<String?> phone,
       Value<String?> postalAddress,
@@ -1867,9 +1751,7 @@ typedef $$SubscribersTableCreateCompanionBuilder =
 typedef $$SubscribersTableUpdateCompanionBuilder =
     SubscribersCompanion Function({
       Value<int> id,
-      Value<String> subscriberType,
       Value<String> name,
-      Value<String?> contactPersonName,
       Value<String?> email,
       Value<String?> phone,
       Value<String?> postalAddress,
@@ -1937,18 +1819,8 @@ class $$SubscribersTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get subscriberType => $composableBuilder(
-    column: $table.subscriberType,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get contactPersonName => $composableBuilder(
-    column: $table.contactPersonName,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2067,18 +1939,8 @@ class $$SubscribersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get subscriberType => $composableBuilder(
-    column: $table.subscriberType,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get contactPersonName => $composableBuilder(
-    column: $table.contactPersonName,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2145,18 +2007,8 @@ class $$SubscribersTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get subscriberType => $composableBuilder(
-    column: $table.subscriberType,
-    builder: (column) => column,
-  );
-
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get contactPersonName => $composableBuilder(
-    column: $table.contactPersonName,
-    builder: (column) => column,
-  );
 
   GeneratedColumn<String> get email =>
       $composableBuilder(column: $table.email, builder: (column) => column);
@@ -2274,9 +2126,7 @@ class $$SubscribersTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<String> subscriberType = const Value.absent(),
                 Value<String> name = const Value.absent(),
-                Value<String?> contactPersonName = const Value.absent(),
                 Value<String?> email = const Value.absent(),
                 Value<String?> phone = const Value.absent(),
                 Value<String?> postalAddress = const Value.absent(),
@@ -2289,9 +2139,7 @@ class $$SubscribersTableTableManager
                 Value<String?> archivedAt = const Value.absent(),
               }) => SubscribersCompanion(
                 id: id,
-                subscriberType: subscriberType,
                 name: name,
-                contactPersonName: contactPersonName,
                 email: email,
                 phone: phone,
                 postalAddress: postalAddress,
@@ -2306,9 +2154,7 @@ class $$SubscribersTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                required String subscriberType,
                 required String name,
-                Value<String?> contactPersonName = const Value.absent(),
                 Value<String?> email = const Value.absent(),
                 Value<String?> phone = const Value.absent(),
                 Value<String?> postalAddress = const Value.absent(),
@@ -2321,9 +2167,7 @@ class $$SubscribersTableTableManager
                 Value<String?> archivedAt = const Value.absent(),
               }) => SubscribersCompanion.insert(
                 id: id,
-                subscriberType: subscriberType,
                 name: name,
-                contactPersonName: contactPersonName,
                 email: email,
                 phone: phone,
                 postalAddress: postalAddress,

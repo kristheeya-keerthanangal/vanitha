@@ -34,7 +34,6 @@ void main() {
     await tester.pump();
 
     expect(find.text('Enter a name'), findsOneWidget);
-    expect(find.text('select subscriber type'), findsOneWidget);
     expect(find.text('select edition'), findsOneWidget);
     expect(find.text('select plan type'), findsOneWidget);
     expect(find.text('select payment status'), findsOneWidget);
@@ -81,7 +80,7 @@ void main() {
 
     expect(find.text('Duration (years)'), findsNothing);
 
-    final planTypeField = find.byType(DropdownButtonFormField<String>).at(2);
+    final planTypeField = find.byType(DropdownButtonFormField<String>).at(1);
     await tester.ensureVisible(planTypeField);
     await tester.tap(planTypeField);
     await tester.pumpAndSettle();

@@ -13,7 +13,6 @@ void main() {
       (batch) => batch.insertAll(database.subscribers, [
         for (var i = 0; i < 550; i++)
           SubscribersCompanion.insert(
-            subscriberType: 'individual',
             name: 'Reader ${i.toString().padLeft(3, '0')}',
           ),
       ]),
@@ -41,7 +40,6 @@ void main() {
     'search is literal, excludes archived rows and matches contacts',
     () async {
       final literal = await repository.createSubscriber(
-        subscriberType: 'individual',
         name: '100%_Special',
         email: 'unique@example.com',
         phone: '555-0199',
@@ -66,14 +64,8 @@ void main() {
   test(
     'sorting is stable for equal names and supports descending ID',
     () async {
-      final first = await repository.createSubscriber(
-        subscriberType: 'individual',
-        name: 'same',
-      );
-      final second = await repository.createSubscriber(
-        subscriberType: 'individual',
-        name: 'SAME',
-      );
+      final first = await repository.createSubscriber(name: 'same');
+      final second = await repository.createSubscriber(name: 'SAME');
       final page = await repository.getSubscribersPage(search: 'same');
       expect(page.rows.map((row) => row.id), [first.id, second.id]);
       final descending = await repository.getSubscribersPage(
