@@ -67,6 +67,7 @@ class SubscriptionRepository {
     );
     final updated = subscription.copyWith(
       durationYears: effectiveDuration,
+      startDate: _formatDate(startDate),
       expiryDate: _formatDate(_addYears(startDate, effectiveDuration)),
       updatedAt: _now(),
     );
@@ -116,11 +117,22 @@ class SubscriptionRepository {
   }
 
   DateTime _parseDate(String value) {
+    final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})(?:$|T)').firstMatch(value);
     final parsed = DateTime.tryParse(value);
-    if (parsed == null) {
+    if (match == null || parsed == null) {
       throw FormatException('Invalid subscription start date: $value');
     }
-    return _dateOnly(parsed);
+
+    final year = int.parse(match.group(1)!);
+    final month = int.parse(match.group(2)!);
+    final day = int.parse(match.group(3)!);
+    final normalized = DateTime.utc(year, month, day);
+    if (normalized.year != year ||
+        normalized.month != month ||
+        normalized.day != day) {
+      throw FormatException('Invalid subscription start date: $value');
+    }
+    return normalized;
   }
 
   String _formatDate(DateTime date) =>

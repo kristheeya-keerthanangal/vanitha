@@ -115,6 +115,40 @@ void main() {
     expect(updated.updatedAt, isNot(created.updatedAt));
   });
 
+  test('normalizes timestamp start dates when updating', () async {
+    final created = await repository.createSubscription(
+      subscriberId: subscriberId,
+      edition: 'online',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: DateTime(2026, 2, 10),
+      paymentStatus: 'paid',
+    );
+
+    final updated = await repository.updateSubscription(
+      created.copyWith(startDate: '2026-03-15T12:00:00Z'),
+    );
+
+    expect(updated.startDate, '2026-03-15');
+    expect(updated.expiryDate, '2027-03-15');
+  });
+
+  test('rejects invalid calendar dates when updating', () async {
+    final created = await repository.createSubscription(
+      subscriberId: subscriberId,
+      edition: 'online',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: DateTime(2026, 2, 10),
+      paymentStatus: 'paid',
+    );
+
+    expect(
+      repository.updateSubscription(created.copyWith(startDate: '2026-02-30')),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
   test('enforces subscription value constraints', () async {
     expect(
       repository.createSubscription(
@@ -123,6 +157,20 @@ void main() {
         planType: 'annual',
         durationYears: 1,
         startDate: DateTime(2026),
+        paymentStatus: 'paid',
+      ),
+      throwsA(isA<Exception>()),
+    );
+  });
+
+  test('rejects subscriptions for an unknown subscriber', () async {
+    expect(
+      repository.createSubscription(
+        subscriberId: 999,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime(2026, 1, 1),
         paymentStatus: 'paid',
       ),
       throwsA(isA<Exception>()),

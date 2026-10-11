@@ -22,6 +22,9 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+    },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
         await m.createAll();
@@ -53,18 +56,11 @@ class AppDatabase extends _$AppDatabase {
         }
         await m.alterTable(TableMigration(subscriptions));
       }
-      if (from < 5) {
-        // Reset data created with the previous subscriber model.
-        await delete(subscriptions).go();
-        await delete(auditLogs).go();
-        await delete(subscribers).go();
-        await m.alterTable(TableMigration(subscribers));
-      }
       if (from < 6) {
-        // Reset data again after removing contact-person details.
-        await delete(subscriptions).go();
-        await delete(auditLogs).go();
-        await delete(subscribers).go();
+        // Versions 5 and 6 removed subscriber columns. Rebuild the table
+        // while retaining all columns shared by the old and new schemas.
+        // Do not delete subscribers first: subscriptions and audit logs must
+        // continue to reference the existing subscriber IDs.
         await m.alterTable(TableMigration(subscribers));
       }
     },
