@@ -1210,6 +1210,17 @@ class $SubscriptionsTable extends Subscriptions
     $customConstraints: 'NOT NULL DEFAULT CURRENT_TIMESTAMP',
     defaultValue: const CustomExpression('CURRENT_TIMESTAMP'),
   );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<String> archivedAt = GeneratedColumn<String>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1222,6 +1233,7 @@ class $SubscriptionsTable extends Subscriptions
     paymentStatus,
     createdAt,
     updatedAt,
+    archivedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1315,6 +1327,12 @@ class $SubscriptionsTable extends Subscriptions
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -1364,6 +1382,10 @@ class $SubscriptionsTable extends Subscriptions
         DriftSqlType.string,
         data['${effectivePrefix}updated_at'],
       )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}archived_at'],
+      ),
     );
   }
 
@@ -1384,6 +1406,7 @@ class Subscription extends DataClass implements Insertable<Subscription> {
   final String paymentStatus;
   final String createdAt;
   final String updatedAt;
+  final String? archivedAt;
   const Subscription({
     required this.id,
     required this.subscriberId,
@@ -1395,6 +1418,7 @@ class Subscription extends DataClass implements Insertable<Subscription> {
     required this.paymentStatus,
     required this.createdAt,
     required this.updatedAt,
+    this.archivedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1409,6 +1433,9 @@ class Subscription extends DataClass implements Insertable<Subscription> {
     map['payment_status'] = Variable<String>(paymentStatus);
     map['created_at'] = Variable<String>(createdAt);
     map['updated_at'] = Variable<String>(updatedAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<String>(archivedAt);
+    }
     return map;
   }
 
@@ -1424,6 +1451,9 @@ class Subscription extends DataClass implements Insertable<Subscription> {
       paymentStatus: Value(paymentStatus),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
     );
   }
 
@@ -1443,6 +1473,7 @@ class Subscription extends DataClass implements Insertable<Subscription> {
       paymentStatus: serializer.fromJson<String>(json['paymentStatus']),
       createdAt: serializer.fromJson<String>(json['createdAt']),
       updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      archivedAt: serializer.fromJson<String?>(json['archivedAt']),
     );
   }
   @override
@@ -1459,6 +1490,7 @@ class Subscription extends DataClass implements Insertable<Subscription> {
       'paymentStatus': serializer.toJson<String>(paymentStatus),
       'createdAt': serializer.toJson<String>(createdAt),
       'updatedAt': serializer.toJson<String>(updatedAt),
+      'archivedAt': serializer.toJson<String?>(archivedAt),
     };
   }
 
@@ -1473,6 +1505,7 @@ class Subscription extends DataClass implements Insertable<Subscription> {
     String? paymentStatus,
     String? createdAt,
     String? updatedAt,
+    Value<String?> archivedAt = const Value.absent(),
   }) => Subscription(
     id: id ?? this.id,
     subscriberId: subscriberId ?? this.subscriberId,
@@ -1484,6 +1517,7 @@ class Subscription extends DataClass implements Insertable<Subscription> {
     paymentStatus: paymentStatus ?? this.paymentStatus,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
   );
   Subscription copyWithCompanion(SubscriptionsCompanion data) {
     return Subscription(
@@ -1505,6 +1539,9 @@ class Subscription extends DataClass implements Insertable<Subscription> {
           : this.paymentStatus,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
     );
   }
 
@@ -1520,7 +1557,8 @@ class Subscription extends DataClass implements Insertable<Subscription> {
           ..write('expiryDate: $expiryDate, ')
           ..write('paymentStatus: $paymentStatus, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('archivedAt: $archivedAt')
           ..write(')'))
         .toString();
   }
@@ -1537,6 +1575,7 @@ class Subscription extends DataClass implements Insertable<Subscription> {
     paymentStatus,
     createdAt,
     updatedAt,
+    archivedAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -1551,7 +1590,8 @@ class Subscription extends DataClass implements Insertable<Subscription> {
           other.expiryDate == this.expiryDate &&
           other.paymentStatus == this.paymentStatus &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.archivedAt == this.archivedAt);
 }
 
 class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
@@ -1565,6 +1605,7 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
   final Value<String> paymentStatus;
   final Value<String> createdAt;
   final Value<String> updatedAt;
+  final Value<String?> archivedAt;
   const SubscriptionsCompanion({
     this.id = const Value.absent(),
     this.subscriberId = const Value.absent(),
@@ -1576,6 +1617,7 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
     this.paymentStatus = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
   });
   SubscriptionsCompanion.insert({
     this.id = const Value.absent(),
@@ -1588,6 +1630,7 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
     required String paymentStatus,
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
   }) : subscriberId = Value(subscriberId),
        edition = Value(edition),
        planType = Value(planType),
@@ -1606,6 +1649,7 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
     Expression<String>? paymentStatus,
     Expression<String>? createdAt,
     Expression<String>? updatedAt,
+    Expression<String>? archivedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1618,6 +1662,7 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
       if (paymentStatus != null) 'payment_status': paymentStatus,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
     });
   }
 
@@ -1632,6 +1677,7 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
     Value<String>? paymentStatus,
     Value<String>? createdAt,
     Value<String>? updatedAt,
+    Value<String?>? archivedAt,
   }) {
     return SubscriptionsCompanion(
       id: id ?? this.id,
@@ -1644,6 +1690,7 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
       paymentStatus: paymentStatus ?? this.paymentStatus,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      archivedAt: archivedAt ?? this.archivedAt,
     );
   }
 
@@ -1680,6 +1727,9 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<String>(updatedAt.value);
     }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<String>(archivedAt.value);
+    }
     return map;
   }
 
@@ -1695,7 +1745,340 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
           ..write('expiryDate: $expiryDate, ')
           ..write('paymentStatus: $paymentStatus, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('archivedAt: $archivedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MigrationSnapshotsTable extends MigrationSnapshots
+    with TableInfo<$MigrationSnapshotsTable, MigrationSnapshot> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MigrationSnapshotsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _sourceTableMeta = const VerificationMeta(
+    'sourceTable',
+  );
+  @override
+  late final GeneratedColumn<String> sourceTable = GeneratedColumn<String>(
+    'source_table',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rowIdMeta = const VerificationMeta('rowId');
+  @override
+  late final GeneratedColumn<int> rowId = GeneratedColumn<int>(
+    'row_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceVersionMeta = const VerificationMeta(
+    'sourceVersion',
+  );
+  @override
+  late final GeneratedColumn<int> sourceVersion = GeneratedColumn<int>(
+    'source_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valuesJsonMeta = const VerificationMeta(
+    'valuesJson',
+  );
+  @override
+  late final GeneratedColumn<String> valuesJson = GeneratedColumn<String>(
+    'values_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    sourceTable,
+    rowId,
+    sourceVersion,
+    valuesJson,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'migration_snapshots';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MigrationSnapshot> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('source_table')) {
+      context.handle(
+        _sourceTableMeta,
+        sourceTable.isAcceptableOrUnknown(
+          data['source_table']!,
+          _sourceTableMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceTableMeta);
+    }
+    if (data.containsKey('row_id')) {
+      context.handle(
+        _rowIdMeta,
+        rowId.isAcceptableOrUnknown(data['row_id']!, _rowIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rowIdMeta);
+    }
+    if (data.containsKey('source_version')) {
+      context.handle(
+        _sourceVersionMeta,
+        sourceVersion.isAcceptableOrUnknown(
+          data['source_version']!,
+          _sourceVersionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceVersionMeta);
+    }
+    if (data.containsKey('values_json')) {
+      context.handle(
+        _valuesJsonMeta,
+        valuesJson.isAcceptableOrUnknown(data['values_json']!, _valuesJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valuesJsonMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {sourceTable, rowId, sourceVersion};
+  @override
+  MigrationSnapshot map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MigrationSnapshot(
+      sourceTable: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_table'],
+      )!,
+      rowId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}row_id'],
+      )!,
+      sourceVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_version'],
+      )!,
+      valuesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}values_json'],
+      )!,
+    );
+  }
+
+  @override
+  $MigrationSnapshotsTable createAlias(String alias) {
+    return $MigrationSnapshotsTable(attachedDatabase, alias);
+  }
+}
+
+class MigrationSnapshot extends DataClass
+    implements Insertable<MigrationSnapshot> {
+  final String sourceTable;
+  final int rowId;
+  final int sourceVersion;
+  final String valuesJson;
+  const MigrationSnapshot({
+    required this.sourceTable,
+    required this.rowId,
+    required this.sourceVersion,
+    required this.valuesJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['source_table'] = Variable<String>(sourceTable);
+    map['row_id'] = Variable<int>(rowId);
+    map['source_version'] = Variable<int>(sourceVersion);
+    map['values_json'] = Variable<String>(valuesJson);
+    return map;
+  }
+
+  MigrationSnapshotsCompanion toCompanion(bool nullToAbsent) {
+    return MigrationSnapshotsCompanion(
+      sourceTable: Value(sourceTable),
+      rowId: Value(rowId),
+      sourceVersion: Value(sourceVersion),
+      valuesJson: Value(valuesJson),
+    );
+  }
+
+  factory MigrationSnapshot.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MigrationSnapshot(
+      sourceTable: serializer.fromJson<String>(json['sourceTable']),
+      rowId: serializer.fromJson<int>(json['rowId']),
+      sourceVersion: serializer.fromJson<int>(json['sourceVersion']),
+      valuesJson: serializer.fromJson<String>(json['valuesJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'sourceTable': serializer.toJson<String>(sourceTable),
+      'rowId': serializer.toJson<int>(rowId),
+      'sourceVersion': serializer.toJson<int>(sourceVersion),
+      'valuesJson': serializer.toJson<String>(valuesJson),
+    };
+  }
+
+  MigrationSnapshot copyWith({
+    String? sourceTable,
+    int? rowId,
+    int? sourceVersion,
+    String? valuesJson,
+  }) => MigrationSnapshot(
+    sourceTable: sourceTable ?? this.sourceTable,
+    rowId: rowId ?? this.rowId,
+    sourceVersion: sourceVersion ?? this.sourceVersion,
+    valuesJson: valuesJson ?? this.valuesJson,
+  );
+  MigrationSnapshot copyWithCompanion(MigrationSnapshotsCompanion data) {
+    return MigrationSnapshot(
+      sourceTable: data.sourceTable.present
+          ? data.sourceTable.value
+          : this.sourceTable,
+      rowId: data.rowId.present ? data.rowId.value : this.rowId,
+      sourceVersion: data.sourceVersion.present
+          ? data.sourceVersion.value
+          : this.sourceVersion,
+      valuesJson: data.valuesJson.present
+          ? data.valuesJson.value
+          : this.valuesJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MigrationSnapshot(')
+          ..write('sourceTable: $sourceTable, ')
+          ..write('rowId: $rowId, ')
+          ..write('sourceVersion: $sourceVersion, ')
+          ..write('valuesJson: $valuesJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(sourceTable, rowId, sourceVersion, valuesJson);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MigrationSnapshot &&
+          other.sourceTable == this.sourceTable &&
+          other.rowId == this.rowId &&
+          other.sourceVersion == this.sourceVersion &&
+          other.valuesJson == this.valuesJson);
+}
+
+class MigrationSnapshotsCompanion extends UpdateCompanion<MigrationSnapshot> {
+  final Value<String> sourceTable;
+  final Value<int> rowId;
+  final Value<int> sourceVersion;
+  final Value<String> valuesJson;
+  final Value<int> rowid;
+  const MigrationSnapshotsCompanion({
+    this.sourceTable = const Value.absent(),
+    this.rowId = const Value.absent(),
+    this.sourceVersion = const Value.absent(),
+    this.valuesJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MigrationSnapshotsCompanion.insert({
+    required String sourceTable,
+    required int rowId,
+    required int sourceVersion,
+    required String valuesJson,
+    this.rowid = const Value.absent(),
+  }) : sourceTable = Value(sourceTable),
+       rowId = Value(rowId),
+       sourceVersion = Value(sourceVersion),
+       valuesJson = Value(valuesJson);
+  static Insertable<MigrationSnapshot> custom({
+    Expression<String>? sourceTable,
+    Expression<int>? rowId,
+    Expression<int>? sourceVersion,
+    Expression<String>? valuesJson,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (sourceTable != null) 'source_table': sourceTable,
+      if (rowId != null) 'row_id': rowId,
+      if (sourceVersion != null) 'source_version': sourceVersion,
+      if (valuesJson != null) 'values_json': valuesJson,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MigrationSnapshotsCompanion copyWith({
+    Value<String>? sourceTable,
+    Value<int>? rowId,
+    Value<int>? sourceVersion,
+    Value<String>? valuesJson,
+    Value<int>? rowid,
+  }) {
+    return MigrationSnapshotsCompanion(
+      sourceTable: sourceTable ?? this.sourceTable,
+      rowId: rowId ?? this.rowId,
+      sourceVersion: sourceVersion ?? this.sourceVersion,
+      valuesJson: valuesJson ?? this.valuesJson,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (sourceTable.present) {
+      map['source_table'] = Variable<String>(sourceTable.value);
+    }
+    if (rowId.present) {
+      map['row_id'] = Variable<int>(rowId.value);
+    }
+    if (sourceVersion.present) {
+      map['source_version'] = Variable<int>(sourceVersion.value);
+    }
+    if (valuesJson.present) {
+      map['values_json'] = Variable<String>(valuesJson.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MigrationSnapshotsCompanion(')
+          ..write('sourceTable: $sourceTable, ')
+          ..write('rowId: $rowId, ')
+          ..write('sourceVersion: $sourceVersion, ')
+          ..write('valuesJson: $valuesJson, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -1707,6 +2090,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SubscribersTable subscribers = $SubscribersTable(this);
   late final $AuditLogsTable auditLogs = $AuditLogsTable(this);
   late final $SubscriptionsTable subscriptions = $SubscriptionsTable(this);
+  late final $MigrationSnapshotsTable migrationSnapshots =
+      $MigrationSnapshotsTable(this);
   late final Index idxSubscribersName = Index(
     'idx_subscribers_name',
     'CREATE INDEX idx_subscribers_name ON subscribers (name COLLATE NOCASE)',
@@ -1727,6 +2112,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     subscribers,
     auditLogs,
     subscriptions,
+    migrationSnapshots,
     idxSubscribersName,
     idxSubscriptionsSubscriber,
     idxSubscriptionsExpiryDate,
@@ -2591,6 +2977,7 @@ typedef $$SubscriptionsTableCreateCompanionBuilder =
       required String paymentStatus,
       Value<String> createdAt,
       Value<String> updatedAt,
+      Value<String?> archivedAt,
     });
 typedef $$SubscriptionsTableUpdateCompanionBuilder =
     SubscriptionsCompanion Function({
@@ -2604,6 +2991,7 @@ typedef $$SubscriptionsTableUpdateCompanionBuilder =
       Value<String> paymentStatus,
       Value<String> createdAt,
       Value<String> updatedAt,
+      Value<String?> archivedAt,
     });
 
 final class $$SubscriptionsTableReferences
@@ -2687,6 +3075,11 @@ class $$SubscriptionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$SubscribersTableFilterComposer get subscriberId {
     final $$SubscribersTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -2765,6 +3158,11 @@ class $$SubscriptionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$SubscribersTableOrderingComposer get subscriberId {
     final $$SubscribersTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2831,6 +3229,11 @@ class $$SubscriptionsTableAnnotationComposer
   GeneratedColumn<String> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  GeneratedColumn<String> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
   $$SubscribersTableAnnotationComposer get subscriberId {
     final $$SubscribersTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -2893,6 +3296,7 @@ class $$SubscriptionsTableTableManager
                 Value<String> paymentStatus = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
+                Value<String?> archivedAt = const Value.absent(),
               }) => SubscriptionsCompanion(
                 id: id,
                 subscriberId: subscriberId,
@@ -2904,6 +3308,7 @@ class $$SubscriptionsTableTableManager
                 paymentStatus: paymentStatus,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                archivedAt: archivedAt,
               ),
           createCompanionCallback:
               ({
@@ -2917,6 +3322,7 @@ class $$SubscriptionsTableTableManager
                 required String paymentStatus,
                 Value<String> createdAt = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
+                Value<String?> archivedAt = const Value.absent(),
               }) => SubscriptionsCompanion.insert(
                 id: id,
                 subscriberId: subscriberId,
@@ -2928,6 +3334,7 @@ class $$SubscriptionsTableTableManager
                 paymentStatus: paymentStatus,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                archivedAt: archivedAt,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -2996,6 +3403,217 @@ typedef $$SubscriptionsTableProcessedTableManager =
       Subscription,
       PrefetchHooks Function({bool subscriberId})
     >;
+typedef $$MigrationSnapshotsTableCreateCompanionBuilder =
+    MigrationSnapshotsCompanion Function({
+      required String sourceTable,
+      required int rowId,
+      required int sourceVersion,
+      required String valuesJson,
+      Value<int> rowid,
+    });
+typedef $$MigrationSnapshotsTableUpdateCompanionBuilder =
+    MigrationSnapshotsCompanion Function({
+      Value<String> sourceTable,
+      Value<int> rowId,
+      Value<int> sourceVersion,
+      Value<String> valuesJson,
+      Value<int> rowid,
+    });
+
+class $$MigrationSnapshotsTableFilterComposer
+    extends Composer<_$AppDatabase, $MigrationSnapshotsTable> {
+  $$MigrationSnapshotsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get sourceTable => $composableBuilder(
+    column: $table.sourceTable,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rowId => $composableBuilder(
+    column: $table.rowId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sourceVersion => $composableBuilder(
+    column: $table.sourceVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get valuesJson => $composableBuilder(
+    column: $table.valuesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MigrationSnapshotsTableOrderingComposer
+    extends Composer<_$AppDatabase, $MigrationSnapshotsTable> {
+  $$MigrationSnapshotsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get sourceTable => $composableBuilder(
+    column: $table.sourceTable,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rowId => $composableBuilder(
+    column: $table.rowId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sourceVersion => $composableBuilder(
+    column: $table.sourceVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get valuesJson => $composableBuilder(
+    column: $table.valuesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MigrationSnapshotsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MigrationSnapshotsTable> {
+  $$MigrationSnapshotsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get sourceTable => $composableBuilder(
+    column: $table.sourceTable,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get rowId =>
+      $composableBuilder(column: $table.rowId, builder: (column) => column);
+
+  GeneratedColumn<int> get sourceVersion => $composableBuilder(
+    column: $table.sourceVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get valuesJson => $composableBuilder(
+    column: $table.valuesJson,
+    builder: (column) => column,
+  );
+}
+
+class $$MigrationSnapshotsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MigrationSnapshotsTable,
+          MigrationSnapshot,
+          $$MigrationSnapshotsTableFilterComposer,
+          $$MigrationSnapshotsTableOrderingComposer,
+          $$MigrationSnapshotsTableAnnotationComposer,
+          $$MigrationSnapshotsTableCreateCompanionBuilder,
+          $$MigrationSnapshotsTableUpdateCompanionBuilder,
+          (
+            MigrationSnapshot,
+            BaseReferences<
+              _$AppDatabase,
+              $MigrationSnapshotsTable,
+              MigrationSnapshot
+            >,
+          ),
+          MigrationSnapshot,
+          PrefetchHooks Function()
+        > {
+  $$MigrationSnapshotsTableTableManager(
+    _$AppDatabase db,
+    $MigrationSnapshotsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MigrationSnapshotsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MigrationSnapshotsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MigrationSnapshotsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> sourceTable = const Value.absent(),
+                Value<int> rowId = const Value.absent(),
+                Value<int> sourceVersion = const Value.absent(),
+                Value<String> valuesJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MigrationSnapshotsCompanion(
+                sourceTable: sourceTable,
+                rowId: rowId,
+                sourceVersion: sourceVersion,
+                valuesJson: valuesJson,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String sourceTable,
+                required int rowId,
+                required int sourceVersion,
+                required String valuesJson,
+                Value<int> rowid = const Value.absent(),
+              }) => MigrationSnapshotsCompanion.insert(
+                sourceTable: sourceTable,
+                rowId: rowId,
+                sourceVersion: sourceVersion,
+                valuesJson: valuesJson,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$MigrationSnapshotsTable, MigrationSnapshot>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $MigrationSnapshotsTable,
+                    MigrationSnapshot
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MigrationSnapshotsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MigrationSnapshotsTable,
+      MigrationSnapshot,
+      $$MigrationSnapshotsTableFilterComposer,
+      $$MigrationSnapshotsTableOrderingComposer,
+      $$MigrationSnapshotsTableAnnotationComposer,
+      $$MigrationSnapshotsTableCreateCompanionBuilder,
+      $$MigrationSnapshotsTableUpdateCompanionBuilder,
+      (
+        MigrationSnapshot,
+        BaseReferences<
+          _$AppDatabase,
+          $MigrationSnapshotsTable,
+          MigrationSnapshot
+        >,
+      ),
+      MigrationSnapshot,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3006,4 +3624,6 @@ class $AppDatabaseManager {
       $$AuditLogsTableTableManager(_db, _db.auditLogs);
   $$SubscriptionsTableTableManager get subscriptions =>
       $$SubscriptionsTableTableManager(_db, _db.subscriptions);
+  $$MigrationSnapshotsTableTableManager get migrationSnapshots =>
+      $$MigrationSnapshotsTableTableManager(_db, _db.migrationSnapshots);
 }

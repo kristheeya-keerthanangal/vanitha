@@ -108,4 +108,103 @@ void main() {
     await repository.restoreSubscriber(created.id);
     expect(await database.select(database.auditLogs).get(), hasLength(3));
   });
+
+  test(
+    'rejects stale edits without overwriting the latest data or audit',
+    () async {
+      final original = await repository.createSubscriber(name: 'Original');
+      final latest = await repository.updateSubscriber(
+        original.copyWith(name: 'Latest'),
+      );
+      await expectLater(
+        repository.updateSubscriber(original.copyWith(name: 'Stale')),
+        throwsStateError,
+      );
+      expect(await repository.getSubscriber(original.id), latest);
+      expect(await database.select(database.auditLogs).get(), hasLength(2));
+    },
+  );
+
+  test('stale edits cannot undo an archive', () async {
+    final original = await repository.createSubscriber(name: 'Original');
+    final archived = await repository.archiveSubscriber(original.id);
+    await expectLater(
+      repository.updateSubscriber(original.copyWith(name: 'Stale')),
+      throwsStateError,
+    );
+    expect(
+      await repository.getSubscriber(original.id, includeArchived: true),
+      archived,
+    );
+  });
+
+  test('updates preserve the original creation timestamp', () async {
+    final original = await repository.createSubscriber(name: 'Original');
+    final updated = await repository.updateSubscriber(
+      original.copyWith(name: 'Updated', createdAt: 'changed'),
+    );
+    expect(updated.createdAt, original.createdAt);
+  });
+
+  test(
+    'audit failure rolls back creation, updates, and archive changes',
+    () async {
+      final original = await repository.createSubscriber(name: 'Original');
+      await database.customStatement('''
+      CREATE TRIGGER reject_audit BEFORE INSERT ON audit_logs
+      BEGIN SELECT RAISE(ABORT, 'audit failure'); END
+    ''');
+      await expectLater(
+        repository.createSubscriber(name: 'Failed'),
+        throwsA(isA<Exception>()),
+      );
+      await expectLater(
+        repository.updateSubscriber(original.copyWith(name: 'Failed')),
+        throwsA(isA<Exception>()),
+      );
+      await expectLater(
+        repository.archiveSubscriber(original.id),
+        throwsA(isA<Exception>()),
+      );
+      expect(await database.select(database.subscribers).get(), [original]);
+      expect(await database.select(database.auditLogs).get(), hasLength(1));
+    },
+  );
+
+  test('foreign keys prevent deleting a subscriber with history', () async {
+    final original = await repository.createSubscriber(name: 'Keep History');
+    await expectLater(
+      (database.delete(
+        database.subscribers,
+      )..where((row) => row.id.equals(original.id))).go(),
+      throwsA(isA<Exception>()),
+    );
+    expect(await repository.getSubscriber(original.id), original);
+    expect(await database.select(database.auditLogs).get(), hasLength(1));
+  });
+
+  test(
+    'updates advance the version even when the previous timestamp is in the future',
+    () async {
+      final original = await repository.createSubscriber(name: 'Original');
+      await database.customStatement(
+        'UPDATE subscribers SET updated_at = ? WHERE id = ?',
+        ['2099-01-01T00:00:00.000000Z', original.id],
+      );
+      final current = (await repository.getSubscriber(original.id))!;
+      final updated = await repository.updateSubscriber(
+        current.copyWith(name: 'Updated'),
+      );
+      expect(
+        DateTime.parse(
+          updated.updatedAt,
+        ).isAfter(DateTime.parse(current.updatedAt)),
+        isTrue,
+      );
+      await expectLater(
+        repository.updateSubscriber(current.copyWith(name: 'Stale')),
+        throwsStateError,
+      );
+    },
+  );
 }

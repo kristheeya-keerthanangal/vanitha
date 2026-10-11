@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
+import 'update_timestamp.dart';
 
 class SubscriptionRepository {
   SubscriptionRepository(this._database);
@@ -20,78 +21,131 @@ class SubscriptionRepository {
     final effectiveDuration = _durationForPlan(planType, durationYears);
     final expiryDate = _addYears(normalizedStartDate, effectiveDuration);
 
-    final id = await _database
-        .into(_database.subscriptions)
-        .insert(
-          SubscriptionsCompanion.insert(
-            subscriberId: subscriberId,
-            edition: edition,
-            planType: planType,
-            durationYears: effectiveDuration,
-            startDate: _formatDate(normalizedStartDate),
-            expiryDate: _formatDate(expiryDate),
-            paymentStatus: paymentStatus,
-            createdAt: Value(now),
-            updatedAt: Value(now),
-          ),
-        );
-    final subscription = await getSubscription(id);
-    if (subscription == null) {
-      throw StateError('Subscription $id was not created');
+    return _database.transaction(() async {
+      final id = await _database
+          .into(_database.subscriptions)
+          .insert(
+            SubscriptionsCompanion.insert(
+              subscriberId: subscriberId,
+              edition: edition,
+              planType: planType,
+              durationYears: effectiveDuration,
+              startDate: _formatDate(normalizedStartDate),
+              expiryDate: _formatDate(expiryDate),
+              paymentStatus: paymentStatus,
+              createdAt: Value(now),
+              updatedAt: Value(now),
+            ),
+          );
+      final subscription = await getSubscription(id);
+      if (subscription == null) {
+        throw StateError('Subscription $id was not created');
+      }
+      return subscription;
+    });
+  }
+
+  Future<Subscription?> getSubscription(
+    int id, {
+    bool includeArchived = false,
+  }) {
+    final query = _database.select(_database.subscriptions)
+      ..where((subscription) => subscription.id.equals(id));
+    if (!includeArchived) {
+      query.where((subscription) => subscription.archivedAt.isNull());
     }
-    return subscription;
+    return query.getSingleOrNull();
   }
 
-  Future<Subscription?> getSubscription(int id) {
-    return (_database.select(
-      _database.subscriptions,
-    )..where((subscription) => subscription.id.equals(id))).getSingleOrNull();
-  }
-
-  Future<List<Subscription>> getSubscriptionsForSubscriber(int subscriberId) {
-    return (_database.select(_database.subscriptions)
-          ..where(
-            (subscription) => subscription.subscriberId.equals(subscriberId),
-          )
-          ..orderBy([
-            (subscription) => OrderingTerm.desc(subscription.startDate),
-          ]))
-        .get();
+  Future<List<Subscription>> getSubscriptionsForSubscriber(
+    int subscriberId, {
+    bool includeArchived = false,
+  }) {
+    final query = _database.select(_database.subscriptions)
+      ..where((subscription) => subscription.subscriberId.equals(subscriberId))
+      ..orderBy([(subscription) => OrderingTerm.desc(subscription.startDate)]);
+    if (!includeArchived) {
+      query.where((subscription) => subscription.archivedAt.isNull());
+    }
+    return query.get();
   }
 
   Future<Subscription> updateSubscription(Subscription subscription) async {
-    final startDate = _parseDate(subscription.startDate);
-    final effectiveDuration = _durationForPlan(
-      subscription.planType,
-      subscription.durationYears,
-    );
-    final updated = subscription.copyWith(
-      durationYears: effectiveDuration,
-      startDate: _formatDate(startDate),
-      expiryDate: _formatDate(_addYears(startDate, effectiveDuration)),
-      updatedAt: _now(),
-    );
-    final changed =
-        await (_database.update(_database.subscriptions)
-              ..where((row) => row.id.equals(subscription.id)))
-            .write(updated.toCompanion(false));
-    if (changed == 0) {
-      throw StateError('Subscription ${subscription.id} was not found');
-    }
-    final saved = await getSubscription(subscription.id);
-    if (saved == null) {
-      throw StateError('Subscription ${subscription.id} was not updated');
-    }
-    return saved;
+    return _database.transaction(() async {
+      final previous = await getSubscription(
+        subscription.id,
+        includeArchived: true,
+      );
+      if (previous == null) {
+        throw StateError('Subscription ${subscription.id} was not found');
+      }
+      if (subscription.updatedAt != previous.updatedAt) {
+        throw StateError('Subscription has changed. Reload it before saving');
+      }
+      if (subscription.archivedAt != previous.archivedAt) {
+        throw StateError('Use archiveSubscription or restoreSubscription');
+      }
+      final startDate = _parseDate(subscription.startDate);
+      final effectiveDuration = _durationForPlan(
+        subscription.planType,
+        subscription.durationYears,
+      );
+      final updated = subscription.copyWith(
+        durationYears: effectiveDuration,
+        startDate: _formatDate(startDate),
+        expiryDate: _formatDate(_addYears(startDate, effectiveDuration)),
+        createdAt: previous.createdAt,
+        updatedAt: nextUpdateTimestamp(previous.updatedAt),
+      );
+      final changed =
+          await (_database.update(_database.subscriptions)..where(
+                (row) =>
+                    row.id.equals(subscription.id) &
+                    row.updatedAt.equals(previous.updatedAt),
+              ))
+              .write(updated.toCompanion(false));
+      if (changed == 0) {
+        throw StateError('Subscription has changed. Reload it before saving');
+      }
+      final saved = await getSubscription(
+        subscription.id,
+        includeArchived: true,
+      );
+      if (saved == null) {
+        throw StateError('Subscription ${subscription.id} was not updated');
+      }
+      return saved;
+    });
   }
 
   Future<void> deleteSubscription(int id) async {
-    final deleted = await (_database.delete(
-      _database.subscriptions,
-    )..where((subscription) => subscription.id.equals(id))).go();
-    if (deleted == 0) {
-      throw StateError('Subscription $id was not found');
-    }
+    await archiveSubscription(id);
+  }
+
+  Future<Subscription> archiveSubscription(int id) =>
+      _changeArchiveState(id, archive: true);
+
+  Future<Subscription> restoreSubscription(int id) =>
+      _changeArchiveState(id, archive: false);
+
+  Future<Subscription> _changeArchiveState(int id, {required bool archive}) {
+    return _database.transaction(() async {
+      final previous = await getSubscription(id, includeArchived: true);
+      if (previous == null) {
+        throw StateError('Subscription $id was not found');
+      }
+      if ((previous.archivedAt != null) == archive) return previous;
+      final now = nextUpdateTimestamp(previous.updatedAt);
+      await (_database.update(
+        _database.subscriptions,
+      )..where((row) => row.id.equals(id))).write(
+        SubscriptionsCompanion(
+          updatedAt: Value(now),
+          archivedAt: Value(archive ? now : null),
+        ),
+      );
+      return (await getSubscription(id, includeArchived: true))!;
+    });
   }
 
   String _now() => DateTime.now().toUtc().toIso8601String();

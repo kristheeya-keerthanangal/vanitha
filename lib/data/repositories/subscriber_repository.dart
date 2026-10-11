@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
+import 'update_timestamp.dart';
 
 enum SubscriberSort { number, name }
 
@@ -148,10 +149,26 @@ class SubscriberRepository {
         throw StateError('Subscriber ${subscriber.id} was not found');
       }
 
-      final updated = subscriber.copyWith(updatedAt: _now());
-      await (_database.update(_database.subscribers)
-            ..where((row) => row.id.equals(subscriber.id)))
-          .write(updated.toCompanion(false));
+      if (subscriber.updatedAt != previous.updatedAt) {
+        throw StateError('Subscriber has changed. Reload it before saving');
+      }
+      if (subscriber.archivedAt != previous.archivedAt) {
+        throw StateError('Use archiveSubscriber or restoreSubscriber');
+      }
+      final updated = subscriber.copyWith(
+        createdAt: previous.createdAt,
+        updatedAt: nextUpdateTimestamp(previous.updatedAt),
+      );
+      final changed =
+          await (_database.update(_database.subscribers)..where(
+                (row) =>
+                    row.id.equals(subscriber.id) &
+                    row.updatedAt.equals(previous.updatedAt),
+              ))
+              .write(updated.toCompanion(false));
+      if (changed != 1) {
+        throw StateError('Subscriber has changed. Reload it before saving');
+      }
       final saved = await getSubscriber(subscriber.id, includeArchived: true);
       if (saved == null) {
         throw StateError('Subscriber ${subscriber.id} was not updated');
@@ -182,14 +199,14 @@ class SubscriberRepository {
       }
       if ((subscriber.archivedAt != null) == archive) return subscriber;
 
-      final now = _now();
-      final updated = subscriber.copyWith(
-        updatedAt: now,
+      final now = nextUpdateTimestamp(subscriber.updatedAt);
+      final updated = SubscribersCompanion(
+        updatedAt: Value(now),
         archivedAt: Value(archive ? now : null),
       );
       await (_database.update(
         _database.subscribers,
-      )..where((row) => row.id.equals(id))).write(updated.toCompanion(false));
+      )..where((row) => row.id.equals(id))).write(updated);
       final saved = await getSubscriber(id, includeArchived: true);
       if (saved == null) {
         throw StateError('Subscriber $id was not updated');

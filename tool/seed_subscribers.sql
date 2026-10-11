@@ -30,15 +30,12 @@ SELECT n,
 FROM numbers;
 
 INSERT INTO subscribers (
-  subscriber_type, name, contact_person_name, email, phone, postal_address,
+  name, email, phone, postal_address,
   city, state, postal_code, country, created_at, updated_at
 )
-SELECT subscriber_type,
-       first_name || ' ' || last_name ||
+SELECT first_name || ' ' || last_name ||
          CASE WHEN subscriber_type = 'organization' THEN ' Library' ELSE '' END ||
          ' [' || marker || '-' || printf('%04d', n) || ']',
-       CASE WHEN subscriber_type = 'organization'
-         THEN first_name || ' ' || last_name ELSE NULL END,
        lower(first_name) || '.' || lower(last_name) || '.' || n ||
          '.' || lower(marker) || '@example.com',
        phone,
@@ -58,8 +55,7 @@ WHERE instr(name, '[' || (SELECT marker FROM seed_batch) || '-') > 0;
 
 INSERT INTO audit_logs (subscriber_id, previous_values, updated_values, modified_at)
 SELECT id, NULL, json_object(
-  'id', id, 'subscriberType', subscriber_type, 'name', name,
-  'contactPersonName', contact_person_name, 'email', email, 'phone', phone,
+  'id', id, 'name', name, 'email', email, 'phone', phone,
   'postalAddress', postal_address, 'city', city, 'state', state,
   'postalCode', postal_code, 'country', country,
   'createdAt', created_at, 'updatedAt', updated_at, 'archivedAt', archived_at

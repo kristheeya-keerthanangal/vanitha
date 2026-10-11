@@ -176,4 +176,128 @@ void main() {
       throwsA(isA<Exception>()),
     );
   });
+
+  Future<Subscription> createSubscription() => repository.createSubscription(
+    subscriberId: subscriberId,
+    edition: 'online',
+    planType: 'annual',
+    durationYears: 1,
+    startDate: DateTime(2026, 1, 1),
+    paymentStatus: 'unpaid',
+  );
+
+  test(
+    'deletion archives a subscription and restoration keeps its data',
+    () async {
+      final original = await createSubscription();
+      await repository.deleteSubscription(original.id);
+      expect(await repository.getSubscription(original.id), isNull);
+      expect(
+        await repository.getSubscriptionsForSubscriber(subscriberId),
+        isEmpty,
+      );
+      final archived = await repository.getSubscription(
+        original.id,
+        includeArchived: true,
+      );
+      expect(archived, isNotNull);
+      expect(archived!.archivedAt, isNotNull);
+      expect(
+        await repository.getSubscriptionsForSubscriber(
+          subscriberId,
+          includeArchived: true,
+        ),
+        [archived],
+      );
+      expect(await repository.archiveSubscription(original.id), archived);
+      final restored = await repository.restoreSubscription(original.id);
+      expect(restored.archivedAt, isNull);
+      expect(restored.copyWith(updatedAt: original.updatedAt), original);
+      expect(await repository.restoreSubscription(original.id), restored);
+    },
+  );
+
+  test(
+    'rejects stale edits without losing the latest payment status',
+    () async {
+      final original = await createSubscription();
+      final latest = await repository.updateSubscription(
+        original.copyWith(paymentStatus: 'paid'),
+      );
+      await expectLater(
+        repository.updateSubscription(original.copyWith(edition: 'offline')),
+        throwsStateError,
+      );
+      expect(await repository.getSubscription(original.id), latest);
+    },
+  );
+
+  test('stale edits cannot undo a subscription archive', () async {
+    final original = await createSubscription();
+    final archived = await repository.archiveSubscription(original.id);
+    await expectLater(
+      repository.updateSubscription(original.copyWith(paymentStatus: 'paid')),
+      throwsStateError,
+    );
+    expect(
+      await repository.getSubscription(original.id, includeArchived: true),
+      archived,
+    );
+  });
+
+  test('invalid updates preserve all previous subscription data', () async {
+    final original = await createSubscription();
+    await expectLater(
+      repository.updateSubscription(original.copyWith(edition: 'invalid')),
+      throwsA(isA<Exception>()),
+    );
+    expect(await repository.getSubscription(original.id), original);
+  });
+
+  test('updates preserve subscription creation timestamps', () async {
+    final original = await createSubscription();
+    final updated = await repository.updateSubscription(
+      original.copyWith(paymentStatus: 'paid', createdAt: 'changed'),
+    );
+    expect(updated.createdAt, original.createdAt);
+  });
+
+  test(
+    'missing subscription mutations fail without changing existing rows',
+    () async {
+      final original = await createSubscription();
+      await expectLater(
+        repository.updateSubscription(original.copyWith(id: 999)),
+        throwsStateError,
+      );
+      await expectLater(repository.deleteSubscription(999), throwsStateError);
+      await expectLater(repository.restoreSubscription(999), throwsStateError);
+      expect(await repository.getSubscription(original.id), original);
+    },
+  );
+
+  test(
+    'creation rolls back when the inserted row cannot be read back',
+    () async {
+      await database.customStatement('''
+      CREATE TRIGGER move_inserted_subscription AFTER INSERT ON subscriptions
+      BEGIN UPDATE subscriptions SET id = NEW.id + 1000 WHERE id = NEW.id; END
+    ''');
+      await expectLater(createSubscription(), throwsStateError);
+      expect(await database.select(database.subscriptions).get(), isEmpty);
+    },
+  );
+
+  test('updates roll back when the saved row cannot be read back', () async {
+    final original = await createSubscription();
+    await database.customStatement('''
+      CREATE TRIGGER move_updated_subscription AFTER UPDATE ON subscriptions
+      BEGIN UPDATE subscriptions SET id = NEW.id + 1000 WHERE id = NEW.id; END
+    ''');
+    await expectLater(
+      repository.updateSubscription(original.copyWith(paymentStatus: 'paid')),
+      throwsStateError,
+    );
+    expect(await database.select(database.subscriptions).get(), [original]);
+  });
 }

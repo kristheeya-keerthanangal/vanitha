@@ -37,4 +37,6 @@ class Subscriptions extends Table {
 
   TextColumn get updatedAt =>
       text().customConstraint('NOT NULL DEFAULT CURRENT_TIMESTAMP')();
+
+  TextColumn get archivedAt => text().nullable()();
 }
