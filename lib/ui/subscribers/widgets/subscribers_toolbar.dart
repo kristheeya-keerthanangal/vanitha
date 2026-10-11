@@ -13,10 +13,9 @@ class SubscribersToolbar extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Wrap(
-        spacing: 24,
-        runSpacing: 12,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             'Subscribers',
@@ -29,9 +28,13 @@ class SubscribersToolbar extends StatelessWidget {
       TextFormField(
         initialValue: search,
         onChanged: onSearch,
-        decoration: const InputDecoration(
-          labelText: 'Search name, email or phone',
+        decoration: InputDecoration(
+          labelText: 'Search subscribers',
+          hint: Text('Enter Name, email or phone'),
           prefixIcon: Icon(Icons.search),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(22)
+          )
         ),
       ),
     ],

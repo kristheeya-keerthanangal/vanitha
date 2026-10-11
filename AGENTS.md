@@ -18,6 +18,8 @@ subscribers, subscriptions, editions, and payments.
 - Avoid unnecessary abstractions and dependencies.
 - Follow the existing project structure and conventions.
 - Implement features incrementally.
+- Don't overengineer
+- Make the code so that it can be maintainable by a human
 
 ## Database
 
@@ -31,7 +33,7 @@ subscribers, subscriptions, editions, and payments.
 
 ## Architecture
 
-- Separate UI, business logic, and data access.
+- Use MVVM architecture
 - Use Riverpod for state management.
 - Use repositories for database operations.
 - Keep business rules outside UI widgets.
