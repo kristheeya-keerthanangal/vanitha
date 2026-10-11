@@ -18,6 +18,7 @@ class MainApp extends ConsumerWidget {
     ref.watch(subscriberRepositoryProvider);
 
     return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../data/app_database.dart';
+import '../../shared/date_time_format.dart';
 import 'details_card.dart';
 
 class SubscriberIdentityCard extends StatelessWidget {
@@ -11,8 +12,8 @@ class SubscriberIdentityCard extends StatelessWidget {
     fields: {
       'Subscriber number': subscriber.displayNumber,
       'Name': subscriber.name,
-      'Created': subscriber.createdAt,
-      'Updated': subscriber.updatedAt,
+      'Created': formatIstDateTime(subscriber.createdAt),
+      'Updated': formatIstDateTime(subscriber.updatedAt),
     },
   );
 }
