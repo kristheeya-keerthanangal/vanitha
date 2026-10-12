@@ -26,21 +26,27 @@ class SubscribersPage extends ConsumerWidget {
               onSearch: model.searchChanged,
             ),
             const SizedBox(height: 36),
-            SegmentedButton<SubscriberFilter>(
-              segments: const [
-                ButtonSegment(value: SubscriberFilter.all, label: Text('All')),
-                ButtonSegment(
-                  value: SubscriberFilter.active,
-                  label: Text('Active'),
-                ),
-                ButtonSegment(
-                  value: SubscriberFilter.expired,
-                  label: Text('Expired'),
-                ),
-              ],
-              selected: {model.selectedFilter},
-              onSelectionChanged: (selection) =>
-                  model.filterChanged(selection.single),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: SegmentedButton<SubscriberFilter>(
+                segments: const [
+                  ButtonSegment(
+                    value: SubscriberFilter.all,
+                    label: Text('All'),
+                  ),
+                  ButtonSegment(
+                    value: SubscriberFilter.active,
+                    label: Text('Active'),
+                  ),
+                  ButtonSegment(
+                    value: SubscriberFilter.expired,
+                    label: Text('Expired'),
+                  ),
+                ],
+                selected: {model.selectedFilter},
+                onSelectionChanged: (selection) =>
+                    model.filterChanged(selection.single),
+              ),
             ),
             const SizedBox(height: 24),
             if (model.loading)
