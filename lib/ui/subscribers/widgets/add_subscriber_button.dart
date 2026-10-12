@@ -14,6 +14,7 @@ class AddSubscriberButton extends ConsumerWidget {
       onPressed: () async {
         final added = await showDialog<bool>(
           context: context,
+          barrierDismissible: false,
           builder: (context) => AddSubscriberForm(
             repository: ref.read(subscriberRegistrationRepositoryProvider),
           ),

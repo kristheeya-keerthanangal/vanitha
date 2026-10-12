@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:vanithabodhini/data/app_database.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_registration_repository.dart';
+import 'package:vanithabodhini/providers/database_provider.dart';
 import 'package:vanithabodhini/theme/app_theme.dart';
 import 'package:vanithabodhini/ui/subscribers/subscriber_form.dart';
+import 'package:vanithabodhini/ui/subscribers/view_models/subscribers_view_model.dart';
+import 'package:vanithabodhini/ui/subscribers/widgets/add_subscriber_button.dart';
 
 void main() {
   late AppDatabase database;
@@ -95,4 +101,147 @@ void main() {
     await tester.pump();
     expect(find.text('Duration (years)'), findsNothing);
   });
+
+  testWidgets('does not dismiss while saving and refreshes after commit', (
+    tester,
+  ) async {
+    final saveGate = Completer<void>();
+    final repository = DelayedSubscriberRegistrationRepository(
+      database,
+      saveGate,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          databaseProvider.overrideWithValue(database),
+          subscriberRegistrationRepositoryProvider.overrideWithValue(
+            repository,
+          ),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: Column(
+              children: [
+                const AddSubscriberButton(),
+                Consumer(
+                  builder: (context, ref, child) {
+                    final model = ref.watch(subscribersViewModelProvider);
+                    return ListenableBuilder(
+                      listenable: model,
+                      builder: (context, child) =>
+                          Text('Subscribers: ${model.total}'),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Add subscriber'));
+    await tester.pump();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Name'),
+      'Delayed Reader',
+    );
+    final editionField = find.byType(DropdownButtonFormField<String>).at(0);
+    await tester.ensureVisible(editionField);
+    await tester.tap(editionField);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Online').last);
+    await tester.pumpAndSettle();
+    final planField = find.byType(DropdownButtonFormField<String>).at(1);
+    await tester.ensureVisible(planField);
+    await tester.pumpAndSettle();
+    await tester.tap(planField);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Annual').last);
+    await tester.pumpAndSettle();
+    final startDateField = find.byType(TextFormField).at(8);
+    await tester.ensureVisible(startDateField);
+    await tester.tap(startDateField);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('15').last);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byType(SingleChildScrollView).last,
+      const Offset(0, -240),
+    );
+    await tester.pumpAndSettle();
+    final paymentField = find.byType(DropdownButtonFormField<String>).at(2);
+    await tester.ensureVisible(paymentField);
+    await tester.tap(paymentField);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Paid').last);
+    await tester.pumpAndSettle();
+
+    final submitButton = find.byType(FilledButton).last;
+    await tester.ensureVisible(submitButton);
+    await tester.tap(submitButton);
+    await tester.pump();
+    expect(repository.calls, 1);
+    expect(find.byType(AlertDialog), findsOneWidget);
+
+    await tester.tapAt(const Offset(1, 1));
+    await tester.pump();
+    expect(find.byType(AlertDialog), findsOneWidget);
+
+    saveGate.complete();
+    await tester.pumpAndSettle();
+
+    expect(await database.select(database.subscribers).get(), hasLength(1));
+    expect(await database.select(database.subscriptions).get(), hasLength(1));
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.text('Subscribers: 1'), findsOneWidget);
+    expect(find.text('Subscriber added successfully'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+}
+
+class DelayedSubscriberRegistrationRepository
+    extends SubscriberRegistrationRepository {
+  DelayedSubscriberRegistrationRepository(super.database, this.gate);
+
+  final Completer<void> gate;
+  int calls = 0;
+
+  @override
+  Future<SubscriberRegistration> registerSubscriber({
+    required String name,
+    String? email,
+    String? phone,
+    String? postalAddress,
+    String? city,
+    String? state,
+    String? postalCode,
+    String? country,
+    required String edition,
+    required String planType,
+    required int durationYears,
+    required DateTime startDate,
+    required String paymentStatus,
+  }) async {
+    calls++;
+    await gate.future;
+    return super.registerSubscriber(
+      name: name,
+      email: email,
+      phone: phone,
+      postalAddress: postalAddress,
+      city: city,
+      state: state,
+      postalCode: postalCode,
+      country: country,
+      edition: edition,
+      planType: planType,
+      durationYears: durationYears,
+      startDate: startDate,
+      paymentStatus: paymentStatus,
+    );
+  }
 }

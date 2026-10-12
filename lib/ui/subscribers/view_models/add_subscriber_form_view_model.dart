@@ -22,6 +22,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
   String? paymentStatus;
   String? submitError;
   bool isSaving = false;
+  bool _disposed = false;
 
   bool get showsDuration => planType == 'multi_year';
 
@@ -108,6 +109,8 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
   }
 
   Future<bool> save() async {
+    if (_disposed || isSaving) return false;
+
     final selectedPlan = planType;
     final selectedStartDate = startDate;
     if (name.trim().isEmpty ||
@@ -116,19 +119,20 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
         paymentStatus == null ||
         selectedStartDate == null) {
       submitError = 'Please complete all required fields.';
-      notifyListeners();
+      if (!_disposed) notifyListeners();
       return false;
     }
 
     final effectiveDuration = _durationForPlan(selectedPlan);
     if (effectiveDuration == null) {
       submitError = validateDuration(durationYears);
-      notifyListeners();
+      if (!_disposed) notifyListeners();
       return false;
     }
 
     isSaving = true;
     submitError = null;
+    if (_disposed) return false;
     notifyListeners();
     try {
       await _repository.registerSubscriber(
@@ -146,10 +150,12 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
         startDate: selectedStartDate,
         paymentStatus: paymentStatus!,
       );
+      if (_disposed) return true;
       isSaving = false;
       notifyListeners();
       return true;
     } catch (_) {
+      if (_disposed) return false;
       isSaving = false;
       submitError = 'Unable to add subscriber. Please check the details.';
       notifyListeners();
@@ -161,13 +167,22 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
     return switch (selectedPlan) {
       'annual' => 1,
       'lifetime' => 10,
-      'multi_year' => int.tryParse(durationYears.trim()),
+      'multi_year' =>
+        validateDuration(durationYears) == null
+            ? int.tryParse(durationYears.trim())
+            : null,
       _ => null,
     };
   }
 
   void _set(VoidCallback setter) {
     setter();
-    notifyListeners();
+    if (!_disposed) notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }

@@ -137,7 +137,15 @@ class AppDatabase extends _$AppDatabase {
   OnUpgrade get _schemaUpgrade => stepByStep(
     from6To7: (m, schema) async {
       await m.createTable(schema.migrationSnapshots);
-      await m.addColumn(schema.subscriptions, schema.subscriptions.archivedAt);
+      // Rebuild subscriptions so the v7 duration constraint is applied to
+      // databases created under v6. Adding only archived_at would leave the
+      // old, less restrictive CHECK constraint in SQLite.
+      await m.alterTable(
+        TableMigration(
+          schema.subscriptions,
+          newColumns: [schema.subscriptions.archivedAt],
+        ),
+      );
     },
   );
 
