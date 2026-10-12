@@ -13,17 +13,27 @@ class SubscribersToolbar extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        runSpacing: 12,
-        children: [
-          Text(
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final heading = Text(
             'Subscribers',
             style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const AddSubscriberButton(),
-        ],
+          );
+          const addButton = AddSubscriberButton();
+
+          if (constraints.maxWidth < 560) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [heading, const SizedBox(height: 12), addButton],
+            );
+          }
+
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [heading, addButton],
+          );
+        },
       ),
       const SizedBox(height: 16),
       TextFormField(

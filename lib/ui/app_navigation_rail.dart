@@ -40,12 +40,16 @@ class AppNavigationRail extends StatelessWidget {
       destinations: [
         for (final item in destinations)
           NavigationRailDestination(
-            icon: Icon(item.icon),
-            selectedIcon: Icon(item.selectedIcon),
+            icon: _pointerTarget(Icon(item.icon)),
+            selectedIcon: _pointerTarget(Icon(item.selectedIcon)),
             label: Text(item.label),
           ),
       ],
     );
+  }
+
+  Widget _pointerTarget(Widget child) {
+    return MouseRegion(cursor: SystemMouseCursors.click, child: child);
   }
 }
 
