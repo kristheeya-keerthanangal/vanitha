@@ -56,12 +56,48 @@ class SubscriberDetailsPage extends ConsumerWidget {
                 : ListView(
                     padding: const EdgeInsets.all(24),
                     children: [
-                      SubscriberIdentityCard(subscriber: value.subscriber),
-                      SubscriberContactCard(subscriber: value.subscriber),
-                      SubscriberAddressCard(subscriber: value.subscriber),
-                      const SizedBox(height: 24),
-                      SubscriberSubscriptionsSection(
-                        subscriptions: value.subscriptions,
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final subscriberDetails = Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              SubscriberIdentityCard(
+                                subscriber: value.subscriber,
+                              ),
+                              const SizedBox(height: 16),
+                              SubscriberContactCard(
+                                subscriber: value.subscriber,
+                              ),
+                              const SizedBox(height: 16),
+                              SubscriberAddressCard(
+                                subscriber: value.subscriber,
+                              ),
+                            ],
+                          );
+                          final subscriptions = SubscriberSubscriptionsSection(
+                            subscriptions: value.subscriptions,
+                          );
+
+                          if (constraints.maxWidth >= 900) {
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: subscriberDetails),
+                                const SizedBox(width: 24),
+                                Expanded(child: subscriptions),
+                              ],
+                            );
+                          }
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              subscriberDetails,
+                              const SizedBox(height: 24),
+                              subscriptions,
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
