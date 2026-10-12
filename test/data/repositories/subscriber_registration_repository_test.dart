@@ -25,7 +25,6 @@ void main() {
       planType: 'annual',
       durationYears: 1,
       startDate: DateTime(2026, 3, 15),
-      paymentStatus: 'paid',
     );
 
     expect(result.subscriber.name, 'Anita Rao');
@@ -42,7 +41,6 @@ void main() {
         planType: 'annual',
         durationYears: 1,
         startDate: DateTime(2026, 3, 15),
-        paymentStatus: 'paid',
       ),
       throwsA(isA<Exception>()),
     );

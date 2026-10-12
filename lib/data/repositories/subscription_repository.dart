@@ -14,7 +14,6 @@ class SubscriptionRepository {
     required String planType,
     required int durationYears,
     required DateTime startDate,
-    required String paymentStatus,
   }) async {
     final now = _now();
     final normalizedStartDate = _dateOnly(startDate);
@@ -32,7 +31,6 @@ class SubscriptionRepository {
               durationYears: effectiveDuration,
               startDate: _formatDate(normalizedStartDate),
               expiryDate: _formatDate(expiryDate),
-              paymentStatus: paymentStatus,
               createdAt: Value(now),
               updatedAt: Value(now),
             ),

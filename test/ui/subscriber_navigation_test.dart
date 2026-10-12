@@ -83,7 +83,6 @@ void main() {
         planType: 'annual',
         durationYears: 1,
         startDate: DateTime(2026, 1, 1),
-        paymentStatus: 'paid',
       );
     });
     container.read(routerProvider).go('/subscribers');
@@ -200,7 +199,6 @@ void main() {
         planType: 'annual',
         durationYears: 1,
         startDate: today.add(const Duration(days: 30)),
-        paymentStatus: 'paid',
       );
       await subscriptions.createSubscription(
         subscriberId: expiresToday.id,
@@ -208,7 +206,6 @@ void main() {
         planType: 'annual',
         durationYears: 1,
         startDate: DateTime(dateOnly.year - 1, dateOnly.month, dateOnly.day),
-        paymentStatus: 'paid',
       );
       await subscriptions.createSubscription(
         subscriberId: expired.id,
@@ -216,7 +213,6 @@ void main() {
         planType: 'annual',
         durationYears: 1,
         startDate: DateTime(today.year - 3, today.month, today.day),
-        paymentStatus: 'paid',
       );
       await subscriptions.createSubscription(
         subscriberId: mixed.id,
@@ -224,7 +220,6 @@ void main() {
         planType: 'annual',
         durationYears: 1,
         startDate: DateTime(today.year - 3, today.month, today.day),
-        paymentStatus: 'paid',
       );
       await subscriptions.createSubscription(
         subscriberId: mixed.id,
@@ -232,7 +227,6 @@ void main() {
         planType: 'annual',
         durationYears: 1,
         startDate: today.add(const Duration(days: 30)),
-        paymentStatus: 'paid',
       );
       final archived = await subscriptions.createSubscription(
         subscriberId: archivedOnly.id,
@@ -240,7 +234,6 @@ void main() {
         planType: 'annual',
         durationYears: 1,
         startDate: DateTime(today.year - 3, today.month, today.day),
-        paymentStatus: 'paid',
       );
       await subscriptions.archiveSubscription(archived.id);
     });

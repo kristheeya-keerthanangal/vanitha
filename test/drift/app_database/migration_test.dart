@@ -8,6 +8,7 @@ import 'generated/schema.dart';
 
 import 'generated/schema_v6.dart' as v6;
 import 'generated/schema_v7.dart' as v7;
+import 'generated/schema_v8.dart' as v8;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -167,4 +168,77 @@ void main() {
       },
     );
   });
+
+  test(
+    'migration from v7 to v8 removes payment status without data loss',
+    () async {
+      const oldSubscriptionsData = [
+        v7.SubscriptionsData(
+          id: 31,
+          subscriberId: 17,
+          edition: 'online',
+          planType: 'annual',
+          durationYears: 1,
+          startDate: '2026-01-01',
+          expiryDate: '2027-01-01',
+          paymentStatus: 'paid',
+          createdAt: '2026-01-01',
+          updatedAt: '2026-01-01',
+          archivedAt: null,
+        ),
+      ];
+      const expectedSubscriptionsData = [
+        v8.SubscriptionsData(
+          id: 31,
+          subscriberId: 17,
+          edition: 'online',
+          planType: 'annual',
+          durationYears: 1,
+          startDate: '2026-01-01',
+          expiryDate: '2027-01-01',
+          createdAt: '2026-01-01',
+          updatedAt: '2026-01-01',
+          archivedAt: null,
+        ),
+      ];
+      const oldSubscribersData = [
+        v7.SubscribersData(
+          id: 17,
+          name: 'Existing Subscriber',
+          email: null,
+          phone: null,
+          postalAddress: null,
+          city: null,
+          state: null,
+          postalCode: null,
+          country: null,
+          createdAt: '2026-01-01',
+          updatedAt: '2026-01-01',
+          archivedAt: null,
+        ),
+      ];
+
+      await verifier.testWithDataIntegrity(
+        oldVersion: 7,
+        newVersion: 8,
+        createOld: v7.DatabaseAtV7.new,
+        createNew: v8.DatabaseAtV8.new,
+        openTestedDatabase: AppDatabase.new,
+        createItems: (batch, oldDb) {
+          batch.insertAll(oldDb.subscribers, oldSubscribersData);
+          batch.insertAll(oldDb.subscriptions, oldSubscriptionsData);
+        },
+        validateItems: (newDb) async {
+          expect(
+            expectedSubscriptionsData,
+            await newDb.select(newDb.subscriptions).get(),
+          );
+          expect(
+            await newDb.customSelect('PRAGMA foreign_key_check').get(),
+            isEmpty,
+          );
+        },
+      );
+    },
+  );
 }

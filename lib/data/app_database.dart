@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'vanithabodhini'));
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -146,6 +146,12 @@ class AppDatabase extends _$AppDatabase {
           newColumns: [schema.subscriptions.archivedAt],
         ),
       );
+    },
+    from7To8: (m, schema) async {
+      // Payment status is no longer part of the subscription model. Rebuild
+      // the table so existing subscriptions retain all other data while the
+      // obsolete column is removed from SQLite.
+      await _rebuildTable(m, schema.subscriptions);
     },
   );
 

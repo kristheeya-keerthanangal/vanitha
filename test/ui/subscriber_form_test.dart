@@ -42,7 +42,6 @@ void main() {
     expect(find.text('Enter a name'), findsOneWidget);
     expect(find.text('select edition'), findsOneWidget);
     expect(find.text('select plan type'), findsOneWidget);
-    expect(find.text('select payment status'), findsOneWidget);
     expect(find.text('Select a start date'), findsOneWidget);
   });
 
@@ -173,11 +172,6 @@ void main() {
       const Offset(0, -240),
     );
     await tester.pumpAndSettle();
-    final paymentField = find.byType(DropdownButtonFormField<String>).at(2);
-    await tester.ensureVisible(paymentField);
-    await tester.tap(paymentField);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Paid').last);
     await tester.pumpAndSettle();
 
     final submitButton = find.byType(FilledButton).last;
@@ -224,7 +218,6 @@ class DelayedSubscriberRegistrationRepository
     required String planType,
     required int durationYears,
     required DateTime startDate,
-    required String paymentStatus,
   }) async {
     calls++;
     await gate.future;
@@ -241,7 +234,6 @@ class DelayedSubscriberRegistrationRepository
       planType: planType,
       durationYears: durationYears,
       startDate: startDate,
-      paymentStatus: paymentStatus,
     );
   }
 }

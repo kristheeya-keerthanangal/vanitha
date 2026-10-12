@@ -31,14 +31,12 @@ void main() {
       planType: 'annual',
       durationYears: 1,
       startDate: DateTime(2026, 2, 10, 15, 30),
-      paymentStatus: 'paid',
     );
 
     expect(created.id, 1);
     expect(created.subscriberId, subscriberId);
     expect(created.startDate, '2026-02-10');
     expect(created.expiryDate, '2027-02-10');
-    expect(created.paymentStatus, 'paid');
     expect(await repository.getSubscription(created.id), created);
   });
 
@@ -49,7 +47,6 @@ void main() {
       planType: 'annual',
       durationYears: 99,
       startDate: DateTime(2026, 2, 10),
-      paymentStatus: 'paid',
     );
     final lifetime = await repository.createSubscription(
       subscriberId: subscriberId,
@@ -57,7 +54,6 @@ void main() {
       planType: 'lifetime',
       durationYears: 1,
       startDate: DateTime(2026, 2, 10),
-      paymentStatus: 'paid',
     );
 
     expect(annual.durationYears, 1);
@@ -74,7 +70,6 @@ void main() {
         planType: 'multi_year',
         durationYears: 51,
         startDate: DateTime(2026, 2, 10),
-        paymentStatus: 'paid',
       ),
       throwsA(isA<ArgumentError>()),
     );
@@ -87,7 +82,6 @@ void main() {
       planType: 'multi_year',
       durationYears: 3,
       startDate: DateTime(2027, 1, 1),
-      paymentStatus: 'unpaid',
     );
     await repository.createSubscription(
       subscriberId: subscriberId,
@@ -95,7 +89,6 @@ void main() {
       planType: 'lifetime',
       durationYears: 10,
       startDate: DateTime(2026, 1, 1),
-      paymentStatus: 'paid',
     );
 
     final subscriptions = await repository.getSubscriptionsForSubscriber(
@@ -114,15 +107,10 @@ void main() {
       planType: 'multi_year',
       durationYears: 2,
       startDate: DateTime(2026, 2, 10),
-      paymentStatus: 'unpaid',
     );
 
     final updated = await repository.updateSubscription(
-      created.copyWith(
-        durationYears: 3,
-        startDate: '2026-03-15',
-        paymentStatus: 'paid',
-      ),
+      created.copyWith(durationYears: 3, startDate: '2026-03-15'),
     );
 
     expect(updated.expiryDate, '2029-03-15');
@@ -136,7 +124,6 @@ void main() {
       planType: 'annual',
       durationYears: 1,
       startDate: DateTime(2026, 2, 10),
-      paymentStatus: 'paid',
     );
 
     final updated = await repository.updateSubscription(
@@ -154,7 +141,6 @@ void main() {
       planType: 'annual',
       durationYears: 1,
       startDate: DateTime(2026, 2, 10),
-      paymentStatus: 'paid',
     );
 
     expect(
@@ -171,7 +157,6 @@ void main() {
         planType: 'annual',
         durationYears: 1,
         startDate: DateTime(2026),
-        paymentStatus: 'paid',
       ),
       throwsA(isA<Exception>()),
     );
@@ -185,7 +170,6 @@ void main() {
         planType: 'annual',
         durationYears: 1,
         startDate: DateTime(2026, 1, 1),
-        paymentStatus: 'paid',
       ),
       throwsA(isA<Exception>()),
     );
@@ -197,7 +181,6 @@ void main() {
     planType: 'annual',
     durationYears: 1,
     startDate: DateTime(2026, 1, 1),
-    paymentStatus: 'unpaid',
   );
 
   test(
@@ -232,11 +215,11 @@ void main() {
   );
 
   test(
-    'rejects stale edits without losing the latest payment status',
+    'rejects stale edits without losing the latest subscription data',
     () async {
       final original = await createSubscription();
       final latest = await repository.updateSubscription(
-        original.copyWith(paymentStatus: 'paid'),
+        original.copyWith(edition: 'offline'),
       );
       await expectLater(
         repository.updateSubscription(original.copyWith(edition: 'offline')),
@@ -250,7 +233,7 @@ void main() {
     final original = await createSubscription();
     final archived = await repository.archiveSubscription(original.id);
     await expectLater(
-      repository.updateSubscription(original.copyWith(paymentStatus: 'paid')),
+      repository.updateSubscription(original.copyWith(edition: 'offline')),
       throwsStateError,
     );
     expect(
@@ -271,7 +254,7 @@ void main() {
   test('updates preserve subscription creation timestamps', () async {
     final original = await createSubscription();
     final updated = await repository.updateSubscription(
-      original.copyWith(paymentStatus: 'paid', createdAt: 'changed'),
+      original.copyWith(createdAt: 'changed'),
     );
     expect(updated.createdAt, original.createdAt);
   });
@@ -309,7 +292,7 @@ void main() {
       BEGIN UPDATE subscriptions SET id = NEW.id + 1000 WHERE id = NEW.id; END
     ''');
     await expectLater(
-      repository.updateSubscription(original.copyWith(paymentStatus: 'paid')),
+      repository.updateSubscription(original.copyWith(edition: 'offline')),
       throwsStateError,
     );
     expect(await database.select(database.subscriptions).get(), [original]);

@@ -1171,19 +1171,6 @@ class $SubscriptionsTable extends Subscriptions
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _paymentStatusMeta = const VerificationMeta(
-    'paymentStatus',
-  );
-  @override
-  late final GeneratedColumn<String> paymentStatus = GeneratedColumn<String>(
-    'payment_status',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints:
-        'NOT NULL CHECK (payment_status IN (\'paid\', \'unpaid\'))',
-  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1230,7 +1217,6 @@ class $SubscriptionsTable extends Subscriptions
     durationYears,
     startDate,
     expiryDate,
-    paymentStatus,
     createdAt,
     updatedAt,
     archivedAt,
@@ -1304,17 +1290,6 @@ class $SubscriptionsTable extends Subscriptions
     } else if (isInserting) {
       context.missing(_expiryDateMeta);
     }
-    if (data.containsKey('payment_status')) {
-      context.handle(
-        _paymentStatusMeta,
-        paymentStatus.isAcceptableOrUnknown(
-          data['payment_status']!,
-          _paymentStatusMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_paymentStatusMeta);
-    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1370,10 +1345,6 @@ class $SubscriptionsTable extends Subscriptions
         DriftSqlType.string,
         data['${effectivePrefix}expiry_date'],
       )!,
-      paymentStatus: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}payment_status'],
-      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at'],
@@ -1403,7 +1374,6 @@ class Subscription extends DataClass implements Insertable<Subscription> {
   final int durationYears;
   final String startDate;
   final String expiryDate;
-  final String paymentStatus;
   final String createdAt;
   final String updatedAt;
   final String? archivedAt;
@@ -1415,7 +1385,6 @@ class Subscription extends DataClass implements Insertable<Subscription> {
     required this.durationYears,
     required this.startDate,
     required this.expiryDate,
-    required this.paymentStatus,
     required this.createdAt,
     required this.updatedAt,
     this.archivedAt,
@@ -1430,7 +1399,6 @@ class Subscription extends DataClass implements Insertable<Subscription> {
     map['duration_years'] = Variable<int>(durationYears);
     map['start_date'] = Variable<String>(startDate);
     map['expiry_date'] = Variable<String>(expiryDate);
-    map['payment_status'] = Variable<String>(paymentStatus);
     map['created_at'] = Variable<String>(createdAt);
     map['updated_at'] = Variable<String>(updatedAt);
     if (!nullToAbsent || archivedAt != null) {
@@ -1448,7 +1416,6 @@ class Subscription extends DataClass implements Insertable<Subscription> {
       durationYears: Value(durationYears),
       startDate: Value(startDate),
       expiryDate: Value(expiryDate),
-      paymentStatus: Value(paymentStatus),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       archivedAt: archivedAt == null && nullToAbsent
@@ -1470,7 +1437,6 @@ class Subscription extends DataClass implements Insertable<Subscription> {
       durationYears: serializer.fromJson<int>(json['durationYears']),
       startDate: serializer.fromJson<String>(json['startDate']),
       expiryDate: serializer.fromJson<String>(json['expiryDate']),
-      paymentStatus: serializer.fromJson<String>(json['paymentStatus']),
       createdAt: serializer.fromJson<String>(json['createdAt']),
       updatedAt: serializer.fromJson<String>(json['updatedAt']),
       archivedAt: serializer.fromJson<String?>(json['archivedAt']),
@@ -1487,7 +1453,6 @@ class Subscription extends DataClass implements Insertable<Subscription> {
       'durationYears': serializer.toJson<int>(durationYears),
       'startDate': serializer.toJson<String>(startDate),
       'expiryDate': serializer.toJson<String>(expiryDate),
-      'paymentStatus': serializer.toJson<String>(paymentStatus),
       'createdAt': serializer.toJson<String>(createdAt),
       'updatedAt': serializer.toJson<String>(updatedAt),
       'archivedAt': serializer.toJson<String?>(archivedAt),
@@ -1502,7 +1467,6 @@ class Subscription extends DataClass implements Insertable<Subscription> {
     int? durationYears,
     String? startDate,
     String? expiryDate,
-    String? paymentStatus,
     String? createdAt,
     String? updatedAt,
     Value<String?> archivedAt = const Value.absent(),
@@ -1514,7 +1478,6 @@ class Subscription extends DataClass implements Insertable<Subscription> {
     durationYears: durationYears ?? this.durationYears,
     startDate: startDate ?? this.startDate,
     expiryDate: expiryDate ?? this.expiryDate,
-    paymentStatus: paymentStatus ?? this.paymentStatus,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
@@ -1534,9 +1497,6 @@ class Subscription extends DataClass implements Insertable<Subscription> {
       expiryDate: data.expiryDate.present
           ? data.expiryDate.value
           : this.expiryDate,
-      paymentStatus: data.paymentStatus.present
-          ? data.paymentStatus.value
-          : this.paymentStatus,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       archivedAt: data.archivedAt.present
@@ -1555,7 +1515,6 @@ class Subscription extends DataClass implements Insertable<Subscription> {
           ..write('durationYears: $durationYears, ')
           ..write('startDate: $startDate, ')
           ..write('expiryDate: $expiryDate, ')
-          ..write('paymentStatus: $paymentStatus, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('archivedAt: $archivedAt')
@@ -1572,7 +1531,6 @@ class Subscription extends DataClass implements Insertable<Subscription> {
     durationYears,
     startDate,
     expiryDate,
-    paymentStatus,
     createdAt,
     updatedAt,
     archivedAt,
@@ -1588,7 +1546,6 @@ class Subscription extends DataClass implements Insertable<Subscription> {
           other.durationYears == this.durationYears &&
           other.startDate == this.startDate &&
           other.expiryDate == this.expiryDate &&
-          other.paymentStatus == this.paymentStatus &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.archivedAt == this.archivedAt);
@@ -1602,7 +1559,6 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
   final Value<int> durationYears;
   final Value<String> startDate;
   final Value<String> expiryDate;
-  final Value<String> paymentStatus;
   final Value<String> createdAt;
   final Value<String> updatedAt;
   final Value<String?> archivedAt;
@@ -1614,7 +1570,6 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
     this.durationYears = const Value.absent(),
     this.startDate = const Value.absent(),
     this.expiryDate = const Value.absent(),
-    this.paymentStatus = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -1627,7 +1582,6 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
     required int durationYears,
     required String startDate,
     required String expiryDate,
-    required String paymentStatus,
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -1636,8 +1590,7 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
        planType = Value(planType),
        durationYears = Value(durationYears),
        startDate = Value(startDate),
-       expiryDate = Value(expiryDate),
-       paymentStatus = Value(paymentStatus);
+       expiryDate = Value(expiryDate);
   static Insertable<Subscription> custom({
     Expression<int>? id,
     Expression<int>? subscriberId,
@@ -1646,7 +1599,6 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
     Expression<int>? durationYears,
     Expression<String>? startDate,
     Expression<String>? expiryDate,
-    Expression<String>? paymentStatus,
     Expression<String>? createdAt,
     Expression<String>? updatedAt,
     Expression<String>? archivedAt,
@@ -1659,7 +1611,6 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
       if (durationYears != null) 'duration_years': durationYears,
       if (startDate != null) 'start_date': startDate,
       if (expiryDate != null) 'expiry_date': expiryDate,
-      if (paymentStatus != null) 'payment_status': paymentStatus,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (archivedAt != null) 'archived_at': archivedAt,
@@ -1674,7 +1625,6 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
     Value<int>? durationYears,
     Value<String>? startDate,
     Value<String>? expiryDate,
-    Value<String>? paymentStatus,
     Value<String>? createdAt,
     Value<String>? updatedAt,
     Value<String?>? archivedAt,
@@ -1687,7 +1637,6 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
       durationYears: durationYears ?? this.durationYears,
       startDate: startDate ?? this.startDate,
       expiryDate: expiryDate ?? this.expiryDate,
-      paymentStatus: paymentStatus ?? this.paymentStatus,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       archivedAt: archivedAt ?? this.archivedAt,
@@ -1718,9 +1667,6 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
     if (expiryDate.present) {
       map['expiry_date'] = Variable<String>(expiryDate.value);
     }
-    if (paymentStatus.present) {
-      map['payment_status'] = Variable<String>(paymentStatus.value);
-    }
     if (createdAt.present) {
       map['created_at'] = Variable<String>(createdAt.value);
     }
@@ -1743,7 +1689,6 @@ class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
           ..write('durationYears: $durationYears, ')
           ..write('startDate: $startDate, ')
           ..write('expiryDate: $expiryDate, ')
-          ..write('paymentStatus: $paymentStatus, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('archivedAt: $archivedAt')
@@ -2974,7 +2919,6 @@ typedef $$SubscriptionsTableCreateCompanionBuilder =
       required int durationYears,
       required String startDate,
       required String expiryDate,
-      required String paymentStatus,
       Value<String> createdAt,
       Value<String> updatedAt,
       Value<String?> archivedAt,
@@ -2988,7 +2932,6 @@ typedef $$SubscriptionsTableUpdateCompanionBuilder =
       Value<int> durationYears,
       Value<String> startDate,
       Value<String> expiryDate,
-      Value<String> paymentStatus,
       Value<String> createdAt,
       Value<String> updatedAt,
       Value<String?> archivedAt,
@@ -3057,11 +3000,6 @@ class $$SubscriptionsTableFilterComposer
 
   ColumnFilters<String> get expiryDate => $composableBuilder(
     column: $table.expiryDate,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get paymentStatus => $composableBuilder(
-    column: $table.paymentStatus,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3143,11 +3081,6 @@ class $$SubscriptionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get paymentStatus => $composableBuilder(
-    column: $table.paymentStatus,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -3215,11 +3148,6 @@ class $$SubscriptionsTableAnnotationComposer
 
   GeneratedColumn<String> get expiryDate => $composableBuilder(
     column: $table.expiryDate,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get paymentStatus => $composableBuilder(
-    column: $table.paymentStatus,
     builder: (column) => column,
   );
 
@@ -3293,7 +3221,6 @@ class $$SubscriptionsTableTableManager
                 Value<int> durationYears = const Value.absent(),
                 Value<String> startDate = const Value.absent(),
                 Value<String> expiryDate = const Value.absent(),
-                Value<String> paymentStatus = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
                 Value<String?> archivedAt = const Value.absent(),
@@ -3305,7 +3232,6 @@ class $$SubscriptionsTableTableManager
                 durationYears: durationYears,
                 startDate: startDate,
                 expiryDate: expiryDate,
-                paymentStatus: paymentStatus,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 archivedAt: archivedAt,
@@ -3319,7 +3245,6 @@ class $$SubscriptionsTableTableManager
                 required int durationYears,
                 required String startDate,
                 required String expiryDate,
-                required String paymentStatus,
                 Value<String> createdAt = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
                 Value<String?> archivedAt = const Value.absent(),
@@ -3331,7 +3256,6 @@ class $$SubscriptionsTableTableManager
                 durationYears: durationYears,
                 startDate: startDate,
                 expiryDate: expiryDate,
-                paymentStatus: paymentStatus,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 archivedAt: archivedAt,
