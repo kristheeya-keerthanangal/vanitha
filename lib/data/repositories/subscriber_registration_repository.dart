@@ -1,8 +1,6 @@
-import 'dart:convert';
-
-import 'package:drift/drift.dart';
-
 import '../app_database.dart';
+import 'subscriber_repository.dart';
+import 'subscription_repository.dart';
 
 typedef SubscriberRegistration = ({
   Subscriber subscriber,
@@ -10,9 +8,14 @@ typedef SubscriberRegistration = ({
 });
 
 class SubscriberRegistrationRepository {
-  SubscriberRegistrationRepository(this._database);
+  SubscriberRegistrationRepository(AppDatabase database)
+    : _database = database,
+      _subscriberRepository = SubscriberRepository(database),
+      _subscriptionRepository = SubscriptionRepository(database);
 
   final AppDatabase _database;
+  final SubscriberRepository _subscriberRepository;
+  final SubscriptionRepository _subscriptionRepository;
 
   Future<SubscriberRegistration> registerSubscriber({
     required String name,
@@ -29,109 +32,27 @@ class SubscriberRegistrationRepository {
     required DateTime startDate,
     required String paymentStatus,
   }) async {
-    final now = _now();
-    final normalizedStartDate = _dateOnly(startDate);
-    final effectiveDuration = _durationForPlan(planType, durationYears);
-
     return _database.transaction(() async {
-      final subscriberId = await _database
-          .into(_database.subscribers)
-          .insert(
-            SubscribersCompanion.insert(
-              name: name.trim(),
-              email: Value(_optional(email)),
-              phone: Value(_optional(phone)),
-              postalAddress: Value(_optional(postalAddress)),
-              city: Value(_optional(city)),
-              state: Value(_optional(state)),
-              postalCode: Value(_optional(postalCode)),
-              country: Value(_optional(country)),
-              createdAt: Value(now),
-              updatedAt: Value(now),
-            ),
-          );
-
-      final subscriber = await (_database.select(
-        _database.subscribers,
-      )..where((row) => row.id.equals(subscriberId))).getSingle();
-      await _writeAudit(subscriberId: subscriberId, updated: subscriber);
-
-      final subscriptionId = await _database
-          .into(_database.subscriptions)
-          .insert(
-            SubscriptionsCompanion.insert(
-              subscriberId: subscriberId,
-              edition: edition,
-              planType: planType,
-              durationYears: effectiveDuration,
-              startDate: _formatDate(normalizedStartDate),
-              expiryDate: _formatDate(
-                _addYears(normalizedStartDate, effectiveDuration),
-              ),
-              paymentStatus: paymentStatus,
-              createdAt: Value(now),
-              updatedAt: Value(now),
-            ),
-          );
-
-      final subscription = await (_database.select(
-        _database.subscriptions,
-      )..where((row) => row.id.equals(subscriptionId))).getSingle();
+      final subscriber = await _subscriberRepository.createSubscriber(
+        name: name,
+        email: email,
+        phone: phone,
+        postalAddress: postalAddress,
+        city: city,
+        state: state,
+        postalCode: postalCode,
+        country: country,
+      );
+      final subscription = await _subscriptionRepository.createSubscription(
+        subscriberId: subscriber.id,
+        edition: edition,
+        planType: planType,
+        durationYears: durationYears,
+        startDate: startDate,
+        paymentStatus: paymentStatus,
+      );
 
       return (subscriber: subscriber, subscription: subscription);
     });
   }
-
-  Future<void> _writeAudit({
-    required int subscriberId,
-    required Subscriber updated,
-  }) {
-    return _database
-        .into(_database.auditLogs)
-        .insert(
-          AuditLogsCompanion.insert(
-            subscriberId: subscriberId,
-            previousValues: const Value(null),
-            updatedValues: jsonEncode(updated.toJson()),
-            modifiedAt: Value(_now()),
-          ),
-        );
-  }
-
-  String? _optional(String? value) {
-    final normalized = value?.trim();
-    return normalized == null || normalized.isEmpty ? null : normalized;
-  }
-
-  String _now() => DateTime.now().toUtc().toIso8601String();
-
-  DateTime _dateOnly(DateTime date) =>
-      DateTime.utc(date.year, date.month, date.day);
-
-  DateTime _addYears(DateTime date, int years) =>
-      DateTime.utc(date.year + years, date.month, date.day);
-
-  int _durationForPlan(String planType, int requestedDuration) {
-    switch (planType) {
-      case 'annual':
-        return 1;
-      case 'lifetime':
-        return 10;
-      case 'multi_year':
-        if (requestedDuration > 50) {
-          throw ArgumentError(
-            'A multi-year plan cannot be longer than 50 years',
-          );
-        }
-        if (requestedDuration > 1) return requestedDuration;
-        throw ArgumentError('A multi-year plan must be longer than one year');
-      default:
-        throw ArgumentError('Unsupported subscription plan: $planType');
-    }
-  }
-
-  String _formatDate(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-'
-      '${date.month.toString().padLeft(2, '0')}-'
-      '${date.day.toString().padLeft(2, '0')}';
 }

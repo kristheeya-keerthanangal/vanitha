@@ -122,14 +122,14 @@ class SubscriberRepository {
           .into(_database.subscribers)
           .insert(
             SubscribersCompanion.insert(
-              name: name,
-              email: Value(email),
-              phone: Value(phone),
-              postalAddress: Value(postalAddress),
-              city: Value(city),
-              state: Value(state),
-              postalCode: Value(postalCode),
-              country: Value(country),
+              name: name.trim(),
+              email: Value(_optional(email)),
+              phone: Value(_optional(phone)),
+              postalAddress: Value(_optional(postalAddress)),
+              city: Value(_optional(city)),
+              state: Value(_optional(state)),
+              postalCode: Value(_optional(postalCode)),
+              country: Value(_optional(country)),
               createdAt: Value(now),
               updatedAt: Value(now),
             ),
@@ -277,4 +277,9 @@ class SubscriberRepository {
   }
 
   String _now() => DateTime.now().toUtc().toIso8601String();
+
+  String? _optional(String? value) {
+    final normalized = value?.trim();
+    return normalized == null || normalized.isEmpty ? null : normalized;
+  }
 }
