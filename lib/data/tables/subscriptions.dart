@@ -28,10 +28,6 @@ class Subscriptions extends Table {
   TextColumn get startDate => text()();
   TextColumn get expiryDate => text()();
 
-  TextColumn get paymentStatus => text().customConstraint(
-    "NOT NULL CHECK (payment_status IN ('paid', 'unpaid'))",
-  )();
-
   TextColumn get createdAt =>
       text().customConstraint('NOT NULL DEFAULT CURRENT_TIMESTAMP')();
 

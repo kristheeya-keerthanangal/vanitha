@@ -1,7 +1,7 @@
 # Database migrations
 
 The database uses Drift guided migrations from schema version 6 onward. The
-version 6 and 7 schema exports are in `drift_schemas/app_database/`, and Drift
+version 6, 7, and 8 schema exports are in `drift_schemas/app_database/`, and Drift
 generates the versioned schema helpers and migration verification database in
 `lib/data/app_database.steps.dart` and `test/drift/app_database/generated/`.
 

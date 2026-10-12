@@ -167,7 +167,7 @@ void main() {
   test(
     'rejects newer databases without changing their version or data',
     () async {
-      final database = AppDatabase(_version3Database(file, version: 8));
+      final database = AppDatabase(_version3Database(file, version: 9));
       try {
         await expectLater(
           database.customSelect('SELECT 1').get(),
@@ -176,12 +176,12 @@ void main() {
       } finally {
         await database.close();
       }
-      final original = _OriginalDatabase(NativeDatabase(file), 8);
+      final original = _OriginalDatabase(NativeDatabase(file), 9);
       try {
         expect(
           (await original.customSelect('PRAGMA user_version').getSingle())
               .read<int>('user_version'),
-          8,
+          9,
         );
         expect(
           (await original
@@ -239,8 +239,8 @@ void main() {
         );
         await database.customStatement('''
         INSERT INTO subscriptions (subscriber_id, edition, plan_type,
-          duration_years, start_date, expiry_date, payment_status)
-        VALUES (1, 'online', 'annual', 1, '2026-01-01', '2027-01-01', 'paid')
+          duration_years, start_date, expiry_date)
+        VALUES (1, 'online', 'annual', 1, '2026-01-01', '2027-01-01')
       ''');
       } finally {
         await database.close();
@@ -262,7 +262,7 @@ void main() {
         final subscription =
             (await seeded.select(seeded.subscriptions).get()).single;
         expect(subscription.subscriberId, 1);
-        expect(subscription.paymentStatus, 'paid');
+        expect(subscription.planType, 'annual');
         expect(
           await seeded.customSelect('PRAGMA foreign_key_check').get(),
           isEmpty,

@@ -30,7 +30,6 @@ class SubscriberRegistrationRepository {
     required String planType,
     required int durationYears,
     required DateTime startDate,
-    required String paymentStatus,
   }) async {
     return _database.transaction(() async {
       final subscriber = await _subscriberRepository.createSubscriber(
@@ -49,7 +48,6 @@ class SubscriberRegistrationRepository {
         planType: planType,
         durationYears: durationYears,
         startDate: startDate,
-        paymentStatus: paymentStatus,
       );
 
       return (subscriber: subscriber, subscription: subscription);

@@ -95,7 +95,6 @@ void main() {
               planType: 'annual',
               durationYears: 1,
               startDate: startDate,
-              paymentStatus: 'paid',
             )
             .then((subscription) => subscription.id);
       }

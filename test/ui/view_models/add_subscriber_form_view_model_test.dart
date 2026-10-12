@@ -18,8 +18,7 @@ void main() {
       ..setName('Anita Rao')
       ..setEdition('online')
       ..setPlanType('multi_year')
-      ..setStartDate(DateTime.utc(2026, 1, 1))
-      ..setPaymentStatus('paid');
+      ..setStartDate(DateTime.utc(2026, 1, 1));
   });
 
   tearDown(() async {

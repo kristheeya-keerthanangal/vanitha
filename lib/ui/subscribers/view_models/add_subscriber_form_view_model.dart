@@ -19,7 +19,6 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
   String? planType;
   String durationYears = '';
   DateTime? startDate;
-  String? paymentStatus;
   String? submitError;
   bool isSaving = false;
   bool _disposed = false;
@@ -72,11 +71,6 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setPaymentStatus(String? value) {
-    paymentStatus = value;
-    notifyListeners();
-  }
-
   String? validateRequired(String? value, String message) {
     return value == null || value.trim().isEmpty ? message : null;
   }
@@ -116,7 +110,6 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
     if (name.trim().isEmpty ||
         edition == null ||
         selectedPlan == null ||
-        paymentStatus == null ||
         selectedStartDate == null) {
       submitError = 'Please complete all required fields.';
       if (!_disposed) notifyListeners();
@@ -148,7 +141,6 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
         planType: selectedPlan,
         durationYears: effectiveDuration,
         startDate: selectedStartDate,
-        paymentStatus: paymentStatus!,
       );
       if (_disposed) return true;
       isSaving = false;

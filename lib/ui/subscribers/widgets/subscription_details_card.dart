@@ -18,7 +18,6 @@ class SubscriptionDetailsCard extends StatelessWidget {
       'Duration': '${subscription.durationYears} years',
       'Start date': subscription.startDate,
       'Expiry date': subscription.expiryDate,
-      'Payment': subscription.paymentStatus == 'paid' ? 'Paid' : 'Unpaid',
     },
   );
 }

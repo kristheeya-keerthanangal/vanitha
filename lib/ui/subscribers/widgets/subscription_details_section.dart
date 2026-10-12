@@ -73,15 +73,6 @@ class SubscriptionDetailsSection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        AppDropdownFormField(
-          label: 'Payment status',
-          value: viewModel.paymentStatus,
-          values: const {'paid': 'Paid', 'unpaid': 'Unpaid'},
-          onChanged: viewModel.setPaymentStatus,
-          validator: (value) =>
-              viewModel.validateSelection(value, 'Payment status'),
-        ),
       ],
     );
   }
