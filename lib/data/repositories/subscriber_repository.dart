@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
+import '../subscription_expiry.dart';
 import 'update_timestamp.dart';
 
 enum SubscriberSort { number, name }
@@ -81,7 +82,7 @@ class SubscriberRepository {
         (row) =>
             row.subscriberId.equalsExp(subscriber.id) &
             row.archivedAt.isNull() &
-            row.expiryDate.isBiggerOrEqualValue(_today()),
+            isSubscriptionExpired(row.expiryDate, _today()).not(),
       );
 
     if (filter == SubscriberFilter.active) {
