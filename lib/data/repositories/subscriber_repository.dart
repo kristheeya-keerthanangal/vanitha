@@ -7,6 +7,8 @@ import 'update_timestamp.dart';
 
 enum SubscriberSort { number, name }
 
+enum SubscriberFilter { all, active, expired }
+
 class SubscriberPage {
   const SubscriberPage({required this.rows, required this.total});
   final List<Subscriber> rows;
@@ -23,6 +25,7 @@ class SubscriberRepository {
     int limit = 25,
     String search = '',
     SubscriberSort sortBy = SubscriberSort.name,
+    SubscriberFilter filterBy = SubscriberFilter.all,
     bool ascending = true,
   }) {
     if (offset < 0 || ![10, 25, 50].contains(limit)) {
@@ -33,7 +36,7 @@ class SubscriberRepository {
         .replaceAll('\\', '\\\\')
         .replaceAll('%', '\\%')
         .replaceAll('_', '\\_');
-    final filter = _subscribersFilter(literal);
+    final filter = _subscribersFilter(literal) & _statusFilter(filterBy);
     return _database.transaction(() async {
       final count = _database.subscribers.id.count();
       final countQuery = _database.selectOnly(_database.subscribers)
@@ -66,6 +69,40 @@ class SubscriberRepository {
         (table.name.like(pattern, escapeChar: '\\') |
             table.email.like(pattern, escapeChar: '\\') |
             table.phone.like(pattern, escapeChar: '\\'));
+  }
+
+  Expression<bool> _statusFilter(SubscriberFilter filter) {
+    if (filter == SubscriberFilter.all) return const Constant(true);
+
+    final subscriber = _database.subscribers;
+    final subscriptions = _database.subscriptions;
+    final activeSubscriptions = _database.select(subscriptions)
+      ..where(
+        (row) =>
+            row.subscriberId.equalsExp(subscriber.id) &
+            row.archivedAt.isNull() &
+            row.expiryDate.isBiggerOrEqualValue(_today()),
+      );
+
+    if (filter == SubscriberFilter.active) {
+      // Expiry dates are inclusive. A future-start subscription also counts
+      // as active as long as it has not expired.
+      return existsQuery(activeSubscriptions);
+    }
+
+    final anySubscriptions = _database.select(subscriptions)
+      ..where(
+        (row) =>
+            row.subscriberId.equalsExp(subscriber.id) & row.archivedAt.isNull(),
+      );
+    return existsQuery(anySubscriptions) & notExistsQuery(activeSubscriptions);
+  }
+
+  String _today() {
+    final now = DateTime.now();
+    return '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
   }
 
   Future<Subscriber> createSubscriber({

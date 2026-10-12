@@ -42,3 +42,26 @@ edits, audit failures and subscription archive/restoration.
 
 The migration transaction and foreign key handling follow the
 [Drift migration guidance](https://drift.simonbinder.eu/migrations/api/).
+
+## Subscriber status filters
+
+The subscriber list's **Active** and **Expired** filters use non-archived
+subscriptions and compare each subscription's `expiry_date` with today's
+calendar date:
+
+- **Active** includes a subscriber with at least one non-archived subscription
+  whose expiry date is today or later. The comparison is inclusive, so a
+  subscription expiring today is still active. A future `start_date` does not
+  prevent the subscription from counting as active.
+- **Expired** includes a subscriber with at least one non-archived subscription
+  and no non-archived subscription expiring today or later. A subscriber with
+  both expired and active subscriptions is Active.
+- Subscribers with no non-archived subscriptions, or only archived
+  subscriptions, appear in neither status filter. They remain visible under
+  **All**.
+- Archived subscribers are excluded from the list regardless of the selected
+  filter.
+
+The expiry check uses date-only values in `YYYY-MM-DD` format. The repository
+tests cover the inclusive today boundary, future-start subscriptions, mixed
+active and expired subscriptions, and subscribers with no current subscription.

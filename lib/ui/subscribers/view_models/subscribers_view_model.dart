@@ -28,6 +28,7 @@ class SubscribersViewModel extends ChangeNotifier {
   Timer? _debounce;
   int _request = 0;
   bool _disposed = false;
+  SubscriberFilter selectedFilter = SubscriberFilter.all;
 
   void searchChanged(String value) {
     search = value;
@@ -58,6 +59,12 @@ class SubscribersViewModel extends ChangeNotifier {
     refresh();
   }
 
+  void filterChanged(SubscriberFilter filter) {
+    selectedFilter = filter;
+    offset = 0;
+    refresh();
+  }
+
   Future<void> refresh() async {
     _debounce?.cancel();
     final request = ++_request;
@@ -70,6 +77,7 @@ class SubscribersViewModel extends ChangeNotifier {
         limit: pageSize,
         search: search,
         sortBy: sort,
+        filterBy: selectedFilter,
         ascending: ascending,
       );
       if (_disposed || request != _request) return;
@@ -82,6 +90,7 @@ class SubscribersViewModel extends ChangeNotifier {
           limit: pageSize,
           search: search,
           sortBy: sort,
+          filterBy: selectedFilter,
           ascending: ascending,
         );
       }

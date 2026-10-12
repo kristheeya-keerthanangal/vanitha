@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vanithabodhini/data/app_database.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
+import 'package:vanithabodhini/data/repositories/subscription_repository.dart';
 
 void main() {
   late AppDatabase database;
@@ -58,6 +59,103 @@ void main() {
       );
       await repository.archiveSubscriber(literal.id);
       expect((await repository.getSubscribersPage(search: '%_')).total, 0);
+    },
+  );
+
+  test(
+    'filters by expiry date and preserves inclusive and mixed-status rules',
+    () async {
+      final subscriptions = SubscriptionRepository(database);
+      final today = DateTime.now();
+      final dateOnly = DateTime(today.year, today.month, today.day);
+      final futureSubscriber = await repository.createSubscriber(
+        name: 'Status Reader Future',
+      );
+      final expiresTodaySubscriber = await repository.createSubscriber(
+        name: 'Status Reader Expires Today',
+      );
+      final expiredSubscriber = await repository.createSubscriber(
+        name: 'Status Reader Expired',
+      );
+      final noSubscription = await repository.createSubscriber(
+        name: 'Status Reader None',
+      );
+      final mixedSubscriber = await repository.createSubscriber(
+        name: 'Status Reader Mixed',
+      );
+      final archivedSubscriptionSubscriber = await repository.createSubscriber(
+        name: 'Status Reader Archived',
+      );
+
+      Future<int> addAnnualSubscription(int subscriberId, DateTime startDate) {
+        return subscriptions
+            .createSubscription(
+              subscriberId: subscriberId,
+              edition: 'online',
+              planType: 'annual',
+              durationYears: 1,
+              startDate: startDate,
+              paymentStatus: 'paid',
+            )
+            .then((subscription) => subscription.id);
+      }
+
+      await addAnnualSubscription(
+        futureSubscriber.id,
+        dateOnly.add(const Duration(days: 30)),
+      );
+      // Expiry is inclusive: a subscription ending today remains active.
+      await addAnnualSubscription(
+        expiresTodaySubscriber.id,
+        DateTime(dateOnly.year - 1, dateOnly.month, dateOnly.day),
+      );
+      await addAnnualSubscription(
+        expiredSubscriber.id,
+        DateTime(today.year - 3, today.month, today.day),
+      );
+      await addAnnualSubscription(
+        mixedSubscriber.id,
+        DateTime(today.year - 3, today.month, today.day),
+      );
+      await addAnnualSubscription(
+        mixedSubscriber.id,
+        dateOnly.add(const Duration(days: 30)),
+      );
+      final archivedSubscriptionId = await addAnnualSubscription(
+        archivedSubscriptionSubscriber.id,
+        DateTime(today.year - 3, today.month, today.day),
+      );
+      await subscriptions.archiveSubscription(archivedSubscriptionId);
+
+      final all = await repository.getSubscribersPage(search: 'Status Reader');
+      final active = await repository.getSubscribersPage(
+        search: 'Status Reader',
+        filterBy: SubscriberFilter.active,
+      );
+      final expired = await repository.getSubscribersPage(
+        search: 'Status Reader',
+        filterBy: SubscriberFilter.expired,
+      );
+
+      expect(all.total, 6);
+      expect(active.rows.map((subscriber) => subscriber.id).toSet(), {
+        futureSubscriber.id,
+        expiresTodaySubscriber.id,
+        mixedSubscriber.id,
+      });
+      expect(active.total, 3);
+      expect(expired.rows.map((subscriber) => subscriber.id).toSet(), {
+        expiredSubscriber.id,
+      });
+      expect(expired.total, 1);
+      expect(expired.rows, isNot(contains(noSubscription)));
+      expect(expired.rows, isNot(contains(archivedSubscriptionSubscriber)));
+      expect(active.rows, isNot(contains(noSubscription)));
+      expect(active.rows, isNot(contains(archivedSubscriptionSubscriber)));
+      expect(
+        all.rows.map((subscriber) => subscriber.id),
+        containsAll([noSubscription.id, archivedSubscriptionSubscriber.id]),
+      );
     },
   );
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vanithabodhini/data/app_database.dart';
+import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
 import 'package:vanithabodhini/data/repositories/subscription_repository.dart';
 import 'package:vanithabodhini/main.dart';
 import 'package:vanithabodhini/providers/database_provider.dart';
@@ -149,6 +150,144 @@ void main() {
     expect(
       find.text('Add your first subscriber to get started.'),
       findsOneWidget,
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('status segments render only subscribers matching their status', (
+    tester,
+  ) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    final container = ProviderContainer(
+      overrides: [databaseProvider.overrideWithValue(database)],
+    );
+    addTearDown(() async {
+      container.dispose();
+      await database.close();
+    });
+    final subscribers = SubscriberRepository(database);
+    final subscriptions = SubscriptionRepository(database);
+    late int activeId;
+    late int expiresTodayId;
+    late int expiredId;
+    late int mixedId;
+    await tester.runAsync(() async {
+      final today = DateTime.now();
+      final dateOnly = DateTime(today.year, today.month, today.day);
+      final active = await subscribers.createSubscriber(
+        name: 'Active Filter Reader',
+      );
+      final expiresToday = await subscribers.createSubscriber(
+        name: 'Expires Today Filter Reader',
+      );
+      final expired = await subscribers.createSubscriber(
+        name: 'Expired Filter Reader',
+      );
+      await subscribers.createSubscriber(name: 'No Subscription Filter Reader');
+      final mixed = await subscribers.createSubscriber(
+        name: 'Mixed Filter Reader',
+      );
+      final archivedOnly = await subscribers.createSubscriber(
+        name: 'Archived Only Filter Reader',
+      );
+      activeId = active.id;
+      expiresTodayId = expiresToday.id;
+      expiredId = expired.id;
+      mixedId = mixed.id;
+      await subscriptions.createSubscription(
+        subscriberId: active.id,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: today.add(const Duration(days: 30)),
+        paymentStatus: 'paid',
+      );
+      await subscriptions.createSubscription(
+        subscriberId: expiresToday.id,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime(dateOnly.year - 1, dateOnly.month, dateOnly.day),
+        paymentStatus: 'paid',
+      );
+      await subscriptions.createSubscription(
+        subscriberId: expired.id,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime(today.year - 3, today.month, today.day),
+        paymentStatus: 'paid',
+      );
+      await subscriptions.createSubscription(
+        subscriberId: mixed.id,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime(today.year - 3, today.month, today.day),
+        paymentStatus: 'paid',
+      );
+      await subscriptions.createSubscription(
+        subscriberId: mixed.id,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: today.add(const Duration(days: 30)),
+        paymentStatus: 'paid',
+      );
+      final archived = await subscriptions.createSubscription(
+        subscriberId: archivedOnly.id,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime(today.year - 3, today.month, today.day),
+        paymentStatus: 'paid',
+      );
+      await subscriptions.archiveSubscription(archived.id);
+    });
+
+    container.read(routerProvider).go('/subscribers');
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const MainApp()),
+    );
+    final model = container.read(subscribersViewModelProvider);
+    await tester.runAsync(model.refresh);
+    await tester.pumpAndSettle();
+    expect(model.total, 6);
+    expect(find.text('Active Filter Reader'), findsOneWidget);
+    expect(find.text('Expired Filter Reader'), findsOneWidget);
+
+    await tester.tap(find.text('Active').last);
+    await tester.runAsync(model.refresh);
+    await tester.pumpAndSettle();
+    expect(model.selectedFilter, SubscriberFilter.active);
+    expect(model.total, 3);
+    expect(model.rows.map((subscriber) => subscriber.id).toSet(), {
+      activeId,
+      expiresTodayId,
+      mixedId,
+    });
+    expect(find.text('Active Filter Reader'), findsOneWidget);
+    expect(find.text('Expires Today Filter Reader'), findsOneWidget);
+    expect(find.text('Mixed Filter Reader'), findsOneWidget);
+    expect(find.text('Expired Filter Reader'), findsNothing);
+    expect(find.text('No Subscription Filter Reader'), findsNothing);
+
+    await tester.tap(find.text('Expired').last);
+    await tester.runAsync(model.refresh);
+    await tester.pumpAndSettle();
+
+    expect(model.selectedFilter, SubscriberFilter.expired);
+    expect(model.total, 1);
+    expect(model.rows.single.id, expiredId);
+    expect(find.text('Expired Filter Reader'), findsOneWidget);
+    expect(find.text('Active Filter Reader'), findsNothing);
+    expect(find.text('Expires Today Filter Reader'), findsNothing);
+    expect(find.text('Mixed Filter Reader'), findsNothing);
+    expect(find.text('No Subscription Filter Reader'), findsNothing);
+    expect(find.text('Archived Only Filter Reader'), findsNothing);
+    expect(
+      model.rows.map((subscriber) => subscriber.id),
+      isNot(contains(activeId)),
     );
     await tester.pumpWidget(const SizedBox());
   });

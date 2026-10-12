@@ -10,16 +10,19 @@ class ControlledRepository extends SubscriberRepository {
   final requests = <Completer<SubscriberPage>>[];
   final offsets = <int>[];
   final searches = <String>[];
+  final filters = <SubscriberFilter>[];
   @override
   Future<SubscriberPage> getSubscribersPage({
     int offset = 0,
     int limit = 25,
     String search = '',
     SubscriberSort sortBy = SubscriberSort.name,
+    SubscriberFilter filterBy = SubscriberFilter.all,
     bool ascending = true,
   }) {
     offsets.add(offset);
     searches.add(search);
+    filters.add(filterBy);
     final request = Completer<SubscriberPage>();
     requests.add(request);
     return request.future;
@@ -51,6 +54,31 @@ void main() {
     expect(model.offset, 25);
     expect(model.loading, false);
   });
+
+  test(
+    'status filter resets paging and is included in repository requests',
+    () async {
+      repository.requests[0].complete(
+        const SubscriberPage(rows: [], total: 550),
+      );
+      await tick();
+      model.changePage(25);
+      repository.requests[1].complete(
+        const SubscriberPage(rows: [], total: 550),
+      );
+      await tick();
+
+      model.filterChanged(SubscriberFilter.expired);
+
+      expect(model.selectedFilter, SubscriberFilter.expired);
+      expect(model.offset, 0);
+      expect(repository.offsets.last, 0);
+      expect(repository.filters.last, SubscriberFilter.expired);
+      repository.requests[2].complete(const SubscriberPage(rows: [], total: 3));
+      await tick();
+      expect(model.total, 3);
+    },
+  );
 
   test('debounces search and resets paging and sorting', () async {
     repository.requests[0].complete(const SubscriberPage(rows: [], total: 550));
