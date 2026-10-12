@@ -17,7 +17,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
   String country = '';
   String? edition;
   String? planType;
-  String durationYears = '2';
+  String durationYears = '';
   DateTime? startDate;
   String? paymentStatus;
   String? submitError;
@@ -59,7 +59,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
     durationYears = switch (value) {
       'annual' => '1',
       'lifetime' => '10',
-      _ => '2',
+      _ => '',
     };
     notifyListeners();
   }
@@ -160,7 +160,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
     return switch (selectedPlan) {
       'annual' => 1,
       'lifetime' => 10,
-      'multi_year' => int.tryParse(durationYears),
+      'multi_year' => int.tryParse(durationYears.trim()),
       _ => null,
     };
   }
