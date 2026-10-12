@@ -1,9 +1,90 @@
 import 'package:drift/drift.dart';
 
-/// Returns the database predicate used to determine whether a subscription has
-/// expired. Expiry dates are inclusive, so a subscription expiring today has
-/// not expired yet.
+import 'app_database.dart';
+
+/// Centralizes the rules used to determine a subscriber's effective expiry.
+///
+/// Only non-archived subscriptions are considered. When a subscriber has more
+/// than one such subscription, the latest expiry is the effective expiry. The
+/// SQL predicate uses the equivalent `EXISTS`/`NOT EXISTS` form so it can be
+/// used while filtering subscribers without loading every subscription row.
+class SubscriptionExpiry {
+  SubscriptionExpiry(this._database);
+
+  final AppDatabase _database;
+
+  /// Returns the latest non-archived expiry for an active subscriber.
+  Future<String?> getEffectiveExpiryDate(int subscriberId) async {
+    final subscriber =
+        await (_database.select(_database.subscribers)..where(
+              (row) => row.id.equals(subscriberId) & row.archivedAt.isNull(),
+            ))
+            .getSingleOrNull();
+    if (subscriber == null) return null;
+
+    final subscriptions = _database.subscriptions;
+    final latestExpiry = subscriptions.expiryDate.max();
+    final query = _database.selectOnly(subscriptions)
+      ..addColumns([latestExpiry])
+      ..where(
+        subscriptions.subscriberId.equals(subscriberId) &
+            subscriptions.archivedAt.isNull(),
+      );
+    return (await query.getSingle()).read(latestExpiry);
+  }
+
+  /// Returns the SQL predicate for an active subscriber having an expired
+  /// effective subscription. A subscriber without a subscription is not
+  /// considered expired.
+  Expression<bool> isExpiredForSubscriber(Expression<int> subscriberId) {
+    final subscriptions = _database.subscriptions;
+    final anySubscription = _database.select(subscriptions)
+      ..where(
+        (row) =>
+            row.subscriberId.equalsExp(subscriberId) & row.archivedAt.isNull(),
+      );
+    final unexpiredSubscription = _database.select(subscriptions)
+      ..where(
+        (row) =>
+            row.subscriberId.equalsExp(subscriberId) &
+            row.archivedAt.isNull() &
+            isSubscriptionExpired(row.expiryDate, today()).not(),
+      );
+    return existsQuery(anySubscription) & notExistsQuery(unexpiredSubscription);
+  }
+
+  /// Returns the SQL predicate for an active subscriber having a subscription.
+  Expression<bool> hasSubscriptionForSubscriber(Expression<int> subscriberId) {
+    final subscriptions = _database.select(_database.subscriptions)
+      ..where(
+        (row) =>
+            row.subscriberId.equalsExp(subscriberId) & row.archivedAt.isNull(),
+      );
+    return existsQuery(subscriptions);
+  }
+
+  /// Expiry dates are inclusive, so a subscription expiring today has not
+  /// expired yet.
+  static bool isExpiryDateExpired(String expiryDate, {DateTime? todayDate}) {
+    return expiryDate.compareTo(formatDate(todayDate ?? DateTime.now())) < 0;
+  }
+
+  /// Returns the database predicate used for one subscription expiry date.
+  static Expression<bool> isSubscriptionExpired(
+    Expression<String> expiryDate,
+    String todayDate,
+  ) => expiryDate.isSmallerThanValue(todayDate);
+
+  static String today() => formatDate(DateTime.now());
+
+  static String formatDate(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
+}
+
+/// Backwards-compatible shorthand for the shared SQL expiry predicate.
 Expression<bool> isSubscriptionExpired(
   Expression<String> expiryDate,
   String today,
-) => expiryDate.isSmallerThanValue(today);
+) => SubscriptionExpiry.isSubscriptionExpired(expiryDate, today);

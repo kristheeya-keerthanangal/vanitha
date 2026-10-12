@@ -68,6 +68,12 @@ void main() {
       final subscriptions = SubscriptionRepository(database);
       final today = DateTime.now();
       final dateOnly = DateTime(today.year, today.month, today.day);
+      final upcomingStartDate = dateOnly.add(const Duration(days: 30));
+      final upcomingExpiryDate = DateTime(
+        upcomingStartDate.year + 1,
+        upcomingStartDate.month,
+        upcomingStartDate.day,
+      );
       final futureSubscriber = await repository.createSubscriber(
         name: 'Status Reader Future',
       );
@@ -116,10 +122,7 @@ void main() {
         mixedSubscriber.id,
         DateTime(today.year - 3, today.month, today.day),
       );
-      await addAnnualSubscription(
-        mixedSubscriber.id,
-        dateOnly.add(const Duration(days: 30)),
-      );
+      await addAnnualSubscription(mixedSubscriber.id, upcomingStartDate);
       final archivedSubscriptionId = await addAnnualSubscription(
         archivedSubscriptionSubscriber.id,
         DateTime(today.year - 3, today.month, today.day),
@@ -155,6 +158,15 @@ void main() {
         all.rows.map((subscriber) => subscriber.id),
         containsAll([noSubscription.id, archivedSubscriptionSubscriber.id]),
       );
+      expect(all.statuses[futureSubscriber.id]?.isActive, isTrue);
+      expect(all.statuses[futureSubscriber.id]?.expiryDate, isNotNull);
+      expect(all.statuses[mixedSubscriber.id]?.isActive, isTrue);
+      expect(
+        all.statuses[mixedSubscriber.id]?.expiryDate,
+        '${upcomingExpiryDate.year}-${upcomingExpiryDate.month.toString().padLeft(2, '0')}-${upcomingExpiryDate.day.toString().padLeft(2, '0')}',
+      );
+      expect(all.statuses[expiredSubscriber.id]?.isActive, isFalse);
+      expect(all.statuses[archivedSubscriptionSubscriber.id], isNull);
     },
   );
 

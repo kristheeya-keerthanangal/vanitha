@@ -1,12 +1,15 @@
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
+import '../subscription_expiry.dart';
 import 'update_timestamp.dart';
 
 class SubscriptionRepository {
-  SubscriptionRepository(this._database);
+  SubscriptionRepository(this._database)
+    : _subscriptionExpiry = SubscriptionExpiry(_database);
 
   final AppDatabase _database;
+  final SubscriptionExpiry _subscriptionExpiry;
 
   Future<Subscription> createSubscription({
     required int subscriberId,
@@ -21,6 +24,7 @@ class SubscriptionRepository {
     final expiryDate = _addYears(normalizedStartDate, effectiveDuration);
 
     return _database.transaction(() async {
+      await _ensureActiveSubscriber(subscriberId, missingIsAllowed: true);
       final id = await _database
           .into(_database.subscriptions)
           .insert(
@@ -56,26 +60,17 @@ class SubscriptionRepository {
     final formattedStartDate = _formatDate(normalizedStartDate);
 
     return _database.transaction(() async {
-      final latestSubscription =
-          await (_database.select(_database.subscriptions)
-                ..where(
-                  (subscription) =>
-                      subscription.subscriberId.equals(subscriberId) &
-                      subscription.archivedAt.isNull(),
-                )
-                ..orderBy([
-                  (subscription) => OrderingTerm.desc(subscription.expiryDate),
-                ])
-                ..limit(1))
-              .getSingleOrNull();
-
-      if (latestSubscription == null) {
+      await _ensureActiveSubscriber(subscriberId);
+      final effectiveExpiry = await _subscriptionExpiry.getEffectiveExpiryDate(
+        subscriberId,
+      );
+      if (effectiveExpiry == null) {
         throw StateError(
           'Subscriber $subscriberId has no active subscription to renew',
         );
       }
 
-      final latestExpiry = _parseDate(latestSubscription.expiryDate);
+      final latestExpiry = _parseDate(effectiveExpiry);
       if (!normalizedStartDate.isAfter(latestExpiry)) {
         throw ArgumentError.value(
           startDate,
@@ -105,6 +100,19 @@ class SubscriptionRepository {
       }
       return subscription;
     });
+  }
+
+  Future<void> _ensureActiveSubscriber(
+    int subscriberId, {
+    bool missingIsAllowed = false,
+  }) async {
+    final subscriber = await (_database.select(
+      _database.subscribers,
+    )..where((row) => row.id.equals(subscriberId))).getSingleOrNull();
+    if (subscriber == null && missingIsAllowed) return;
+    if (subscriber == null || subscriber.archivedAt != null) {
+      throw StateError('Subscriber $subscriberId is not active');
+    }
   }
 
   Future<Subscription?> getSubscription(

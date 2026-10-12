@@ -11,15 +11,29 @@ enum SubscriberSort { number, name }
 enum SubscriberFilter { all, active, expired }
 
 class SubscriberPage {
-  const SubscriberPage({required this.rows, required this.total});
+  const SubscriberPage({
+    required this.rows,
+    required this.total,
+    this.statuses = const {},
+  });
   final List<Subscriber> rows;
   final int total;
+  final Map<int, SubscriberStatus> statuses;
+}
+
+class SubscriberStatus {
+  const SubscriberStatus({required this.isActive, this.expiryDate});
+
+  final bool isActive;
+  final String? expiryDate;
 }
 
 class SubscriberRepository {
-  SubscriberRepository(this._database);
+  SubscriberRepository(this._database)
+    : _subscriptionExpiry = SubscriptionExpiry(_database);
 
   final AppDatabase _database;
+  final SubscriptionExpiry _subscriptionExpiry;
 
   Future<SubscriberPage> getSubscribersPage({
     int offset = 0,
@@ -57,9 +71,40 @@ class SubscriberRepository {
           (row) => OrderingTerm.asc(row.id),
         ])
         ..limit(limit, offset: offset);
-      return SubscriberPage(rows: await query.get(), total: total);
+      final rows = await query.get();
+      return SubscriberPage(
+        rows: rows,
+        total: total,
+        statuses: await _getStatuses(rows),
+      );
     });
   }
+
+  Future<Map<int, SubscriberStatus>> _getStatuses(List<Subscriber> rows) async {
+    if (rows.isEmpty) return const {};
+    final subscriptions = _database.subscriptions;
+    final subscriberId = subscriptions.subscriberId;
+    final latestExpiry = subscriptions.expiryDate.max();
+    final query = _database.selectOnly(subscriptions)
+      ..addColumns([subscriberId, latestExpiry])
+      ..where(
+        subscriberId.isIn(rows.map((row) => row.id)) &
+            subscriptions.archivedAt.isNull(),
+      )
+      ..groupBy([subscriberId]);
+    final result = await query.get();
+    return {
+      for (final row in result)
+        row.read(subscriberId)!: _statusForExpiry(row.read(latestExpiry)),
+    };
+  }
+
+  SubscriberStatus _statusForExpiry(String? expiryDate) => SubscriberStatus(
+    expiryDate: expiryDate,
+    isActive:
+        expiryDate != null &&
+        !SubscriptionExpiry.isExpiryDateExpired(expiryDate),
+  );
 
   Expression<bool> _subscribersFilter(String literal) {
     final table = _database.subscribers;
@@ -76,34 +121,18 @@ class SubscriberRepository {
     if (filter == SubscriberFilter.all) return const Constant(true);
 
     final subscriber = _database.subscribers;
-    final subscriptions = _database.subscriptions;
-    final activeSubscriptions = _database.select(subscriptions)
-      ..where(
-        (row) =>
-            row.subscriberId.equalsExp(subscriber.id) &
-            row.archivedAt.isNull() &
-            isSubscriptionExpired(row.expiryDate, _today()).not(),
-      );
+    final hasSubscription = _subscriptionExpiry.hasSubscriptionForSubscriber(
+      subscriber.id,
+    );
+    final expired = _subscriptionExpiry.isExpiredForSubscriber(subscriber.id);
 
     if (filter == SubscriberFilter.active) {
       // Expiry dates are inclusive. A future-start subscription also counts
       // as active as long as it has not expired.
-      return existsQuery(activeSubscriptions);
+      return hasSubscription & expired.not();
     }
 
-    final anySubscriptions = _database.select(subscriptions)
-      ..where(
-        (row) =>
-            row.subscriberId.equalsExp(subscriber.id) & row.archivedAt.isNull(),
-      );
-    return existsQuery(anySubscriptions) & notExistsQuery(activeSubscriptions);
-  }
-
-  String _today() {
-    final now = DateTime.now();
-    return '${now.year.toString().padLeft(4, '0')}-'
-        '${now.month.toString().padLeft(2, '0')}-'
-        '${now.day.toString().padLeft(2, '0')}';
+    return expired;
   }
 
   Future<Subscriber> createSubscriber({

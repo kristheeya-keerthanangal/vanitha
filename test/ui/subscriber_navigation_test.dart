@@ -249,7 +249,7 @@ void main() {
     expect(find.text('Active Filter Reader'), findsOneWidget);
     expect(find.text('Expired Filter Reader'), findsOneWidget);
 
-    await tester.tap(find.text('Active').last);
+    await tester.tap(find.text('Active').first);
     await tester.runAsync(model.refresh);
     await tester.pumpAndSettle();
     expect(model.selectedFilter, SubscriberFilter.active);
@@ -265,7 +265,7 @@ void main() {
     expect(find.text('Expired Filter Reader'), findsNothing);
     expect(find.text('No Subscription Filter Reader'), findsNothing);
 
-    await tester.tap(find.text('Expired').last);
+    await tester.tap(find.text('Expired').first);
     await tester.runAsync(model.refresh);
     await tester.pumpAndSettle();
 

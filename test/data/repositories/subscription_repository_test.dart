@@ -295,6 +295,51 @@ void main() {
   });
 
   test(
+    'does not create or renew subscriptions for archived subscribers',
+    () async {
+      final archived = await subscriberRepository.archiveSubscriber(
+        subscriberId,
+      );
+
+      await expectLater(
+        repository.createSubscription(
+          subscriberId: archived.id,
+          edition: 'online',
+          planType: 'annual',
+          durationYears: 1,
+          startDate: DateTime(2026, 1, 1),
+        ),
+        throwsStateError,
+      );
+    },
+  );
+
+  test(
+    'does not renew an existing subscription after its subscriber is archived',
+    () async {
+      await repository.createSubscription(
+        subscriberId: subscriberId,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime(2026, 1, 1),
+      );
+      await subscriberRepository.archiveSubscriber(subscriberId);
+
+      await expectLater(
+        repository.renewSubscription(
+          subscriberId: subscriberId,
+          edition: 'offline',
+          planType: 'annual',
+          durationYears: 1,
+          startDate: DateTime(2027, 1, 2),
+        ),
+        throwsStateError,
+      );
+    },
+  );
+
+  test(
     'archival changes the renewal ordering and restoration restores it',
     () async {
       final original = await repository.createSubscription(
