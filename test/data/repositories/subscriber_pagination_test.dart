@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vanithabodhini/data/app_database.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
 import 'package:vanithabodhini/data/repositories/subscription_repository.dart';
+import 'package:vanithabodhini/data/subscription_status.dart';
 
 void main() {
   late AppDatabase database;
@@ -63,7 +64,7 @@ void main() {
   );
 
   test(
-    'filters by expiry date and preserves inclusive and mixed-status rules',
+    'classifies subscriber status by priority and filters it consistently',
     () async {
       final subscriptions = SubscriptionRepository(database);
       final today = DateTime.now();
@@ -88,6 +89,9 @@ void main() {
       );
       final mixedSubscriber = await repository.createSubscriber(
         name: 'Status Reader Mixed',
+      );
+      final activeAndUpcomingSubscriber = await repository.createSubscriber(
+        name: 'Status Reader Active and Upcoming',
       );
       final archivedSubscriptionSubscriber = await repository.createSubscriber(
         name: 'Status Reader Archived',
@@ -123,6 +127,14 @@ void main() {
         DateTime(today.year - 3, today.month, today.day),
       );
       await addAnnualSubscription(mixedSubscriber.id, upcomingStartDate);
+      await addAnnualSubscription(
+        activeAndUpcomingSubscriber.id,
+        dateOnly.subtract(const Duration(days: 30)),
+      );
+      await addAnnualSubscription(
+        activeAndUpcomingSubscriber.id,
+        upcomingStartDate,
+      );
       final archivedSubscriptionId = await addAnnualSubscription(
         archivedSubscriptionSubscriber.id,
         DateTime(today.year - 3, today.month, today.day),
@@ -139,13 +151,12 @@ void main() {
         filterBy: SubscriberFilter.expired,
       );
 
-      expect(all.total, 6);
+      expect(all.total, 7);
       expect(active.rows.map((subscriber) => subscriber.id).toSet(), {
-        futureSubscriber.id,
         expiresTodaySubscriber.id,
-        mixedSubscriber.id,
+        activeAndUpcomingSubscriber.id,
       });
-      expect(active.total, 3);
+      expect(active.total, 2);
       expect(expired.rows.map((subscriber) => subscriber.id).toSet(), {
         expiredSubscriber.id,
       });
@@ -158,15 +169,39 @@ void main() {
         all.rows.map((subscriber) => subscriber.id),
         containsAll([noSubscription.id, archivedSubscriptionSubscriber.id]),
       );
-      expect(all.statuses[futureSubscriber.id]?.isActive, isTrue);
+      expect(
+        all.statuses[futureSubscriber.id]?.status,
+        SubscriptionStatus.upcoming,
+      );
       expect(all.statuses[futureSubscriber.id]?.expiryDate, isNotNull);
-      expect(all.statuses[mixedSubscriber.id]?.isActive, isTrue);
+      expect(
+        all.statuses[expiresTodaySubscriber.id]?.status,
+        SubscriptionStatus.active,
+      );
+      expect(
+        all.statuses[mixedSubscriber.id]?.status,
+        SubscriptionStatus.upcoming,
+      );
+      expect(
+        all.statuses[activeAndUpcomingSubscriber.id]?.status,
+        SubscriptionStatus.active,
+      );
       expect(
         all.statuses[mixedSubscriber.id]?.expiryDate,
         '${upcomingExpiryDate.year}-${upcomingExpiryDate.month.toString().padLeft(2, '0')}-${upcomingExpiryDate.day.toString().padLeft(2, '0')}',
       );
-      expect(all.statuses[expiredSubscriber.id]?.isActive, isFalse);
-      expect(all.statuses[archivedSubscriptionSubscriber.id], isNull);
+      expect(
+        all.statuses[expiredSubscriber.id]?.status,
+        SubscriptionStatus.expired,
+      );
+      expect(
+        all.statuses[noSubscription.id]?.status,
+        SubscriptionStatus.notSubscribed,
+      );
+      expect(
+        all.statuses[archivedSubscriptionSubscriber.id]?.status,
+        SubscriptionStatus.notSubscribed,
+      );
     },
   );
 

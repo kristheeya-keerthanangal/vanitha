@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../data/app_database.dart';
 import '../../../data/repositories/subscriber_repository.dart';
+import '../../../data/subscription_status.dart';
 
 class SubscribersTableSource extends DataTableSource {
   SubscribersTableSource({
@@ -22,23 +23,27 @@ class SubscribersTableSource extends DataTableSource {
     final local = index - offset;
     if (local < 0 || local >= rows.length) return null;
     final row = rows[local];
-    final status = statuses[row.id];
-    final isActive = status?.isActive == true;
-    final statusLabel = status == null
-        ? 'No subscription'
-        : isActive
-        ? 'Active'
-        : 'Expired';
-    final statusBackground = status == null
-        ? colorScheme.surfaceContainerHighest
-        : isActive
-        ? colorScheme.primaryContainer
-        : colorScheme.errorContainer;
-    final statusForeground = status == null
-        ? colorScheme.onSurfaceVariant
-        : isActive
-        ? colorScheme.onPrimaryContainer
-        : colorScheme.onErrorContainer;
+    final status =
+        statuses[row.id] ??
+        const SubscriberStatus(status: SubscriptionStatus.notSubscribed);
+    final statusLabel = switch (status.status) {
+      SubscriptionStatus.active => 'Active',
+      SubscriptionStatus.upcoming => 'Upcoming',
+      SubscriptionStatus.expired => 'Expired',
+      SubscriptionStatus.notSubscribed => 'Not Subscribed',
+    };
+    final statusBackground = switch (status.status) {
+      SubscriptionStatus.active => colorScheme.primaryContainer,
+      SubscriptionStatus.upcoming => colorScheme.secondaryContainer,
+      SubscriptionStatus.expired => colorScheme.errorContainer,
+      SubscriptionStatus.notSubscribed => colorScheme.surfaceContainerHighest,
+    };
+    final statusForeground = switch (status.status) {
+      SubscriptionStatus.active => colorScheme.onPrimaryContainer,
+      SubscriptionStatus.upcoming => colorScheme.onSecondaryContainer,
+      SubscriptionStatus.expired => colorScheme.onErrorContainer,
+      SubscriptionStatus.notSubscribed => colorScheme.onSurfaceVariant,
+    };
     return DataRow.byIndex(
       index: index,
       onSelectChanged: (_) => onOpen(row.id),
@@ -61,7 +66,7 @@ class SubscribersTableSource extends DataTableSource {
             ),
           ),
         ),
-        DataCell(Text(status?.expiryDate ?? '—')),
+        DataCell(Text(status.expiryDate ?? '—')),
       ],
     );
   }

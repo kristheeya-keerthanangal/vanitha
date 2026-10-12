@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 
 import 'app_database.dart';
+import 'subscription_status.dart';
+import 'tables/subscriptions.dart';
 
 /// Centralizes the rules used to determine a subscriber's effective expiry.
 ///
@@ -37,30 +39,65 @@ class SubscriptionExpiry {
   /// effective subscription. A subscriber without a subscription is not
   /// considered expired.
   Expression<bool> isExpiredForSubscriber(Expression<int> subscriberId) {
-    final subscriptions = _database.subscriptions;
-    final anySubscription = _database.select(subscriptions)
-      ..where(
-        (row) =>
-            row.subscriberId.equalsExp(subscriberId) & row.archivedAt.isNull(),
-      );
-    final unexpiredSubscription = _database.select(subscriptions)
-      ..where(
-        (row) =>
-            row.subscriberId.equalsExp(subscriberId) &
-            row.archivedAt.isNull() &
-            isSubscriptionExpired(row.expiryDate, today()).not(),
-      );
-    return existsQuery(anySubscription) & notExistsQuery(unexpiredSubscription);
+    return statusForSubscriber(SubscriptionStatus.expired, subscriberId);
   }
 
   /// Returns the SQL predicate for an active subscriber having a subscription.
   Expression<bool> hasSubscriptionForSubscriber(Expression<int> subscriberId) {
+    return _hasSubscriptionForSubscriber(subscriberId);
+  }
+
+  Expression<bool> _hasSubscriptionForSubscriber(Expression<int> subscriberId) {
     final subscriptions = _database.select(_database.subscriptions)
       ..where(
         (row) =>
             row.subscriberId.equalsExp(subscriberId) & row.archivedAt.isNull(),
       );
     return existsQuery(subscriptions);
+  }
+
+  Expression<bool> _hasSubscriptionMatching(
+    Expression<int> subscriberId,
+    Expression<bool> Function(Subscriptions row, String todayDate) predicate,
+  ) {
+    final todayDate = today();
+    final subscriptions = _database.select(_database.subscriptions)
+      ..where(
+        (row) =>
+            row.subscriberId.equalsExp(subscriberId) &
+            row.archivedAt.isNull() &
+            predicate(row, todayDate),
+      );
+    return existsQuery(subscriptions);
+  }
+
+  /// Returns the SQL predicate matching the shared subscriber status rules.
+  Expression<bool> statusForSubscriber(
+    SubscriptionStatus status,
+    Expression<int> subscriberId,
+  ) {
+    final hasSubscription = _hasSubscriptionForSubscriber(subscriberId);
+    final hasActiveSubscription = _hasSubscriptionMatching(
+      subscriberId,
+      (row, todayDate) =>
+          row.startDate.isBiggerThanValue(todayDate).not() &
+          row.expiryDate.isSmallerThanValue(todayDate).not(),
+    );
+    final hasUpcomingSubscription = _hasSubscriptionMatching(
+      subscriberId,
+      (row, todayDate) => row.startDate.isBiggerThanValue(todayDate),
+    );
+
+    return switch (status) {
+      SubscriptionStatus.active => hasActiveSubscription,
+      SubscriptionStatus.upcoming =>
+        hasActiveSubscription.not() & hasUpcomingSubscription,
+      SubscriptionStatus.expired =>
+        hasSubscription &
+            hasActiveSubscription.not() &
+            hasUpcomingSubscription.not(),
+      SubscriptionStatus.notSubscribed => hasSubscription.not(),
+    };
   }
 
   /// Expiry dates are inclusive, so a subscription expiring today has not
