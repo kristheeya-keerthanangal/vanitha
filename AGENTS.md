@@ -30,6 +30,9 @@ subscribers, subscriptions, editions, and payments.
 - Enforce appropriate constraints and relationships.
 - Use transactions for multi-step database operations.
 - Keep database logic separate from UI components.
+- Drift generated files must be produced by the code generator and must not be
+  edited manually. When generation cannot run, tell the user to run the
+  generator instead of changing generated files by hand.
 
 ## Architecture
 

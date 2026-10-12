@@ -946,7 +946,7 @@ class Subscriptions extends Table
     type: DriftSqlType.int,
     requiredDuringInsert: true,
     $customConstraints:
-        'NOT NULL CHECK ((plan_type = \'annual\' AND duration_years = 1)OR(plan_type = \'multi_year\' AND duration_years > 1)OR(plan_type = \'lifetime\' AND duration_years = 10))',
+        'NOT NULL CHECK ((plan_type = \'annual\' AND duration_years = 1)OR(plan_type = \'multi_year\' AND duration_years > 1 AND duration_years <= 50)OR(plan_type = \'lifetime\' AND duration_years = 10))',
   );
   late final GeneratedColumn<String> startDate = GeneratedColumn<String>(
     'start_date',

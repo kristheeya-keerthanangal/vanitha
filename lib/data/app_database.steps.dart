@@ -329,7 +329,7 @@ i1.GeneratedColumn<int> _column_18(
   false,
   type: i1.DriftSqlType.int,
   $customConstraints:
-      'NOT NULL CHECK ((plan_type = \'annual\' AND duration_years = 1)OR(plan_type = \'multi_year\' AND duration_years > 1)OR(plan_type = \'lifetime\' AND duration_years = 10))',
+      'NOT NULL CHECK ((plan_type = \'annual\' AND duration_years = 1)OR(plan_type = \'multi_year\' AND duration_years > 1 AND duration_years <= 50)OR(plan_type = \'lifetime\' AND duration_years = 10))',
 );
 i1.GeneratedColumn<String> _column_19(String aliasedName) =>
     i1.GeneratedColumn<String>(

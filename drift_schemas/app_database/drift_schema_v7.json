@@ -312,7 +312,7 @@
             "getter_name": "durationYears",
             "moor_type": "int",
             "nullable": false,
-            "customConstraints": "    NOT NULL CHECK (\n      (plan_type = 'annual' AND duration_years = 1) OR\n      (plan_type = 'multi_year' AND duration_years > 1) OR\n      (plan_type = 'lifetime' AND duration_years = 10)\n    )\n  ",
+            "customConstraints": "    NOT NULL CHECK (\n      (plan_type = 'annual' AND duration_years = 1) OR\n      (plan_type = 'multi_year' AND duration_years > 1 AND duration_years <= 50) OR\n      (plan_type = 'lifetime' AND duration_years = 10)\n    )\n  ",
             "default_dart": null,
             "default_client_dart": null,
             "dsl_features": []
@@ -519,7 +519,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"subscriptions\" (\"id\" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \"subscriber_id\" INTEGER NOT NULL REFERENCES subscribers (id), \"edition\" TEXT NOT NULL CHECK (edition IN ('online', 'offline')), \"plan_type\" TEXT NOT NULL CHECK (plan_type IN ('annual', 'multi_year', 'lifetime')), \"duration_years\" INTEGER     NOT NULL CHECK (\n      (plan_type = 'annual' AND duration_years = 1) OR\n      (plan_type = 'multi_year' AND duration_years > 1) OR\n      (plan_type = 'lifetime' AND duration_years = 10)\n    )\n  , \"start_date\" TEXT NOT NULL, \"expiry_date\" TEXT NOT NULL, \"payment_status\" TEXT NOT NULL CHECK (payment_status IN ('paid', 'unpaid')), \"created_at\" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, \"updated_at\" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, \"archived_at\" TEXT NULL);"
+          "sql": "CREATE TABLE IF NOT EXISTS \"subscriptions\" (\"id\" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \"subscriber_id\" INTEGER NOT NULL REFERENCES subscribers (id), \"edition\" TEXT NOT NULL CHECK (edition IN ('online', 'offline')), \"plan_type\" TEXT NOT NULL CHECK (plan_type IN ('annual', 'multi_year', 'lifetime')), \"duration_years\" INTEGER     NOT NULL CHECK (\n      (plan_type = 'annual' AND duration_years = 1) OR\n      (plan_type = 'multi_year' AND duration_years > 1 AND duration_years <= 50) OR\n      (plan_type = 'lifetime' AND duration_years = 10)\n    )\n  , \"start_date\" TEXT NOT NULL, \"expiry_date\" TEXT NOT NULL, \"payment_status\" TEXT NOT NULL CHECK (payment_status IN ('paid', 'unpaid')), \"created_at\" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, \"updated_at\" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, \"archived_at\" TEXT NULL);"
         }
       ]
     },

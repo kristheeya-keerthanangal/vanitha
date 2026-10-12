@@ -44,4 +44,16 @@ void main() {
     expect(subscription.durationYears, 3);
     expect(subscription.expiryDate, '2029-01-01');
   });
+
+  test('rejects multi-year durations over 50 years', () async {
+    viewModel.setDurationYears('51');
+
+    expect(
+      viewModel.validateDuration(viewModel.durationYears),
+      'Enter a duration of 50 years or less',
+    );
+    expect(await viewModel.save(), isFalse);
+    expect(viewModel.submitError, 'Enter a duration of 50 years or less');
+    expect(await database.select(database.subscribers).get(), isEmpty);
+  });
 }

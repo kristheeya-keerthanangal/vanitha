@@ -97,9 +97,10 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
 
   String? validateDuration(String? value) {
     final duration = int.tryParse(value?.trim() ?? '');
-    return duration != null && duration > 1
-        ? null
-        : 'Enter a duration greater than one year';
+    if (duration == null || duration <= 1) {
+      return 'Enter a duration greater than one year';
+    }
+    return duration <= 50 ? null : 'Enter a duration of 50 years or less';
   }
 
   String? validateSelection(String? value, String label) {

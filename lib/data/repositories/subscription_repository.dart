@@ -163,6 +163,11 @@ class SubscriptionRepository {
       case 'lifetime':
         return 10;
       case 'multi_year':
+        if (requestedDuration > 50) {
+          throw ArgumentError(
+            'A multi-year plan cannot be longer than 50 years',
+          );
+        }
         if (requestedDuration > 1) return requestedDuration;
         throw ArgumentError('A multi-year plan must be longer than one year');
       default:

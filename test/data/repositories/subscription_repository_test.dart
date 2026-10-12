@@ -66,6 +66,20 @@ void main() {
     expect(lifetime.expiryDate, '2036-02-10');
   });
 
+  test('rejects multi-year durations over 50 years', () async {
+    expect(
+      repository.createSubscription(
+        subscriberId: subscriberId,
+        edition: 'online',
+        planType: 'multi_year',
+        durationYears: 51,
+        startDate: DateTime(2026, 2, 10),
+        paymentStatus: 'paid',
+      ),
+      throwsA(isA<ArgumentError>()),
+    );
+  });
+
   test('lists subscriptions for a subscriber in start-date order', () async {
     await repository.createSubscription(
       subscriberId: subscriberId,
