@@ -43,6 +43,70 @@ class SubscriptionRepository {
     });
   }
 
+  Future<Subscription> renewSubscription({
+    required int subscriberId,
+    required String edition,
+    required String planType,
+    required int durationYears,
+    required DateTime startDate,
+  }) async {
+    final now = _now();
+    final normalizedStartDate = _dateOnly(startDate);
+    final effectiveDuration = _durationForPlan(planType, durationYears);
+    final formattedStartDate = _formatDate(normalizedStartDate);
+
+    return _database.transaction(() async {
+      final latestSubscription =
+          await (_database.select(_database.subscriptions)
+                ..where(
+                  (subscription) =>
+                      subscription.subscriberId.equals(subscriberId) &
+                      subscription.archivedAt.isNull(),
+                )
+                ..orderBy([
+                  (subscription) => OrderingTerm.desc(subscription.expiryDate),
+                ])
+                ..limit(1))
+              .getSingleOrNull();
+
+      if (latestSubscription == null) {
+        throw StateError(
+          'Subscriber $subscriberId has no active subscription to renew',
+        );
+      }
+
+      final latestExpiry = _parseDate(latestSubscription.expiryDate);
+      if (!normalizedStartDate.isAfter(latestExpiry)) {
+        throw ArgumentError.value(
+          startDate,
+          'startDate',
+          'A renewal must start after the latest subscription expiry',
+        );
+      }
+
+      final expiryDate = _addYears(normalizedStartDate, effectiveDuration);
+      final id = await _database
+          .into(_database.subscriptions)
+          .insert(
+            SubscriptionsCompanion.insert(
+              subscriberId: subscriberId,
+              edition: edition,
+              planType: planType,
+              durationYears: effectiveDuration,
+              startDate: formattedStartDate,
+              expiryDate: _formatDate(expiryDate),
+              createdAt: Value(now),
+              updatedAt: Value(now),
+            ),
+          );
+      final subscription = await getSubscription(id);
+      if (subscription == null) {
+        throw StateError('Subscription $id was not created');
+      }
+      return subscription;
+    });
+  }
+
   Future<Subscription?> getSubscription(
     int id, {
     bool includeArchived = false,

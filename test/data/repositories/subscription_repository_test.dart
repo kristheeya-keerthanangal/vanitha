@@ -75,6 +75,102 @@ void main() {
     );
   });
 
+  test(
+    'renews after the greatest active expiry using the entered start date',
+    () async {
+      await repository.createSubscription(
+        subscriberId: subscriberId,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime(2026, 1, 1),
+      );
+      await repository.createSubscription(
+        subscriberId: subscriberId,
+        edition: 'offline',
+        planType: 'multi_year',
+        durationYears: 3,
+        startDate: DateTime(2027, 1, 1),
+      );
+
+      final renewal = await repository.renewSubscription(
+        subscriberId: subscriberId,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 50,
+        startDate: DateTime(2030, 1, 15, 18),
+      );
+
+      expect(renewal.startDate, '2030-01-15');
+      expect(renewal.expiryDate, '2031-01-15');
+      expect(renewal.edition, 'online');
+      expect(renewal.planType, 'annual');
+      expect(renewal.durationYears, 1);
+    },
+  );
+
+  test('rejects renewal without an active subscription', () async {
+    await expectLater(
+      repository.renewSubscription(
+        subscriberId: subscriberId,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime(2026, 1, 2),
+      ),
+      throwsStateError,
+    );
+  });
+
+  test('rejects renewal on or before the greatest active expiry', () async {
+    final original = await repository.createSubscription(
+      subscriberId: subscriberId,
+      edition: 'online',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: DateTime(2026, 1, 1),
+    );
+
+    for (final startDate in [DateTime(2027, 1, 1), DateTime(2026, 12, 31)]) {
+      await expectLater(
+        repository.renewSubscription(
+          subscriberId: subscriberId,
+          edition: 'offline',
+          planType: 'lifetime',
+          durationYears: 1,
+          startDate: startDate,
+        ),
+        throwsArgumentError,
+      );
+    }
+
+    expect(await repository.getSubscriptionsForSubscriber(subscriberId), [
+      original,
+    ]);
+  });
+
+  test('ignores archived subscriptions when validating a renewal', () async {
+    final original = await repository.createSubscription(
+      subscriberId: subscriberId,
+      edition: 'online',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: DateTime(2026, 1, 1),
+    );
+    await repository.archiveSubscription(original.id);
+
+    await expectLater(
+      repository.renewSubscription(
+        subscriberId: subscriberId,
+        edition: 'offline',
+        planType: 'multi_year',
+        durationYears: 2,
+        startDate: DateTime(2026, 1, 2),
+      ),
+      throwsStateError,
+    );
+  });
+
   test('lists subscriptions for a subscriber in start-date order', () async {
     await repository.createSubscription(
       subscriberId: subscriberId,
