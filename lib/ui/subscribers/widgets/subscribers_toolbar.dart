@@ -43,7 +43,6 @@ class SubscribersToolbar extends StatelessWidget {
           labelText: 'Search subscribers',
           hint: Text('Enter Name, email or phone'),
           prefixIcon: Icon(Icons.search),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(22)),
         ),
       ),
     ],

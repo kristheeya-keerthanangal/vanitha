@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vanithabodhini/data/app_database.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
 import 'package:vanithabodhini/data/repositories/subscription_repository.dart';
+import 'package:vanithabodhini/data/subscription_status.dart';
 
 void main() {
   late AppDatabase database;
@@ -63,11 +64,17 @@ void main() {
   );
 
   test(
-    'filters by expiry date and preserves inclusive and mixed-status rules',
+    'classifies subscriber status by current coverage and filters it consistently',
     () async {
       final subscriptions = SubscriptionRepository(database);
       final today = DateTime.now();
       final dateOnly = DateTime(today.year, today.month, today.day);
+      final futureStartDate = dateOnly.add(const Duration(days: 30));
+      final futureExpiryDate = DateTime(
+        futureStartDate.year + 1,
+        futureStartDate.month,
+        futureStartDate.day,
+      );
       final futureSubscriber = await repository.createSubscriber(
         name: 'Status Reader Future',
       );
@@ -82,6 +89,9 @@ void main() {
       );
       final mixedSubscriber = await repository.createSubscriber(
         name: 'Status Reader Mixed',
+      );
+      final activeAndFutureSubscriber = await repository.createSubscriber(
+        name: 'Status Reader Active and Future',
       );
       final archivedSubscriptionSubscriber = await repository.createSubscriber(
         name: 'Status Reader Archived',
@@ -116,9 +126,14 @@ void main() {
         mixedSubscriber.id,
         DateTime(today.year - 3, today.month, today.day),
       );
+      await addAnnualSubscription(mixedSubscriber.id, futureStartDate);
       await addAnnualSubscription(
-        mixedSubscriber.id,
-        dateOnly.add(const Duration(days: 30)),
+        activeAndFutureSubscriber.id,
+        dateOnly.subtract(const Duration(days: 30)),
+      );
+      await addAnnualSubscription(
+        activeAndFutureSubscriber.id,
+        futureStartDate,
       );
       final archivedSubscriptionId = await addAnnualSubscription(
         archivedSubscriptionSubscriber.id,
@@ -136,17 +151,18 @@ void main() {
         filterBy: SubscriberFilter.expired,
       );
 
-      expect(all.total, 6);
+      expect(all.total, 7);
       expect(active.rows.map((subscriber) => subscriber.id).toSet(), {
-        futureSubscriber.id,
         expiresTodaySubscriber.id,
-        mixedSubscriber.id,
+        activeAndFutureSubscriber.id,
       });
-      expect(active.total, 3);
+      expect(active.total, 2);
       expect(expired.rows.map((subscriber) => subscriber.id).toSet(), {
         expiredSubscriber.id,
+        futureSubscriber.id,
+        mixedSubscriber.id,
       });
-      expect(expired.total, 1);
+      expect(expired.total, 3);
       expect(expired.rows, isNot(contains(noSubscription)));
       expect(expired.rows, isNot(contains(archivedSubscriptionSubscriber)));
       expect(active.rows, isNot(contains(noSubscription)));
@@ -154,6 +170,39 @@ void main() {
       expect(
         all.rows.map((subscriber) => subscriber.id),
         containsAll([noSubscription.id, archivedSubscriptionSubscriber.id]),
+      );
+      expect(
+        all.statuses[futureSubscriber.id]?.status,
+        SubscriptionStatus.expired,
+      );
+      expect(all.statuses[futureSubscriber.id]?.expiryDate, isNotNull);
+      expect(
+        all.statuses[expiresTodaySubscriber.id]?.status,
+        SubscriptionStatus.active,
+      );
+      expect(
+        all.statuses[mixedSubscriber.id]?.status,
+        SubscriptionStatus.expired,
+      );
+      expect(
+        all.statuses[activeAndFutureSubscriber.id]?.status,
+        SubscriptionStatus.active,
+      );
+      expect(
+        all.statuses[mixedSubscriber.id]?.expiryDate,
+        '${futureExpiryDate.year}-${futureExpiryDate.month.toString().padLeft(2, '0')}-${futureExpiryDate.day.toString().padLeft(2, '0')}',
+      );
+      expect(
+        all.statuses[expiredSubscriber.id]?.status,
+        SubscriptionStatus.expired,
+      );
+      expect(
+        all.statuses[noSubscription.id]?.status,
+        SubscriptionStatus.notSubscribed,
+      );
+      expect(
+        all.statuses[archivedSubscriptionSubscriber.id]?.status,
+        SubscriptionStatus.notSubscribed,
       );
     },
   );

@@ -17,16 +17,26 @@ class SubscribersTable extends StatefulWidget {
 
 class _SubscribersTableState extends State<SubscribersTable> {
   late SubscribersTableSource _source;
+  var _sourceInitialized = false;
   SubscribersTableSource _createSource() => SubscribersTableSource(
     rows: widget.model.rows,
+    statuses: widget.model.statuses,
     offset: widget.model.offset,
     total: widget.model.total,
     onOpen: widget.onOpen,
+    colorScheme: Theme.of(context).colorScheme,
   );
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_sourceInitialized) _source.dispose();
     _source = _createSource();
+    _sourceInitialized = true;
   }
 
   @override
@@ -77,8 +87,8 @@ class _SubscribersTableState extends State<SubscribersTable> {
           onSort: (_, ascending) =>
               model.changeSort(SubscriberSort.name, ascending),
         ),
-        const DataColumn(label: Text('Email')),
-        const DataColumn(label: Text('Phone')),
+        const DataColumn(label: Text('Status')),
+        const DataColumn(label: Text('Expires on')),
       ],
       source: _source,
     );

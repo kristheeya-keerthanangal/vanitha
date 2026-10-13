@@ -166,9 +166,9 @@ void main() {
     });
     final subscribers = SubscriberRepository(database);
     final subscriptions = SubscriptionRepository(database);
-    late int activeId;
     late int expiresTodayId;
     late int expiredId;
+    late int activeId;
     late int mixedId;
     await tester.runAsync(() async {
       final today = DateTime.now();
@@ -189,9 +189,9 @@ void main() {
       final archivedOnly = await subscribers.createSubscriber(
         name: 'Archived Only Filter Reader',
       );
-      activeId = active.id;
       expiresTodayId = expiresToday.id;
       expiredId = expired.id;
+      activeId = active.id;
       mixedId = mixed.id;
       await subscriptions.createSubscription(
         subscriberId: active.id,
@@ -248,39 +248,42 @@ void main() {
     expect(model.total, 6);
     expect(find.text('Active Filter Reader'), findsOneWidget);
     expect(find.text('Expired Filter Reader'), findsOneWidget);
+    expect(find.text('Upcoming'), findsNothing);
 
-    await tester.tap(find.text('Active').last);
+    await tester.tap(find.text('Active').first);
     await tester.runAsync(model.refresh);
     await tester.pumpAndSettle();
     expect(model.selectedFilter, SubscriberFilter.active);
-    expect(model.total, 3);
+    expect(model.total, 1);
     expect(model.rows.map((subscriber) => subscriber.id).toSet(), {
-      activeId,
       expiresTodayId,
-      mixedId,
     });
-    expect(find.text('Active Filter Reader'), findsOneWidget);
+    expect(find.text('Active Filter Reader'), findsNothing);
     expect(find.text('Expires Today Filter Reader'), findsOneWidget);
-    expect(find.text('Mixed Filter Reader'), findsOneWidget);
+    expect(find.text('Mixed Filter Reader'), findsNothing);
     expect(find.text('Expired Filter Reader'), findsNothing);
     expect(find.text('No Subscription Filter Reader'), findsNothing);
 
-    await tester.tap(find.text('Expired').last);
+    await tester.tap(find.text('Expired').first);
     await tester.runAsync(model.refresh);
     await tester.pumpAndSettle();
 
     expect(model.selectedFilter, SubscriberFilter.expired);
-    expect(model.total, 1);
-    expect(model.rows.single.id, expiredId);
+    expect(model.total, 3);
+    expect(model.rows.map((subscriber) => subscriber.id).toSet(), {
+      expiredId,
+      activeId,
+      mixedId,
+    });
     expect(find.text('Expired Filter Reader'), findsOneWidget);
-    expect(find.text('Active Filter Reader'), findsNothing);
+    expect(find.text('Active Filter Reader'), findsOneWidget);
     expect(find.text('Expires Today Filter Reader'), findsNothing);
-    expect(find.text('Mixed Filter Reader'), findsNothing);
+    expect(find.text('Mixed Filter Reader'), findsOneWidget);
     expect(find.text('No Subscription Filter Reader'), findsNothing);
     expect(find.text('Archived Only Filter Reader'), findsNothing);
     expect(
       model.rows.map((subscriber) => subscriber.id),
-      isNot(contains(activeId)),
+      isNot(contains(expiresTodayId)),
     );
     await tester.pumpWidget(const SizedBox());
   });

@@ -17,6 +17,7 @@ class SubscribersViewModel extends ChangeNotifier {
   }
   final SubscriberRepository _repository;
   List<Subscriber> rows = [];
+  Map<int, SubscriberStatus> statuses = {};
   int total = 0;
   int offset = 0;
   int pageSize = 25;
@@ -96,6 +97,7 @@ class SubscribersViewModel extends ChangeNotifier {
       }
       if (_disposed || request != _request) return;
       rows = page.rows;
+      statuses = page.statuses;
       total = page.total;
     } catch (_) {
       if (_disposed || request != _request) return;

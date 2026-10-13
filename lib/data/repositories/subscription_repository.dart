@@ -21,6 +21,7 @@ class SubscriptionRepository {
     final expiryDate = _addYears(normalizedStartDate, effectiveDuration);
 
     return _database.transaction(() async {
+      await _ensureActiveSubscriber(subscriberId);
       final id = await _database
           .into(_database.subscriptions)
           .insert(
@@ -41,6 +42,18 @@ class SubscriptionRepository {
       }
       return subscription;
     });
+  }
+
+  Future<void> _ensureActiveSubscriber(int subscriberId) async {
+    final subscriber = await (_database.select(
+      _database.subscribers,
+    )..where((row) => row.id.equals(subscriberId))).getSingleOrNull();
+    if (subscriber == null) {
+      throw StateError('Subscriber $subscriberId was not found');
+    }
+    if (subscriber.archivedAt != null) {
+      throw StateError('Subscriber $subscriberId is not active');
+    }
   }
 
   Future<Subscription?> getSubscription(

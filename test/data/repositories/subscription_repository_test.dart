@@ -75,6 +75,125 @@ void main() {
     );
   });
 
+  test(
+    'creates additional annual, multi-year, and lifetime subscriptions',
+    () async {
+      await repository.createSubscription(
+        subscriberId: subscriberId,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime(2020, 1, 1),
+      );
+
+      final annual = await repository.createSubscription(
+        subscriberId: subscriberId,
+        edition: 'offline',
+        planType: 'annual',
+        durationYears: 50,
+        startDate: DateTime(2022, 2, 3),
+      );
+      final multiYear = await repository.createSubscription(
+        subscriberId: subscriberId,
+        edition: 'online',
+        planType: 'multi_year',
+        durationYears: 4,
+        startDate: DateTime(2024, 2, 3),
+      );
+      final lifetime = await repository.createSubscription(
+        subscriberId: subscriberId,
+        edition: 'offline',
+        planType: 'lifetime',
+        durationYears: 1,
+        startDate: DateTime(2029, 2, 3),
+      );
+
+      expect(annual.edition, 'offline');
+      expect(annual.durationYears, 1);
+      expect(annual.expiryDate, '2023-02-03');
+      expect(multiYear.edition, 'online');
+      expect(multiYear.durationYears, 4);
+      expect(multiYear.expiryDate, '2028-02-03');
+      expect(lifetime.edition, 'offline');
+      expect(lifetime.durationYears, 10);
+      expect(lifetime.expiryDate, '2039-02-03');
+    },
+  );
+
+  test('creates subscriptions without ordering or overlap checks', () async {
+    final original = await repository.createSubscription(
+      subscriberId: subscriberId,
+      edition: 'online',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: DateTime(2026, 1, 1),
+    );
+
+    final created = <Subscription>[];
+    for (final startDate in [
+      DateTime(2028, 1, 1),
+      DateTime(2027, 1, 1),
+      DateTime(2026, 6, 1),
+      DateTime(2025, 6, 1),
+    ]) {
+      final subscription = await repository.createSubscription(
+        subscriberId: subscriberId,
+        edition: 'offline',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: startDate,
+      );
+      expect(await repository.getSubscription(subscription.id), subscription);
+      created.add(subscription);
+    }
+
+    expect(await repository.getSubscription(original.id), original);
+    expect(
+      await repository.getSubscriptionsForSubscriber(subscriberId),
+      unorderedEquals([original, ...created]),
+    );
+  });
+
+  test('does not create subscriptions for archived subscribers', () async {
+    final archived = await subscriberRepository.archiveSubscriber(subscriberId);
+
+    await expectLater(
+      repository.createSubscription(
+        subscriberId: archived.id,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime(2026, 1, 1),
+      ),
+      throwsStateError,
+    );
+  });
+
+  test(
+    'does not create another subscription after its subscriber is archived',
+    () async {
+      await repository.createSubscription(
+        subscriberId: subscriberId,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime(2026, 1, 1),
+      );
+      await subscriberRepository.archiveSubscriber(subscriberId);
+
+      await expectLater(
+        repository.createSubscription(
+          subscriberId: subscriberId,
+          edition: 'offline',
+          planType: 'annual',
+          durationYears: 1,
+          startDate: DateTime(2027, 1, 2),
+        ),
+        throwsStateError,
+      );
+    },
+  );
+
   test('lists subscriptions for a subscriber in start-date order', () async {
     await repository.createSubscription(
       subscriberId: subscriberId,
@@ -171,7 +290,7 @@ void main() {
         durationYears: 1,
         startDate: DateTime(2026, 1, 1),
       ),
-      throwsA(isA<Exception>()),
+      throwsStateError,
     );
   });
 
@@ -297,4 +416,28 @@ void main() {
     );
     expect(await database.select(database.subscriptions).get(), [original]);
   });
+
+  test(
+    'additional subscriptions roll back when the inserted row cannot be read back',
+    () async {
+      final original = await createSubscription();
+      await database.customStatement('''
+      CREATE TRIGGER move_inserted_subscription AFTER INSERT ON subscriptions
+      BEGIN UPDATE subscriptions SET id = NEW.id + 1000 WHERE id = NEW.id; END
+    ''');
+      await expectLater(
+        repository.createSubscription(
+          subscriberId: subscriberId,
+          edition: 'offline',
+          planType: 'annual',
+          durationYears: 1,
+          startDate: DateTime(2028, 1, 1),
+        ),
+        throwsStateError,
+      );
+      expect(await repository.getSubscriptionsForSubscriber(subscriberId), [
+        original,
+      ]);
+    },
+  );
 }
