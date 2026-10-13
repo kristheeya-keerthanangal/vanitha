@@ -76,7 +76,7 @@ void main() {
   });
 
   test(
-    'renews annual, multi-year, and lifetime plans with supplied terms',
+    'creates additional annual, multi-year, and lifetime subscriptions',
     () async {
       await repository.createSubscription(
         subscriberId: subscriberId,
@@ -86,21 +86,21 @@ void main() {
         startDate: DateTime(2020, 1, 1),
       );
 
-      final annual = await repository.renewSubscription(
+      final annual = await repository.createSubscription(
         subscriberId: subscriberId,
         edition: 'offline',
         planType: 'annual',
         durationYears: 50,
         startDate: DateTime(2022, 2, 3),
       );
-      final multiYear = await repository.renewSubscription(
+      final multiYear = await repository.createSubscription(
         subscriberId: subscriberId,
         edition: 'online',
         planType: 'multi_year',
         durationYears: 4,
         startDate: DateTime(2024, 2, 3),
       );
-      final lifetime = await repository.renewSubscription(
+      final lifetime = await repository.createSubscription(
         subscriberId: subscriberId,
         edition: 'offline',
         planType: 'lifetime',
@@ -120,202 +120,57 @@ void main() {
     },
   );
 
-  test(
-    'renews after the greatest active expiry using the entered start date',
-    () async {
-      await repository.createSubscription(
+  test('creates subscriptions without ordering or overlap checks', () async {
+    final original = await repository.createSubscription(
+      subscriberId: subscriberId,
+      edition: 'online',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: DateTime(2026, 1, 1),
+    );
+
+    final created = <Subscription>[];
+    for (final startDate in [
+      DateTime(2028, 1, 1),
+      DateTime(2027, 1, 1),
+      DateTime(2026, 6, 1),
+      DateTime(2025, 6, 1),
+    ]) {
+      final subscription = await repository.createSubscription(
         subscriberId: subscriberId,
+        edition: 'offline',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: startDate,
+      );
+      expect(await repository.getSubscription(subscription.id), subscription);
+      created.add(subscription);
+    }
+
+    expect(await repository.getSubscription(original.id), original);
+    expect(
+      await repository.getSubscriptionsForSubscriber(subscriberId),
+      unorderedEquals([original, ...created]),
+    );
+  });
+
+  test('does not create subscriptions for archived subscribers', () async {
+    final archived = await subscriberRepository.archiveSubscriber(subscriberId);
+
+    await expectLater(
+      repository.createSubscription(
+        subscriberId: archived.id,
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
         startDate: DateTime(2026, 1, 1),
-      );
-      await repository.createSubscription(
-        subscriberId: subscriberId,
-        edition: 'offline',
-        planType: 'multi_year',
-        durationYears: 3,
-        startDate: DateTime(2027, 1, 1),
-      );
-
-      final renewal = await repository.renewSubscription(
-        subscriberId: subscriberId,
-        edition: 'online',
-        planType: 'annual',
-        durationYears: 50,
-        startDate: DateTime(2030, 1, 15, 18),
-      );
-
-      expect(renewal.startDate, '2030-01-15');
-      expect(renewal.expiryDate, '2031-01-15');
-      expect(renewal.edition, 'online');
-      expect(renewal.planType, 'annual');
-      expect(renewal.durationYears, 1);
-    },
-  );
-
-  test('rejects renewal without an active subscription', () async {
-    await expectLater(
-      repository.renewSubscription(
-        subscriberId: subscriberId,
-        edition: 'online',
-        planType: 'annual',
-        durationYears: 1,
-        startDate: DateTime(2026, 1, 2),
-      ),
-      throwsStateError,
-    );
-  });
-
-  test('rejects renewal on or before the greatest active expiry', () async {
-    final original = await repository.createSubscription(
-      subscriberId: subscriberId,
-      edition: 'online',
-      planType: 'annual',
-      durationYears: 1,
-      startDate: DateTime(2026, 1, 1),
-    );
-
-    for (final startDate in [DateTime(2027, 1, 1), DateTime(2026, 12, 31)]) {
-      await expectLater(
-        repository.renewSubscription(
-          subscriberId: subscriberId,
-          edition: 'offline',
-          planType: 'lifetime',
-          durationYears: 1,
-          startDate: startDate,
-        ),
-        throwsArgumentError,
-      );
-    }
-
-    expect(await repository.getSubscriptionsForSubscriber(subscriberId), [
-      original,
-    ]);
-  });
-
-  test('allows future and late renewals while rejecting overlaps', () async {
-    await repository.createSubscription(
-      subscriberId: subscriberId,
-      edition: 'online',
-      planType: 'annual',
-      durationYears: 1,
-      startDate: DateTime(2026, 1, 1),
-    );
-
-    final future = await repository.renewSubscription(
-      subscriberId: subscriberId,
-      edition: 'online',
-      planType: 'annual',
-      durationYears: 1,
-      startDate: DateTime(2028, 1, 1),
-    );
-    expect(future.expiryDate, '2029-01-01');
-
-    final late = await repository.renewSubscription(
-      subscriberId: subscriberId,
-      edition: 'offline',
-      planType: 'multi_year',
-      durationYears: 2,
-      startDate: DateTime(2035, 6, 1),
-    );
-    expect(late.startDate, '2035-06-01');
-    expect(late.expiryDate, '2037-06-01');
-
-    await expectLater(
-      repository.renewSubscription(
-        subscriberId: subscriberId,
-        edition: 'online',
-        planType: 'annual',
-        durationYears: 1,
-        startDate: DateTime(2037, 6, 1),
-      ),
-      throwsArgumentError,
-    );
-  });
-
-  test('uses an existing upcoming renewal as the latest expiry', () async {
-    await repository.createSubscription(
-      subscriberId: subscriberId,
-      edition: 'online',
-      planType: 'annual',
-      durationYears: 1,
-      startDate: DateTime(2026, 1, 1),
-    );
-    final upcoming = await repository.renewSubscription(
-      subscriberId: subscriberId,
-      edition: 'offline',
-      planType: 'annual',
-      durationYears: 1,
-      startDate: DateTime(2028, 1, 1),
-    );
-
-    await expectLater(
-      repository.renewSubscription(
-        subscriberId: subscriberId,
-        edition: 'online',
-        planType: 'annual',
-        durationYears: 1,
-        startDate: DateTime(2029, 1, 1),
-      ),
-      throwsArgumentError,
-    );
-
-    final next = await repository.renewSubscription(
-      subscriberId: subscriberId,
-      edition: 'online',
-      planType: 'annual',
-      durationYears: 1,
-      startDate: DateTime(2030, 1, 1),
-    );
-    expect(next.startDate, '2030-01-01');
-    expect(upcoming.expiryDate, '2029-01-01');
-  });
-
-  test('ignores archived subscriptions when validating a renewal', () async {
-    final original = await repository.createSubscription(
-      subscriberId: subscriberId,
-      edition: 'online',
-      planType: 'annual',
-      durationYears: 1,
-      startDate: DateTime(2026, 1, 1),
-    );
-    await repository.archiveSubscription(original.id);
-
-    await expectLater(
-      repository.renewSubscription(
-        subscriberId: subscriberId,
-        edition: 'offline',
-        planType: 'multi_year',
-        durationYears: 2,
-        startDate: DateTime(2026, 1, 2),
       ),
       throwsStateError,
     );
   });
 
   test(
-    'does not create or renew subscriptions for archived subscribers',
-    () async {
-      final archived = await subscriberRepository.archiveSubscriber(
-        subscriberId,
-      );
-
-      await expectLater(
-        repository.createSubscription(
-          subscriberId: archived.id,
-          edition: 'online',
-          planType: 'annual',
-          durationYears: 1,
-          startDate: DateTime(2026, 1, 1),
-        ),
-        throwsStateError,
-      );
-    },
-  );
-
-  test(
-    'does not renew an existing subscription after its subscriber is archived',
+    'does not create another subscription after its subscriber is archived',
     () async {
       await repository.createSubscription(
         subscriberId: subscriberId,
@@ -327,7 +182,7 @@ void main() {
       await subscriberRepository.archiveSubscriber(subscriberId);
 
       await expectLater(
-        repository.renewSubscription(
+        repository.createSubscription(
           subscriberId: subscriberId,
           edition: 'offline',
           planType: 'annual',
@@ -335,53 +190,6 @@ void main() {
           startDate: DateTime(2027, 1, 2),
         ),
         throwsStateError,
-      );
-    },
-  );
-
-  test(
-    'archival changes the renewal ordering and restoration restores it',
-    () async {
-      final original = await repository.createSubscription(
-        subscriberId: subscriberId,
-        edition: 'online',
-        planType: 'annual',
-        durationYears: 1,
-        startDate: DateTime(2026, 1, 1),
-      );
-      final later = await repository.createSubscription(
-        subscriberId: subscriberId,
-        edition: 'offline',
-        planType: 'annual',
-        durationYears: 1,
-        startDate: DateTime(2028, 1, 1),
-      );
-      await repository.archiveSubscription(later.id);
-
-      final renewal = await repository.renewSubscription(
-        subscriberId: subscriberId,
-        edition: 'online',
-        planType: 'annual',
-        durationYears: 1,
-        startDate: DateTime(2028, 1, 1),
-      );
-      expect(renewal.startDate, '2028-01-01');
-      expect(
-        await repository.getSubscriptionsForSubscriber(subscriberId),
-        containsAll([original, renewal]),
-      );
-
-      final restored = await repository.restoreSubscription(later.id);
-      expect(restored.archivedAt, isNull);
-      await expectLater(
-        repository.renewSubscription(
-          subscriberId: subscriberId,
-          edition: 'offline',
-          planType: 'annual',
-          durationYears: 1,
-          startDate: DateTime(2029, 1, 1),
-        ),
-        throwsArgumentError,
       );
     },
   );
@@ -610,15 +418,15 @@ void main() {
   });
 
   test(
-    'renewals roll back when the inserted row cannot be read back',
+    'additional subscriptions roll back when the inserted row cannot be read back',
     () async {
       final original = await createSubscription();
       await database.customStatement('''
-      CREATE TRIGGER move_renewed_subscription AFTER INSERT ON subscriptions
+      CREATE TRIGGER move_inserted_subscription AFTER INSERT ON subscriptions
       BEGIN UPDATE subscriptions SET id = NEW.id + 1000 WHERE id = NEW.id; END
     ''');
       await expectLater(
-        repository.renewSubscription(
+        repository.createSubscription(
           subscriberId: subscriberId,
           edition: 'offline',
           planType: 'annual',

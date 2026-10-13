@@ -1,15 +1,12 @@
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
-import '../subscription_expiry.dart';
 import 'update_timestamp.dart';
 
 class SubscriptionRepository {
-  SubscriptionRepository(this._database)
-    : _subscriptionExpiry = SubscriptionExpiry(_database);
+  SubscriptionRepository(this._database);
 
   final AppDatabase _database;
-  final SubscriptionExpiry _subscriptionExpiry;
 
   Future<Subscription> createSubscription({
     required int subscriberId,
@@ -24,7 +21,7 @@ class SubscriptionRepository {
     final expiryDate = _addYears(normalizedStartDate, effectiveDuration);
 
     return _database.transaction(() async {
-      await _ensureActiveSubscriber(subscriberId, missingIsAllowed: true);
+      await _ensureActiveSubscriber(subscriberId);
       final id = await _database
           .into(_database.subscriptions)
           .insert(
@@ -47,70 +44,12 @@ class SubscriptionRepository {
     });
   }
 
-  Future<Subscription> renewSubscription({
-    required int subscriberId,
-    required String edition,
-    required String planType,
-    required int durationYears,
-    required DateTime startDate,
-  }) async {
-    final now = _now();
-    final normalizedStartDate = _dateOnly(startDate);
-    final effectiveDuration = _durationForPlan(planType, durationYears);
-    final formattedStartDate = _formatDate(normalizedStartDate);
-
-    return _database.transaction(() async {
-      await _ensureActiveSubscriber(subscriberId);
-      final effectiveExpiry = await _subscriptionExpiry.getEffectiveExpiryDate(
-        subscriberId,
-      );
-      if (effectiveExpiry == null) {
-        throw StateError(
-          'Subscriber $subscriberId has no active subscription to renew',
-        );
-      }
-
-      final latestExpiry = _parseDate(effectiveExpiry);
-      if (!normalizedStartDate.isAfter(latestExpiry)) {
-        throw ArgumentError.value(
-          startDate,
-          'startDate',
-          'A renewal must start after the latest subscription expiry',
-        );
-      }
-
-      final expiryDate = _addYears(normalizedStartDate, effectiveDuration);
-      final id = await _database
-          .into(_database.subscriptions)
-          .insert(
-            SubscriptionsCompanion.insert(
-              subscriberId: subscriberId,
-              edition: edition,
-              planType: planType,
-              durationYears: effectiveDuration,
-              startDate: formattedStartDate,
-              expiryDate: _formatDate(expiryDate),
-              createdAt: Value(now),
-              updatedAt: Value(now),
-            ),
-          );
-      final subscription = await getSubscription(id);
-      if (subscription == null) {
-        throw StateError('Subscription $id was not created');
-      }
-      return subscription;
-    });
-  }
-
-  Future<void> _ensureActiveSubscriber(
-    int subscriberId, {
-    bool missingIsAllowed = false,
-  }) async {
+  Future<void> _ensureActiveSubscriber(int subscriberId) async {
     final subscriber = await (_database.select(
       _database.subscribers,
     )..where((row) => row.id.equals(subscriberId))).getSingleOrNull();
-    if (subscriber == null && missingIsAllowed) return;
-    if (subscriber == null || subscriber.archivedAt != null) {
+    if (subscriber == null) return;
+    if (subscriber.archivedAt != null) {
       throw StateError('Subscriber $subscriberId is not active');
     }
   }
