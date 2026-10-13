@@ -79,23 +79,13 @@ class SubscriptionExpiry {
     final hasSubscription = _hasSubscriptionForSubscriber(subscriberId);
     final hasActiveSubscription = _hasSubscriptionMatching(
       subscriberId,
-      (row, todayDate) =>
-          row.startDate.isBiggerThanValue(todayDate).not() &
-          row.expiryDate.isSmallerThanValue(todayDate).not(),
-    );
-    final hasUpcomingSubscription = _hasSubscriptionMatching(
-      subscriberId,
-      (row, todayDate) => row.startDate.isBiggerThanValue(todayDate),
+      (row, todayDate) => row.expiryDate.isSmallerThanValue(todayDate).not(),
     );
 
     return switch (status) {
       SubscriptionStatus.active => hasActiveSubscription,
-      SubscriptionStatus.upcoming =>
-        hasActiveSubscription.not() & hasUpcomingSubscription,
       SubscriptionStatus.expired =>
-        hasSubscription &
-            hasActiveSubscription.not() &
-            hasUpcomingSubscription.not(),
+        hasSubscription & hasActiveSubscription.not(),
       SubscriptionStatus.notSubscribed => hasSubscription.not(),
     };
   }

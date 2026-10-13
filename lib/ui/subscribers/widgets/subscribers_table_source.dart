@@ -28,19 +28,16 @@ class SubscribersTableSource extends DataTableSource {
         const SubscriberStatus(status: SubscriptionStatus.notSubscribed);
     final statusLabel = switch (status.status) {
       SubscriptionStatus.active => 'Active',
-      SubscriptionStatus.upcoming => 'Upcoming',
       SubscriptionStatus.expired => 'Expired',
       SubscriptionStatus.notSubscribed => 'Not Subscribed',
     };
     final statusBackground = switch (status.status) {
       SubscriptionStatus.active => colorScheme.primaryContainer,
-      SubscriptionStatus.upcoming => colorScheme.secondaryContainer,
       SubscriptionStatus.expired => colorScheme.errorContainer,
       SubscriptionStatus.notSubscribed => colorScheme.surfaceContainerHighest,
     };
     final statusForeground = switch (status.status) {
       SubscriptionStatus.active => colorScheme.onPrimaryContainer,
-      SubscriptionStatus.upcoming => colorScheme.onSecondaryContainer,
       SubscriptionStatus.expired => colorScheme.onErrorContainer,
       SubscriptionStatus.notSubscribed => colorScheme.onSurfaceVariant,
     };

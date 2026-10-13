@@ -64,16 +64,16 @@ void main() {
   );
 
   test(
-    'classifies subscriber status by priority and filters it consistently',
+    'classifies subscriber status by expiry and filters it consistently',
     () async {
       final subscriptions = SubscriptionRepository(database);
       final today = DateTime.now();
       final dateOnly = DateTime(today.year, today.month, today.day);
-      final upcomingStartDate = dateOnly.add(const Duration(days: 30));
-      final upcomingExpiryDate = DateTime(
-        upcomingStartDate.year + 1,
-        upcomingStartDate.month,
-        upcomingStartDate.day,
+      final futureStartDate = dateOnly.add(const Duration(days: 30));
+      final futureExpiryDate = DateTime(
+        futureStartDate.year + 1,
+        futureStartDate.month,
+        futureStartDate.day,
       );
       final futureSubscriber = await repository.createSubscriber(
         name: 'Status Reader Future',
@@ -90,8 +90,8 @@ void main() {
       final mixedSubscriber = await repository.createSubscriber(
         name: 'Status Reader Mixed',
       );
-      final activeAndUpcomingSubscriber = await repository.createSubscriber(
-        name: 'Status Reader Active and Upcoming',
+      final activeAndFutureSubscriber = await repository.createSubscriber(
+        name: 'Status Reader Active and Future',
       );
       final archivedSubscriptionSubscriber = await repository.createSubscriber(
         name: 'Status Reader Archived',
@@ -126,14 +126,14 @@ void main() {
         mixedSubscriber.id,
         DateTime(today.year - 3, today.month, today.day),
       );
-      await addAnnualSubscription(mixedSubscriber.id, upcomingStartDate);
+      await addAnnualSubscription(mixedSubscriber.id, futureStartDate);
       await addAnnualSubscription(
-        activeAndUpcomingSubscriber.id,
+        activeAndFutureSubscriber.id,
         dateOnly.subtract(const Duration(days: 30)),
       );
       await addAnnualSubscription(
-        activeAndUpcomingSubscriber.id,
-        upcomingStartDate,
+        activeAndFutureSubscriber.id,
+        futureStartDate,
       );
       final archivedSubscriptionId = await addAnnualSubscription(
         archivedSubscriptionSubscriber.id,
@@ -153,10 +153,12 @@ void main() {
 
       expect(all.total, 7);
       expect(active.rows.map((subscriber) => subscriber.id).toSet(), {
+        futureSubscriber.id,
         expiresTodaySubscriber.id,
-        activeAndUpcomingSubscriber.id,
+        mixedSubscriber.id,
+        activeAndFutureSubscriber.id,
       });
-      expect(active.total, 2);
+      expect(active.total, 4);
       expect(expired.rows.map((subscriber) => subscriber.id).toSet(), {
         expiredSubscriber.id,
       });
@@ -171,7 +173,7 @@ void main() {
       );
       expect(
         all.statuses[futureSubscriber.id]?.status,
-        SubscriptionStatus.upcoming,
+        SubscriptionStatus.active,
       );
       expect(all.statuses[futureSubscriber.id]?.expiryDate, isNotNull);
       expect(
@@ -180,15 +182,15 @@ void main() {
       );
       expect(
         all.statuses[mixedSubscriber.id]?.status,
-        SubscriptionStatus.upcoming,
+        SubscriptionStatus.active,
       );
       expect(
-        all.statuses[activeAndUpcomingSubscriber.id]?.status,
+        all.statuses[activeAndFutureSubscriber.id]?.status,
         SubscriptionStatus.active,
       );
       expect(
         all.statuses[mixedSubscriber.id]?.expiryDate,
-        '${upcomingExpiryDate.year}-${upcomingExpiryDate.month.toString().padLeft(2, '0')}-${upcomingExpiryDate.day.toString().padLeft(2, '0')}',
+        '${futureExpiryDate.year}-${futureExpiryDate.month.toString().padLeft(2, '0')}-${futureExpiryDate.day.toString().padLeft(2, '0')}',
       );
       expect(
         all.statuses[expiredSubscriber.id]?.status,
