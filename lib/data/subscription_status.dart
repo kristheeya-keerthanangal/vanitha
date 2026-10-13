@@ -17,8 +17,11 @@ class SubscriptionStatusResolver {
       if (subscription.archivedAt != null) continue;
       hasSubscription = true;
 
+      final startDate = _dateOnly(_parseDate(subscription.startDate));
       final expiryDate = _dateOnly(_parseDate(subscription.expiryDate));
-      if (!date.isAfter(expiryDate)) return SubscriptionStatus.active;
+      if (!date.isBefore(startDate) && !date.isAfter(expiryDate)) {
+        return SubscriptionStatus.active;
+      }
     }
 
     if (hasSubscription) return SubscriptionStatus.expired;

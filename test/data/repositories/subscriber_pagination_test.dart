@@ -64,7 +64,7 @@ void main() {
   );
 
   test(
-    'classifies subscriber status by expiry and filters it consistently',
+    'classifies subscriber status by current coverage and filters it consistently',
     () async {
       final subscriptions = SubscriptionRepository(database);
       final today = DateTime.now();
@@ -153,16 +153,16 @@ void main() {
 
       expect(all.total, 7);
       expect(active.rows.map((subscriber) => subscriber.id).toSet(), {
-        futureSubscriber.id,
         expiresTodaySubscriber.id,
-        mixedSubscriber.id,
         activeAndFutureSubscriber.id,
       });
-      expect(active.total, 4);
+      expect(active.total, 2);
       expect(expired.rows.map((subscriber) => subscriber.id).toSet(), {
         expiredSubscriber.id,
+        futureSubscriber.id,
+        mixedSubscriber.id,
       });
-      expect(expired.total, 1);
+      expect(expired.total, 3);
       expect(expired.rows, isNot(contains(noSubscription)));
       expect(expired.rows, isNot(contains(archivedSubscriptionSubscriber)));
       expect(active.rows, isNot(contains(noSubscription)));
@@ -173,7 +173,7 @@ void main() {
       );
       expect(
         all.statuses[futureSubscriber.id]?.status,
-        SubscriptionStatus.active,
+        SubscriptionStatus.expired,
       );
       expect(all.statuses[futureSubscriber.id]?.expiryDate, isNotNull);
       expect(
@@ -182,7 +182,7 @@ void main() {
       );
       expect(
         all.statuses[mixedSubscriber.id]?.status,
-        SubscriptionStatus.active,
+        SubscriptionStatus.expired,
       );
       expect(
         all.statuses[activeAndFutureSubscriber.id]?.status,
