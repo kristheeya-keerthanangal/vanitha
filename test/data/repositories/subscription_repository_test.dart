@@ -290,7 +290,7 @@ void main() {
         durationYears: 1,
         startDate: DateTime(2026, 1, 1),
       ),
-      throwsA(isA<Exception>()),
+      throwsStateError,
     );
   });
 

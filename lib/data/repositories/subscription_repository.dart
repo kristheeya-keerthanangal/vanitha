@@ -48,7 +48,9 @@ class SubscriptionRepository {
     final subscriber = await (_database.select(
       _database.subscribers,
     )..where((row) => row.id.equals(subscriberId))).getSingleOrNull();
-    if (subscriber == null) return;
+    if (subscriber == null) {
+      throw StateError('Subscriber $subscriberId was not found');
+    }
     if (subscriber.archivedAt != null) {
       throw StateError('Subscriber $subscriberId is not active');
     }
