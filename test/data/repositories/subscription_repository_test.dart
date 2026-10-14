@@ -370,6 +370,59 @@ void main() {
     startDate: DateTime(2026, 1, 1),
   );
 
+  test('only the latest expiry can be archived, in reverse sequence', () async {
+    Future<Subscription> add(int year, int years) =>
+        repository.createSubscription(
+          subscriberId: subscriberId,
+          edition: 'online',
+          planType: years == 1 ? 'annual' : 'multi_year',
+          durationYears: years,
+          startDate: DateTime(year),
+        );
+    // Insert out of order: the latest start and highest ID are not the tail.
+    final tail = await add(2025, 5);
+    final past = await add(2023, 1);
+    final current = await add(2026, 1);
+    await expectLater(
+      repository.archiveSubscription(past.id),
+      throwsStateError,
+    );
+    await expectLater(
+      repository.deleteSubscription(current.id),
+      throwsStateError,
+    );
+    expect(await repository.getSubscription(current.id), current);
+    await repository.archiveSubscription(tail.id);
+    await repository.archiveSubscription(current.id);
+    await repository.archiveSubscription(past.id);
+    expect(
+      await repository.getSubscriptionsForSubscriber(subscriberId),
+      isEmpty,
+    );
+  });
+
+  test(
+    'equal latest expiries archive highest ID first, per subscriber',
+    () async {
+      final first = await createSubscription();
+      final second = await createSubscription();
+      final other = await subscriberRepository.createSubscriber(name: 'Other');
+      await repository.createSubscription(
+        subscriberId: other.id,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime(2040),
+      );
+      await expectLater(
+        repository.archiveSubscription(first.id),
+        throwsStateError,
+      );
+      await repository.archiveSubscription(second.id);
+      await repository.archiveSubscription(first.id);
+    },
+  );
+
   test(
     'deletion archives a subscription and restoration keeps its data',
     () async {

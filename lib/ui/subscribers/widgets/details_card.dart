@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 
 class DetailsCard extends StatelessWidget {
-  const DetailsCard({super.key, required this.title, required this.fields});
+  const DetailsCard({
+    super.key,
+    required this.title,
+    required this.fields,
+    this.trailing,
+  });
   final String title;
+  final Widget? trailing;
   final Map<String, String?> fields;
   @override
   Widget build(BuildContext context) => Card(
@@ -11,7 +17,17 @@ class DetailsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              ?trailing,
+            ],
+          ),
           const SizedBox(height: 12),
           for (final entry in fields.entries)
             Padding(

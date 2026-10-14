@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
 import '../../../data/app_database.dart';
 import 'details_card.dart';
+import 'delete_subscription_button.dart';
 
 class SubscriptionDetailsCard extends StatelessWidget {
-  const SubscriptionDetailsCard({super.key, required this.subscription});
+  const SubscriptionDetailsCard({
+    super.key,
+    required this.subscription,
+    required this.canArchive,
+  });
   final Subscription subscription;
+  final bool canArchive;
   @override
   Widget build(BuildContext context) => DetailsCard(
     title: 'Subscription #${subscription.id}',
+    trailing: canArchive
+        ? DeleteSubscriptionButton(subscription: subscription)
+        : null,
     fields: {
       'Edition': subscription.edition == 'online' ? 'Online' : 'Offline',
       'Plan': switch (subscription.planType) {

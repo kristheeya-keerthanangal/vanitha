@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../data/app_database.dart';
+import '../../../data/subscription_archive.dart';
 import '../../shared/empty_state.dart';
 import 'subscription_details_card.dart';
 
@@ -19,7 +20,10 @@ class SubscriberSubscriptionsSection extends StatelessWidget {
         const EmptyState(message: 'No subscriptions.')
       else
         for (final subscription in subscriptions)
-          SubscriptionDetailsCard(subscription: subscription),
+          SubscriptionDetailsCard(
+            subscription: subscription,
+            canArchive: subscription.id == latestSubscriptionId(subscriptions),
+          ),
     ],
   );
 }

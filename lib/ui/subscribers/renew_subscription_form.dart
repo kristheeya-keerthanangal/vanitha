@@ -72,7 +72,8 @@ class _RenewSubscriptionFormState extends State<RenewSubscriptionForm> {
                       onChanged: (value) => model.setPlan(value!),
                       validator: (_) => null,
                     ),
-                    if (model.planType == 'multi_year')
+                    if (model.planType == 'multi_year') ...[
+                      const SizedBox(height: 12),
                       TextFormField(
                         initialValue: model.duration,
                         decoration: const InputDecoration(
@@ -82,6 +83,7 @@ class _RenewSubscriptionFormState extends State<RenewSubscriptionForm> {
                         onChanged: (value) => model.duration = value,
                         validator: model.validateDuration,
                       ),
+                    ],
                     const SizedBox(height: 12),
                     StartDateFormField(
                       value: model.startDate,

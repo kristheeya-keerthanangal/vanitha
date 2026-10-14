@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
+import '../subscription_archive.dart';
 import '../subscription_renewal.dart';
 import 'update_timestamp.dart';
 
@@ -171,6 +172,13 @@ class SubscriptionRepository {
         throw StateError('Subscription $id was not found');
       }
       if ((previous.archivedAt != null) == archive) return previous;
+      if (archive &&
+          latestSubscriptionId(
+                await getSubscriptionsForSubscriber(previous.subscriberId),
+              ) !=
+              id) {
+        throw StateError('Only the latest subscription can be archived');
+      }
       final now = nextUpdateTimestamp(previous.updatedAt);
       await (_database.update(
         _database.subscriptions,
