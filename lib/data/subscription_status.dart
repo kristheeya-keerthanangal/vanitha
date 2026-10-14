@@ -11,21 +11,20 @@ class SubscriptionStatusResolver {
     DateTime? today,
   }) {
     final date = _dateOnly(today ?? DateTime.now());
-    var hasSubscription = false;
+    DateTime? latestExpiry;
 
     for (final subscription in subscriptions) {
       if (subscription.archivedAt != null) continue;
-      hasSubscription = true;
-
-      final startDate = _dateOnly(_parseDate(subscription.startDate));
       final expiryDate = _dateOnly(_parseDate(subscription.expiryDate));
-      if (!date.isBefore(startDate) && !date.isAfter(expiryDate)) {
-        return SubscriptionStatus.active;
+      if (latestExpiry == null || expiryDate.isAfter(latestExpiry)) {
+        latestExpiry = expiryDate;
       }
     }
 
-    if (hasSubscription) return SubscriptionStatus.expired;
-    return SubscriptionStatus.notSubscribed;
+    if (latestExpiry == null) return SubscriptionStatus.notSubscribed;
+    return date.isAfter(latestExpiry)
+        ? SubscriptionStatus.expired
+        : SubscriptionStatus.active;
   }
 
   static DateTime _parseDate(String value) {

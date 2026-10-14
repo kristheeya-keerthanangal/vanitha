@@ -19,21 +19,25 @@ void main() {
         updatedAt: '2026-01-01T00:00:00Z',
       );
 
-  test('future-only subscriptions and gaps are not active', () {
-    final future = subscription('2026-12-01', '2027-11-30');
-    final expired = subscription('2026-01-01', '2026-09-30');
+  test(
+    'latest expiry determines status regardless of start date or row order',
+    () {
+      final future = subscription('2026-12-01', '2027-11-30');
+      final expired = subscription('2026-01-01', '2026-09-30');
 
-    for (final subscriptions in [
-      [future],
-      [expired, future],
-      [future, expired],
-    ]) {
-      expect(
-        SubscriptionStatusResolver.resolve(subscriptions, today: today),
-        isNot(SubscriptionStatus.active),
-      );
-    }
-  });
+      for (final subscriptions in [
+        [future],
+        [expired, future],
+        [future, expired],
+        [expired, future, expired],
+      ]) {
+        expect(
+          SubscriptionStatusResolver.resolve(subscriptions, today: today),
+          SubscriptionStatus.active,
+        );
+      }
+    },
+  );
 
   test('active date boundaries are inclusive', () {
     for (final subscription in [
