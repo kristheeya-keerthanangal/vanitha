@@ -4,6 +4,8 @@ import '../ui/app_shell.dart';
 import '../ui/dashboard_page.dart';
 import '../ui/subscribers/subscribers_page.dart';
 import '../ui/subscribers/subscriber_details_page.dart';
+import '../ui/archived/archived_subscriptions_page.dart';
+import '../ui/archived/archived_subscription_details_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
@@ -12,11 +14,27 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/', redirect: (_, _) => '/dashboard'),
       ShellRoute(
         builder: (context, state, child) => AppShell(
-          selectedIndex: state.uri.path.startsWith('/subscribers') ? 1 : 0,
+          selectedIndex: state.uri.path.startsWith('/archived')
+              ? 2
+              : state.uri.path.startsWith('/subscribers')
+              ? 1
+              : 0,
           child: child,
         ),
         routes: [
           GoRoute(path: '/dashboard', builder: (_, _) => const DashboardPage()),
+          GoRoute(
+            path: '/archived',
+            builder: (_, _) => const ArchivedSubscriptionsPage(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (_, state) => ArchivedSubscriptionDetailsPage(
+                  id: int.tryParse(state.pathParameters['id'] ?? '') ?? -1,
+                ),
+              ),
+            ],
+          ),
           GoRoute(
             path: '/subscribers',
             builder: (_, _) => const SubscribersPage(),

@@ -5,10 +5,49 @@ import '../subscription_archive.dart';
 import '../subscription_renewal.dart';
 import 'update_timestamp.dart';
 
+typedef ArchivedSubscriptionDetails = ({
+  Subscription subscription,
+  Subscriber subscriber,
+});
+
 class SubscriptionRepository {
   SubscriptionRepository(this._database);
 
   final AppDatabase _database;
+
+  Stream<List<ArchivedSubscriptionDetails>> watchArchivedSubscriptions() =>
+      _archivedQuery().watch().map(
+        (rows) => rows.map(_readArchivedDetails).toList(),
+      );
+
+  Stream<ArchivedSubscriptionDetails?> watchArchivedSubscription(int id) {
+    final query = _archivedQuery()
+      ..where(_database.subscriptions.id.equals(id));
+    return query.watchSingleOrNull().map(
+      (row) => row == null ? null : _readArchivedDetails(row),
+    );
+  }
+
+  JoinedSelectStatement<HasResultSet, dynamic> _archivedQuery() {
+    final subscriptions = _database.subscriptions;
+    final subscribers = _database.subscribers;
+    return _database.select(subscriptions).join([
+        innerJoin(
+          subscribers,
+          subscribers.id.equalsExp(subscriptions.subscriberId),
+        ),
+      ])
+      ..where(subscriptions.archivedAt.isNotNull())
+      ..orderBy([
+        OrderingTerm.desc(subscriptions.archivedAt),
+        OrderingTerm.desc(subscriptions.id),
+      ]);
+  }
+
+  ArchivedSubscriptionDetails _readArchivedDetails(TypedResult row) => (
+    subscription: row.readTable(_database.subscriptions),
+    subscriber: row.readTable(_database.subscribers),
+  );
 
   Future<Subscription> createSubscription({
     required int subscriberId,

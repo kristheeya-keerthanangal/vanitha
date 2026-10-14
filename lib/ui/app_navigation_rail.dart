@@ -21,6 +21,11 @@ class AppNavigationRail extends StatelessWidget {
       icon: Icons.people_outline,
       selectedIcon: Icons.people,
     ),
+    _AppDestination(
+      label: 'Archived',
+      icon: Icons.archive_outlined,
+      selectedIcon: Icons.archive,
+    ),
   ];
 
   @override

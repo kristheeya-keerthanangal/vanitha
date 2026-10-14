@@ -15,8 +15,11 @@ class AppShell extends StatelessWidget {
         children: [
           AppNavigationRail(
             selectedIndex: selectedIndex,
-            onDestinationSelected: (index) =>
-                context.go(index == 1 ? '/subscribers' : '/dashboard'),
+            onDestinationSelected: (index) => context.go(switch (index) {
+              1 => '/subscribers',
+              2 => '/archived',
+              _ => '/dashboard',
+            }),
           ),
           const VerticalDivider(thickness: 1, width: 1),
           Expanded(child: child),

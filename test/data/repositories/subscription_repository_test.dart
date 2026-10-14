@@ -370,6 +370,50 @@ void main() {
     startDate: DateTime(2026, 1, 1),
   );
 
+  test(
+    'archive reads exclude active rows and include archived subscribers',
+    () async {
+      final original = await createSubscription();
+      expect(await repository.watchArchivedSubscriptions().first, isEmpty);
+      expect(
+        await repository.watchArchivedSubscription(original.id).first,
+        isNull,
+      );
+      final archived = await repository.archiveSubscription(original.id);
+      final subscriber = await subscriberRepository.archiveSubscriber(
+        subscriberId,
+      );
+      final other = await subscriberRepository.createSubscriber(name: 'Other');
+      final active = await repository.createSubscription(
+        subscriberId: other.id,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime(2026),
+      );
+      final rows = await repository.watchArchivedSubscriptions().first;
+      expect(rows, [(subscription: archived, subscriber: subscriber)]);
+      expect(
+        await repository.watchArchivedSubscription(original.id).first,
+        rows.single,
+      );
+      expect(
+        await repository.watchArchivedSubscription(active.id).first,
+        isNull,
+      );
+      expect(await repository.watchArchivedSubscription(-1).first, isNull);
+    },
+  );
+
+  test('archive list orders newest archives first', () async {
+    final first = await createSubscription();
+    final second = await createSubscription();
+    await repository.archiveSubscription(second.id);
+    await repository.archiveSubscription(first.id);
+    final rows = await repository.watchArchivedSubscriptions().first;
+    expect(rows.map((row) => row.subscription.id), [first.id, second.id]);
+  });
+
   test('only the latest expiry can be archived, in reverse sequence', () async {
     Future<Subscription> add(int year, int years) =>
         repository.createSubscription(
