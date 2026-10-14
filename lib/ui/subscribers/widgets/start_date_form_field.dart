@@ -6,9 +6,15 @@ class StartDateFormField extends StatelessWidget {
     required this.value,
     required this.onChanged,
     required this.validator,
+    this.firstDate,
+    this.lastDate,
+    this.locked = false,
   });
 
   final DateTime? value;
+  final DateTime? firstDate;
+  final DateTime? lastDate;
+  final bool locked;
   final ValueChanged<DateTime> onChanged;
   final String? Function(String?) validator;
 
@@ -27,15 +33,17 @@ class StartDateFormField extends StatelessWidget {
         labelText: 'Start date',
         suffixIcon: Icon(Icons.calendar_today_outlined),
       ),
-      onTap: () async {
-        final selected = await showDatePicker(
-          context: context,
-          firstDate: DateTime(2000),
-          lastDate: DateTime(2100),
-          initialDate: value ?? DateTime.now(),
-        );
-        if (selected != null) onChanged(selected);
-      },
+      onTap: locked
+          ? null
+          : () async {
+              final selected = await showDatePicker(
+                context: context,
+                firstDate: firstDate ?? DateTime(2000),
+                lastDate: lastDate ?? DateTime(2100),
+                initialDate: value ?? DateTime.now(),
+              );
+              if (selected != null) onChanged(selected);
+            },
       validator: validator,
     );
   }

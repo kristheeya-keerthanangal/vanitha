@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../data/subscription_renewal.dart';
+import '../../providers/database_provider.dart';
+import 'renew_subscription_form.dart';
+import 'view_models/subscribers_view_model.dart';
 import '../shared/loading_state.dart';
 import '../shared/error_state.dart';
 import '../shared/empty_state.dart';
@@ -56,6 +60,40 @@ class SubscriberDetailsPage extends ConsumerWidget {
                 : ListView(
                     padding: const EdgeInsets.all(24),
                     children: [
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.autorenew),
+                          label: const Text('Renew'),
+                          onPressed:
+                              SubscriptionRenewal(
+                                value.subscriptions,
+                              ).hasUpcoming
+                              ? null
+                              : () async {
+                                  final saved = await showDialog<bool>(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (_) => RenewSubscriptionForm(
+                                      repository: ref.read(
+                                        subscriptionRepositoryProvider,
+                                      ),
+                                      subscriberId: id,
+                                      rules: SubscriptionRenewal(
+                                        value.subscriptions,
+                                      ),
+                                    ),
+                                  );
+                                  if (saved == true && context.mounted) {
+                                    ref.invalidate(provider);
+                                    ref
+                                        .read(subscribersViewModelProvider)
+                                        .refresh();
+                                  }
+                                },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       LayoutBuilder(
                         builder: (context, constraints) {
                           final subscriberDetails = Column(

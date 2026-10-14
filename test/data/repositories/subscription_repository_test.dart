@@ -24,6 +24,74 @@ void main() {
     await database.close();
   });
 
+  test(
+    'renewal appends atomically and rejects a second upcoming row',
+    () async {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final original = await repository.createSubscription(
+        subscriberId: subscriberId,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: today,
+      );
+      final expiry = DateTime.parse(original.expiryDate);
+      final next = DateTime(expiry.year, expiry.month, expiry.day + 1);
+      await expectLater(
+        repository.renewSubscription(
+          subscriberId: subscriberId,
+          edition: 'online',
+          planType: 'annual',
+          durationYears: 1,
+          startDate: today,
+        ),
+        throwsStateError,
+      );
+      final renewed = await repository.renewSubscription(
+        subscriberId: subscriberId,
+        edition: 'offline',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: next,
+      );
+      expect(renewed.id, isNot(original.id));
+      expect(await repository.getSubscription(original.id), original);
+      await expectLater(
+        repository.renewSubscription(
+          subscriberId: subscriberId,
+          edition: 'online',
+          planType: 'annual',
+          durationYears: 1,
+          startDate: next,
+        ),
+        throwsStateError,
+      );
+      expect(
+        await repository.getSubscriptionsForSubscriber(subscriberId),
+        hasLength(2),
+      );
+    },
+  );
+
+  test('unsubscribed renewal rejects future dates without inserting', () async {
+    final now = DateTime.now();
+    await expectLater(
+      repository.renewSubscription(
+        subscriberId: subscriberId,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime(now.year, now.month, now.day + 1),
+      ),
+      throwsStateError,
+    );
+    expect(
+      await repository.getSubscriptionsForSubscriber(subscriberId),
+      isEmpty,
+    );
+  });
+
   test('creates a subscription and calculates its expiry date', () async {
     final created = await repository.createSubscription(
       subscriberId: subscriberId,

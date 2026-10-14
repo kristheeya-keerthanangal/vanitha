@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
+import '../subscription_renewal.dart';
 import 'update_timestamp.dart';
 
 class SubscriptionRepository {
@@ -43,6 +44,30 @@ class SubscriptionRepository {
       return subscription;
     });
   }
+
+  Future<Subscription> renewSubscription({
+    required int subscriberId,
+    required String edition,
+    required String planType,
+    required int durationYears,
+    required DateTime startDate,
+  }) => _database.transaction(() async {
+    final rules = SubscriptionRenewal(
+      await getSubscriptionsForSubscriber(subscriberId),
+    );
+    if (!rules.allows(startDate)) {
+      throw StateError(
+        'Subscription dates have changed or renewal is not allowed. Reopen the form.',
+      );
+    }
+    return createSubscription(
+      subscriberId: subscriberId,
+      edition: edition,
+      planType: planType,
+      durationYears: durationYears,
+      startDate: startDate,
+    );
+  });
 
   Future<void> _ensureActiveSubscriber(int subscriberId) async {
     final subscriber = await (_database.select(
