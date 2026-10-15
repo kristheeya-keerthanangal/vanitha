@@ -1,12 +1,12 @@
 import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pdf/pdf.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
 import 'package:vanithabodhini/mailing/mailing_layout.dart';
 import 'package:vanithabodhini/mailing/mailing_pdf.dart';
+
+import '../support/pdf_content.dart';
 
 MailingListEntry reader(int id, {String? address = 'Main Street'}) =>
     MailingListEntry(
@@ -15,24 +15,6 @@ MailingListEntry reader(int id, {String? address = 'Main Street'}) =>
       postalAddress: address,
       postalCode: '682001',
     );
-
-// Inspect the producer's PDF dictionaries and decompressed drawing commands.
-List<String> contentStreams(Uint8List bytes) {
-  final source = latin1.decode(bytes);
-  final streams = <String>[];
-  for (final match in RegExp(
-    r'stream\n(.*?)\nendstream',
-    dotAll: true,
-  ).allMatches(source)) {
-    try {
-      final decoded = latin1.decode(zlib.decode(latin1.encode(match[1]!)));
-      if (decoded.contains('BT')) streams.add(decoded);
-    } on FormatException {
-      // Font streams may not use zlib compression.
-    }
-  }
-  return streams;
-}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -76,7 +58,7 @@ void main() {
         layout: layout,
         cuttingGuides: true,
       );
-      final pages = contentStreams(bytes);
+      final pages = nativePdfPageStreams(bytes);
       expect(latin1.decode(bytes), isNot(contains('/Subtype/Image')));
       expect(bytes.length, lessThan(500000));
       expect(pages, hasLength(35));
@@ -122,7 +104,7 @@ void main() {
               closeTo(layout.pageHeightMm, 0.001),
             );
           }
-          final pages = contentStreams(bytes);
+          final pages = nativePdfPageStreams(bytes);
           expect(pages, hasLength(2));
           final drawings = pages
               .map((page) => RegExp(r'\(Reader\)').allMatches(page).length)
@@ -184,21 +166,26 @@ void main() {
         layout: const MailingLayout(),
         cuttingGuides: false,
       );
-      expect(contentStreams(withGuides).single, contains('0.25 w'));
+      expect(nativePdfPageStreams(withGuides).single, contains('0.25 w'));
       expect(
-        contentStreams(withGuides).single,
+        nativePdfPageStreams(withGuides).single,
         contains('0.87843 0.87843 0.87843 RG'),
       );
-      expect(contentStreams(withoutGuides).single, isNot(contains(' re S')));
       expect(
-        RegExp(r'\(Reader\)').allMatches(contentStreams(withoutGuides).single),
+        nativePdfPageStreams(withoutGuides).single,
+        isNot(contains(' re S')),
+      );
+      expect(
+        RegExp(
+          r'\(Reader\)',
+        ).allMatches(nativePdfPageStreams(withoutGuides).single),
         hasLength(1),
       );
     },
   );
 
   test(
-    'uses native English text with built-in Helvetica and a fitting size',
+    'uses native English text with embedded Liberation Sans and a fitting size',
     () async {
       const entry = MailingListEntry(
         subscriberId: 1,
@@ -211,13 +198,14 @@ void main() {
         layout: const MailingLayout(),
         cuttingGuides: false,
       );
-      expect(contentStreams(bytes), hasLength(1));
+      expect(nativePdfPageStreams(bytes), hasLength(1));
       final source = latin1.decode(bytes);
       expect(source, isNot(contains('/Subtype/Image')));
-      expect(source, contains('/BaseFont/Helvetica'));
-      expect(source, isNot(contains('/FontFile')));
-      expect(contentStreams(bytes).single, contains('(Sally)'));
-      expect(contentStreams(bytes).single, contains('(Kerala)'));
+      expect(source, contains('/FontFile2'));
+      expect(source, contains('/ToUnicode'));
+      expect(source, isNot(contains('/BaseFont/Helvetica')));
+      expect(nativePdfPageStreams(bytes).single, contains('(Sally)'));
+      expect(nativePdfPageStreams(bytes).single, contains('(Kerala)'));
       expect(
         await generator.fittingFontSize(
           generator.labelText(entry),
@@ -227,6 +215,25 @@ void main() {
       );
     },
   );
+
+  test('preserves Unicode punctuation in names and addresses', () async {
+    const entry = MailingListEntry(
+      subscriberId: 1,
+      name: 'Mary O’Connor',
+      postalAddress: '12–14 Queen’s Road — “Rose Cottage”…',
+      postalCode: '682001',
+    );
+    final bytes = await generator.generate(
+      subscribers: [entry],
+      layout: const MailingLayout(),
+      cuttingGuides: false,
+    );
+    final page = nativePdfPageStreams(bytes).single;
+    for (final word in generator.labelText(entry).split(RegExp(r'\s+'))) {
+      expect(page, contains('($word)'));
+    }
+    expect(latin1.decode(bytes), isNot(contains('/Subtype/Image')));
+  });
 
   test(
     'shrinks long text, blocks every unresolved failure, and fits a larger label',
@@ -273,7 +280,7 @@ void main() {
         layout: large,
         cuttingGuides: false,
       );
-      expect(contentStreams(fitted), hasLength(1));
+      expect(nativePdfPageStreams(fitted), hasLength(1));
     },
   );
 }

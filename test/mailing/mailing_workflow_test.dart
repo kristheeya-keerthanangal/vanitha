@@ -13,6 +13,8 @@ import 'package:vanithabodhini/data/app_database.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
 import 'package:vanithabodhini/ui/mailing_list/view_models/mailing_list_view_model.dart';
 
+import '../support/pdf_content.dart';
+
 const printChannel = MethodChannel('net.nfet.printing');
 const fileChannel = MethodChannel('plugins.flutter.io/file_selector');
 const codec = StandardMethodCodec();
@@ -29,22 +31,6 @@ Future<Object?> fromPrinter(
         reply.complete,
       );
   return codec.decodeEnvelope((await reply.future)!);
-}
-
-List<String> pageStreams(Uint8List bytes) {
-  final pages = <String>[];
-  for (final match in RegExp(
-    r'stream\n(.*?)\nendstream',
-    dotAll: true,
-  ).allMatches(latin1.decode(bytes))) {
-    try {
-      final decoded = latin1.decode(zlib.decode(latin1.encode(match[1]!)));
-      if (decoded.contains('BT')) pages.add(decoded);
-    } on FormatException {
-      // Other streams need not use the same compression as drawing commands.
-    }
-  }
-  return pages;
 }
 
 void main() {
@@ -149,7 +135,7 @@ void main() {
               expect(model.previewError, isNull);
               final document = model.preview!;
               final layout = document.snapshot.layout;
-              final pages = pageStreams(document.bytes);
+              final pages = nativePdfPageStreams(document.bytes);
               expect(pages, hasLength(document.snapshot.pageCount));
               var labels = 0;
               for (var page = 0; page < pages.length; page++) {

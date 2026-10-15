@@ -1,6 +1,6 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -15,6 +15,14 @@ class MailingTextFitFailure implements Exception {
 }
 
 class MailingPdf {
+  static Future<ByteData>? _fontData;
+
+  Future<pw.Font> _loadFont() async => pw.Font.ttf(
+    await (_fontData ??= rootBundle.load(
+      'assets/fonts/LiberationSans-Regular.ttf',
+    )),
+  );
+
   String labelText(MailingListEntry entry) =>
       [entry.name, entry.postalAddress ?? '', entry.postalCode ?? '']
           .map((part) => part.trim())
@@ -31,7 +39,7 @@ class MailingPdf {
   );
 
   Future<double?> fittingFontSize(String text, MailingLayout layout) async {
-    final font = pw.Font.helvetica();
+    final font = await _loadFont();
     final document = pw.Document();
     return _fittingFontSize(text, layout, font, _context(document));
   }
@@ -67,7 +75,7 @@ class MailingPdf {
     required bool cuttingGuides,
   }) async {
     if (subscribers.isEmpty) throw ArgumentError('The mailing list is empty.');
-    final font = pw.Font.helvetica();
+    final font = await _loadFont();
     final document = pw.Document(
       title: 'Mailing labels',
       creator: 'Vanithabodhini',

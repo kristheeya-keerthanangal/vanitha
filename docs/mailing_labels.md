@@ -13,10 +13,12 @@ that cannot fit starts on the next page. The default portrait layout holds
 three columns and nine rows of 60 × 30 mm labels.
 
 Text starts at 12 pt and reduces in 0.5 pt steps to a minimum of 8 pt. The same
-PDF text layout measures and renders each English label using built-in Helvetica.
-Text remains searchable and selectable, with no raster images or bundled font
-files. Page sizes, label positions, and optional light grey 0.25 pt cutting guides
-use PDF points with an exact conversion from millimetres.
+PDF text layout measures and renders each English label using embedded Liberation
+Sans. Text remains searchable and selectable, with no raster images. The bundled
+font supports English Unicode punctuation and is subsetted in the PDF to include
+only used glyphs. Its license is in `assets/fonts/LiberationSans-LICENSE.txt`.
+Page sizes, label positions, and optional light grey 0.25 pt cutting guides use
+PDF points with an exact conversion from millimetres.
 
 Every label is checked before creating pages. If any text cannot fit at 8 pt,
 no document is saved. The page lists affected subscribers and asks the user to
