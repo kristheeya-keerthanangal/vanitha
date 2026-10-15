@@ -13,12 +13,10 @@ that cannot fit starts on the next page. The default portrait layout holds
 three columns and nine rows of 60 × 30 mm labels.
 
 Text starts at 12 pt and reduces in 0.5 pt steps to a minimum of 8 pt. The same
-Flutter text layout measures and renders each label, including Malayalam shaping.
-The bundled Noto Sans Malayalam font is distributed under the license in
-`assets/fonts/OFL.txt`. Text is embedded as images at at least 300 dpi to preserve
-shaping, so it is not searchable or selectable in the PDF. Page sizes, label
-positions, and optional light grey 0.25 pt cutting guides use PDF points with
-an exact conversion from millimetres.
+PDF text layout measures and renders each English label using built-in Helvetica.
+Text remains searchable and selectable, with no raster images or bundled font
+files. Page sizes, label positions, and optional light grey 0.25 pt cutting guides
+use PDF points with an exact conversion from millimetres.
 
 Every label is checked before creating pages. If any text cannot fit at 8 pt,
 no document is saved. The page lists affected subscribers and asks the user to

@@ -1,8 +1,6 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
+import 'dart:typed_data';
 
-import 'package:flutter/painting.dart';
-import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -17,16 +15,6 @@ class MailingTextFitFailure implements Exception {
 }
 
 class MailingPdf {
-  static const _fontFamily = 'MailingSans';
-  static const _pixelsPerPoint = 300 / 72;
-  static Future<void>? _fontLoading;
-
-  static Future<void> _loadFont() => _fontLoading ??= () async {
-    final loader = FontLoader(_fontFamily)
-      ..addFont(rootBundle.load('assets/fonts/NotoSansMalayalam.ttf'));
-    await loader.load();
-  }();
-
   String labelText(MailingListEntry entry) =>
       [entry.name, entry.postalAddress ?? '', entry.postalCode ?? '']
           .map((part) => part.trim())
@@ -36,27 +24,28 @@ class MailingPdf {
           .replaceAll('\r', '\n')
           .replaceAll('\t', ' ');
 
-  TextPainter _painter(String text, double fontSize, double width) =>
-      TextPainter(
-        text: TextSpan(
-          text: text,
-          style: TextStyle(
-            fontFamily: _fontFamily,
-            fontSize: fontSize,
-            height: 1.2,
-            color: const ui.Color(0xff000000),
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-        textScaler: TextScaler.noScaling,
-      )..layout(maxWidth: width);
+  pw.Text _text(String text, double fontSize, pw.Font font) => pw.Text(
+    text,
+    style: pw.TextStyle(font: font, fontSize: fontSize, height: 1.2),
+    textDirection: pw.TextDirection.ltr,
+  );
 
   Future<double?> fittingFontSize(String text, MailingLayout layout) async {
-    await _loadFont();
-    return _fittingFontSize(text, layout);
+    final font = pw.Font.helvetica();
+    final document = pw.Document();
+    return _fittingFontSize(text, layout, font, _context(document));
   }
 
-  double? _fittingFontSize(String text, MailingLayout layout) {
+  pw.Context _context(pw.Document document) => pw.Context(
+    document: document.document,
+  ).inheritFromAll([pw.ThemeData.base()]);
+
+  double? _fittingFontSize(
+    String text,
+    MailingLayout layout,
+    pw.Font font,
+    pw.Context context,
+  ) {
     final width = layout.contentWidthMm * PdfPageFormat.mm;
     final height = layout.contentHeightMm * PdfPageFormat.mm;
     for (
@@ -64,14 +53,10 @@ class MailingPdf {
       size >= MailingLayout.minFontSize;
       size -= 0.5
     ) {
-      final painter = _painter(text, size, width);
-      final fits =
-          painter.height <= height &&
-          painter.computeLineMetrics().every(
-            (line) => line.width <= width + 0.001,
-          );
-      painter.dispose();
-      if (fits) return size;
+      // Leave height unconstrained so overflowing text cannot appear to fit.
+      final widget = _text(text, size, font)
+        ..layout(context, pw.BoxConstraints(maxWidth: width));
+      if (widget.box!.height <= height) return size;
     }
     return null;
   }
@@ -82,12 +67,22 @@ class MailingPdf {
     required bool cuttingGuides,
   }) async {
     if (subscribers.isEmpty) throw ArgumentError('The mailing list is empty.');
-    await _loadFont();
-    // Validate every label before creating any pages or raster images.
+    final font = pw.Font.helvetica();
+    final document = pw.Document(
+      title: 'Mailing labels',
+      creator: 'Vanithabodhini',
+    );
+    final context = _context(document);
+    // Validate every label before creating any pages.
     final sizes = <double>[];
     final failures = <MailingListEntry>[];
     for (final subscriber in subscribers) {
-      final size = _fittingFontSize(labelText(subscriber), layout);
+      final size = _fittingFontSize(
+        labelText(subscriber),
+        layout,
+        font,
+        context,
+      );
       if (size == null) {
         failures.add(subscriber);
       } else {
@@ -96,21 +91,12 @@ class MailingPdf {
     }
     if (failures.isNotEmpty) throw MailingTextFitFailure(failures);
 
-    final document = pw.Document(
-      title: 'Mailing labels',
-      creator: 'Vanithabodhini',
-    );
     for (var page = 0; page < layout.pageCount(subscribers.length); page++) {
       final labels = <pw.Widget>[];
       final start = page * layout.labelsPerPage;
       final end = math.min(start + layout.labelsPerPage, subscribers.length);
       for (var index = start; index < end; index++) {
         final position = layout.position(index);
-        final image = await _renderText(
-          labelText(subscribers[index]),
-          sizes[index],
-          layout,
-        );
         labels.add(
           pw.Positioned(
             left: position.leftMm * PdfPageFormat.mm,
@@ -129,7 +115,7 @@ class MailingPdf {
               padding: pw.EdgeInsets.all(
                 MailingLayout.paddingMm * PdfPageFormat.mm,
               ),
-              child: pw.Image(pw.MemoryImage(image), fit: pw.BoxFit.fill),
+              child: _text(labelText(subscribers[index]), sizes[index], font),
             ),
           ),
         );
@@ -147,31 +133,5 @@ class MailingPdf {
       );
     }
     return document.save();
-  }
-
-  Future<Uint8List> _renderText(
-    String text,
-    double fontSize,
-    MailingLayout layout,
-  ) async {
-    final width = layout.contentWidthMm * PdfPageFormat.mm;
-    final height = layout.contentHeightMm * PdfPageFormat.mm;
-    final painter = _painter(text, fontSize, width);
-    final pixelWidth = (width * _pixelsPerPoint).ceil();
-    final pixelHeight = (height * _pixelsPerPoint).ceil();
-    final recorder = ui.PictureRecorder();
-    final canvas = ui.Canvas(recorder)
-      ..scale(pixelWidth / width, pixelHeight / height);
-    painter.paint(canvas, ui.Offset.zero);
-    final picture = recorder.endRecording();
-    painter.dispose();
-    final image = await picture.toImage(pixelWidth, pixelHeight);
-    picture.dispose();
-    try {
-      final bytes = (await image.toByteData(format: ui.ImageByteFormat.png))!;
-      return bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes);
-    } finally {
-      image.dispose();
-    }
   }
 }

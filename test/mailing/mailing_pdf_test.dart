@@ -26,9 +26,9 @@ List<String> contentStreams(Uint8List bytes) {
   ).allMatches(source)) {
     try {
       final decoded = latin1.decode(zlib.decode(latin1.encode(match[1]!)));
-      if (decoded.contains(' Do')) streams.add(decoded);
+      if (decoded.contains('BT')) streams.add(decoded);
     } on FormatException {
-      // PNG image data may be encoded differently from page content.
+      // Font streams may not use zlib compression.
     }
   }
   return streams;
@@ -77,9 +77,11 @@ void main() {
         cuttingGuides: true,
       );
       final pages = contentStreams(bytes);
+      expect(latin1.decode(bytes), isNot(contains('/Subtype/Image')));
+      expect(bytes.length, lessThan(500000));
       expect(pages, hasLength(35));
       final labels = pages
-          .map((page) => RegExp(r'/I\d+ Do').allMatches(page).length)
+          .map((page) => RegExp(r'\(Reader\)').allMatches(page).length)
           .toList();
       expect(labels.take(34), everyElement(27));
       expect(labels.last, 12);
@@ -123,14 +125,9 @@ void main() {
           final pages = contentStreams(bytes);
           expect(pages, hasLength(2));
           final drawings = pages
-              .map((page) => RegExp(r'/I\d+ Do').allMatches(page).length)
+              .map((page) => RegExp(r'\(Reader\)').allMatches(page).length)
               .toList();
           expect(drawings, [layout.labelsPerPage, layout.columns + 1]);
-
-          final allImages = RegExp(
-            r'/I\d+ Do',
-          ).allMatches(pages.join()).map((m) => m[0]).toList();
-          expect(allImages.toSet(), hasLength(count));
 
           for (var pageIndex = 0; pageIndex < pages.length; pageIndex++) {
             final page = pages[pageIndex];
@@ -148,7 +145,7 @@ void main() {
                 closeTo(size.heightMm, 0.001),
               );
             }
-            // Each label's translation precedes its local border and image.
+            // Each label's translation precedes its local border and text.
             final positions = RegExp(
               r'q 1 0 0 1 ([\d.]+) ([\d.]+) cm q 1 0 0 1 0 0 cm q 1 0 0 1 0 0 cm 0 j',
             ).allMatches(page).toList();
@@ -194,19 +191,19 @@ void main() {
       );
       expect(contentStreams(withoutGuides).single, isNot(contains(' re S')));
       expect(
-        RegExp(r'/I\d+ Do').allMatches(contentStreams(withoutGuides).single),
+        RegExp(r'\(Reader\)').allMatches(contentStreams(withoutGuides).single),
         hasLength(1),
       );
     },
   );
 
   test(
-    'renders Malayalam and chooses a fitting size between 8 and 12 pt',
+    'uses native English text with built-in Helvetica and a fitting size',
     () async {
       const entry = MailingListEntry(
         subscriberId: 1,
-        name: 'സാലി',
-        postalAddress: 'കൊച്ചി\nകേരളം',
+        name: 'Sally',
+        postalAddress: 'Kochi\nKerala',
         postalCode: '682001',
       );
       final bytes = await generator.generate(
@@ -215,6 +212,12 @@ void main() {
         cuttingGuides: false,
       );
       expect(contentStreams(bytes), hasLength(1));
+      final source = latin1.decode(bytes);
+      expect(source, isNot(contains('/Subtype/Image')));
+      expect(source, contains('/BaseFont/Helvetica'));
+      expect(source, isNot(contains('/FontFile')));
+      expect(contentStreams(bytes).single, contains('(Sally)'));
+      expect(contentStreams(bytes).single, contains('(Kerala)'));
       expect(
         await generator.fittingFontSize(
           generator.labelText(entry),

@@ -39,9 +39,9 @@ List<String> pageStreams(Uint8List bytes) {
   ).allMatches(latin1.decode(bytes))) {
     try {
       final decoded = latin1.decode(zlib.decode(latin1.encode(match[1]!)));
-      if (decoded.contains(' Do')) pages.add(decoded);
+      if (decoded.contains('BT')) pages.add(decoded);
     } on FormatException {
-      // Image streams need not use the same compression as drawing commands.
+      // Other streams need not use the same compression as drawing commands.
     }
   }
   return pages;
@@ -94,7 +94,7 @@ void main() {
         for (var i = 1; i <= 33; i++)
           SubscribersCompanion.insert(
             name: switch (i) {
-              1 => 'സാലി',
+              1 => 'Zally',
               2 => 'Anita',
               3 => 'Bela',
               4 => 'ANITA',
@@ -154,7 +154,7 @@ void main() {
               var labels = 0;
               for (var page = 0; page < pages.length; page++) {
                 final count = RegExp(
-                  r'/I\d+ Do',
+                  r'\((Reader|Zally|Anita|ANITA|Bela)\)',
                 ).allMatches(pages[page]).length;
                 expect(count, math.min(layout.labelsPerPage, 32 - labels));
                 expect(pages[page].contains(' re S'), guides);
