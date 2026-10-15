@@ -189,7 +189,7 @@ void main() {
       final failed = model.previewPdf();
       pdf.requests.last.result.completeError(StateError('failure'));
       await failed;
-      expect(model.previewError, contains('Select Preview PDF to try again'));
+      expect(model.previewError, contains('Select Generate list to try again'));
       expect(model.canPreview, isTrue);
       final fitFailed = model.previewPdf();
       pdf.requests.last.result.completeError(

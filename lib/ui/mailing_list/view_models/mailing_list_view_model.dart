@@ -198,7 +198,7 @@ class MailingListViewModel extends ChangeNotifier {
     } catch (_) {
       if (_disposed || request != _previewRequest) return;
       previewError =
-          'Unable to generate the preview. Select Preview PDF to try again.';
+          'Unable to generate the preview. Select Generate list to try again.';
     }
     previewing = false;
     notifyListeners();

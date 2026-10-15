@@ -83,32 +83,30 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('print and save stay disabled until a current preview exists', (
+  testWidgets('Generate list is enabled only after subscribers load', (
     tester,
   ) async {
     await pumpPage(tester);
     expect(
       tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Save PDF'))
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Generate list'),
+          )
           .onPressed,
       isNull,
     );
     await load(tester);
     expect(
       tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Save PDF'))
-          .onPressed,
-      isNull,
-    );
-    expect(
-      tester
-          .widget<OutlinedButton>(
-            find.widgetWithText(OutlinedButton, 'Print PDF'),
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Generate list'),
           )
           .onPressed,
-      isNull,
+      isNotNull,
     );
-    expect(find.textContaining('100% / actual size'), findsOneWidget);
+    expect(find.text('Save PDF'), findsNothing);
+    expect(find.text('Print PDF'), findsNothing);
+    expect(find.textContaining('100% / actual size'), findsNothing);
     expect(file.savedBytes, isEmpty);
   });
 
@@ -117,7 +115,7 @@ void main() {
     (tester) async {
       await pumpPage(tester);
       await load(tester);
-      await tester.tap(find.text('Preview PDF'));
+      await tester.tap(find.text('Generate list'));
       await tester.pump();
       pdf.requests.single.result.completeError(
         MailingTextFitFailure([mailingEntries.first]),
@@ -134,8 +132,8 @@ void main() {
       expect(file.savedBytes, isEmpty);
       expect(
         tester
-            .widget<OutlinedButton>(
-              find.widgetWithText(OutlinedButton, 'Preview PDF'),
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Generate list'),
             )
             .onPressed,
         isNull,
@@ -158,8 +156,8 @@ void main() {
       expect(find.text('View subscribers that do not fit'), findsNothing);
       expect(
         tester
-            .widget<OutlinedButton>(
-              find.widgetWithText(OutlinedButton, 'Preview PDF'),
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Generate list'),
             )
             .onPressed,
         isNotNull,
@@ -170,20 +168,20 @@ void main() {
   testWidgets('generation failures are visible and retryable', (tester) async {
     await pumpPage(tester);
     await load(tester);
-    await tester.tap(find.text('Preview PDF'));
+    await tester.tap(find.text('Generate list'));
     await tester.pump();
     pdf.requests.single.result.completeError(StateError('failed'));
     await tester.pumpAndSettle();
     expect(
       find.text(
-        'Unable to generate the preview. Select Preview PDF to try again.',
+        'Unable to generate the preview. Select Generate list to try again.',
       ),
       findsOneWidget,
     );
     expect(
       tester
-          .widget<OutlinedButton>(
-            find.widgetWithText(OutlinedButton, 'Preview PDF'),
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Generate list'),
           )
           .onPressed,
       isNotNull,

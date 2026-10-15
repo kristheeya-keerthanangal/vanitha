@@ -7,7 +7,7 @@ import '../shared/empty_state.dart';
 import '../shared/error_state.dart';
 import '../shared/loading_state.dart';
 import 'view_models/mailing_list_view_model.dart';
-import 'widgets/mailing_pdf_preview_pane.dart';
+import 'widgets/mailing_preview_window.dart';
 
 class MailingListPage extends ConsumerWidget {
   const MailingListPage({super.key});
@@ -17,147 +17,75 @@ class MailingListPage extends ConsumerWidget {
     final model = ref.watch(mailingListViewModelProvider);
     return ListenableBuilder(
       listenable: model,
-      builder: (context, _) => CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.all(24),
-            sliver: SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Mailing list',
-                          style: Theme.of(context).textTheme.headlineSmall,
+      builder: (context, _) => MailingPreviewWindow(
+        model: model,
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.all(24),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Mailing list',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        tooltip: 'Refresh mailing list',
-                        onPressed: model.loading || model.outputBusy
-                            ? null
-                            : model.refresh,
-                        icon: const Icon(Icons.refresh),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _MailingSettings(model: model),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: model.canPreview ? model.previewPdf : null,
-                        icon: model.previewing
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.preview_outlined),
-                        label: Text(
-                          model.previewing
-                              ? 'Preparing preview…'
-                              : 'Preview PDF',
+                        IconButton(
+                          tooltip: 'Refresh mailing list',
+                          onPressed: model.loading || model.outputBusy
+                              ? null
+                              : model.refresh,
+                          icon: const Icon(Icons.refresh),
                         ),
-                      ),
-                      FilledButton.icon(
-                        onPressed: model.canOutput ? model.savePdf : null,
-                        icon: model.outputAction == PdfOutputAction.save
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.save_outlined),
-                        label: Text(
-                          model.outputAction == PdfOutputAction.save
-                              ? 'Saving PDF…'
-                              : 'Save PDF',
-                        ),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: model.canOutput ? model.printPdf : null,
-                        icon: model.outputAction == PdfOutputAction.print
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.print_outlined),
-                        label: Text(
-                          model.outputAction == PdfOutputAction.print
-                              ? 'Printing PDF…'
-                              : 'Print PDF',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Print at 100% / actual size. Turn off Fit to page to preserve label dimensions.',
-                  ),
-                  if (model.previewing)
-                    Semantics(
-                      liveRegion: true,
-                      child: const Text(
-                        'Generating PDF preview from the selected settings and subscribers…',
-                      ),
+                      ],
                     ),
-                  if (model.previewError != null) Text(model.previewError!),
-                  if (model.previewInvalidated &&
-                      !model.previewing &&
-                      model.previewError == null)
-                    const Text(
-                      'Preview cleared because settings or subscriber data changed. Select Preview PDF to regenerate.',
+                    const SizedBox(height: 16),
+                    _MailingSettings(model: model),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: model.canPreview ? model.previewPdf : null,
+                          icon: model.previewing
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.description_outlined),
+                          label: Text(
+                            model.previewing
+                                ? 'Generating list…'
+                                : 'Generate list',
+                          ),
+                        ),
+                      ],
                     ),
-                  if (model.outputMessage != null) Text(model.outputMessage!),
-                  if (model.outputError != null) Text(model.outputError!),
-                  if (model.fittingFailures.isNotEmpty)
-                    Card(
-                      color: Theme.of(context).colorScheme.errorContainer,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              model.fittingFailures.length == 1
-                                  ? '1 subscriber does not fit in the selected label.'
-                                  : '${model.fittingFailures.length} subscribers do not fit in the selected label.',
-                            ),
-                            const Text(
-                              'PDF generation is blocked. Correct their details or choose a larger label. Text must fit at 8 pt or larger.',
-                            ),
-                            TextButton(
-                              onPressed: () => _showAffected(
-                                context,
-                                model,
-                                model.fittingFailures,
-                                'Text does not fit',
-                              ),
-                              child: const Text(
-                                'View subscribers that do not fit',
-                              ),
-                            ),
-                          ],
+                    const SizedBox(height: 8),
+                    if (model.previewing)
+                      Semantics(
+                        liveRegion: true,
+                        child: const Text(
+                          'Generating PDF preview from the selected settings and subscribers…',
                         ),
                       ),
-                    ),
-                  if (!model.loading && model.error == null) ...[
-                    const SizedBox(height: 24),
-                    Text('Subscribers: ${model.total}'),
-                    if (model.incompleteCount > 0) ...[
-                      const SizedBox(height: 12),
+                    if (model.previewError != null) Text(model.previewError!),
+                    if (model.previewInvalidated &&
+                        !model.previewing &&
+                        model.previewError == null)
+                      const Text(
+                        'Preview cleared because settings or subscriber data changed. Select Generate list to regenerate.',
+                      ),
+                    if (model.fittingFailures.isNotEmpty)
                       Card(
                         color: Theme.of(context).colorScheme.errorContainer,
                         child: Padding(
@@ -166,71 +94,104 @@ class MailingListPage extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${model.incompleteCount} subscribers have incomplete mailing details.',
+                                model.fittingFailures.length == 1
+                                    ? '1 subscriber does not fit in the selected label.'
+                                    : '${model.fittingFailures.length} subscribers do not fit in the selected label.',
                               ),
                               const Text(
-                                'An address or PIN code is missing or blank.',
+                                'PDF generation is blocked. Correct their details or choose a larger label. Text must fit at 8 pt or larger.',
                               ),
                               TextButton(
                                 onPressed: () => _showAffected(
                                   context,
                                   model,
-                                  model.incompleteRows,
-                                  'Incomplete mailing details',
+                                  model.fittingFailures,
+                                  'Text does not fit',
                                 ),
-                                child: const Text('View affected subscribers'),
+                                child: const Text(
+                                  'View subscribers that do not fit',
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ),
+                    if (!model.loading && model.error == null) ...[
+                      const SizedBox(height: 24),
+                      Text('Subscribers: ${model.total}'),
+                      if (model.incompleteCount > 0) ...[
+                        const SizedBox(height: 12),
+                        Card(
+                          color: Theme.of(context).colorScheme.errorContainer,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${model.incompleteCount} subscribers have incomplete mailing details.',
+                                ),
+                                const Text(
+                                  'An address or PIN code is missing or blank.',
+                                ),
+                                TextButton(
+                                  onPressed: () => _showAffected(
+                                    context,
+                                    model,
+                                    model.incompleteRows,
+                                    'Incomplete mailing details',
+                                  ),
+                                  child: const Text(
+                                    'View affected subscribers',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ],
-                ],
-              ),
-            ),
-          ),
-          if (model.preview != null)
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-              sliver: SliverToBoxAdapter(
-                child: MailingPdfPreviewPane(
-                  document: model.preview!,
-                  onRetry: model.previewPdf,
                 ),
               ),
             ),
-          if (model.loading)
-            const SliverFillRemaining(
-              hasScrollBody: false,
-              child: LoadingState(),
-            )
-          else if (model.error != null)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: ErrorState(message: model.error!, onRetry: model.refresh),
-            )
-          else if (model.total == 0)
-            const SliverFillRemaining(
-              hasScrollBody: false,
-              child: EmptyState(message: 'No subscribers in the mailing list.'),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-              sliver: SliverList.builder(
-                itemCount: model.rows.length,
-                itemBuilder: (context, index) => _MailingSubscriberTile(
-                  entry: model.rows[index],
-                  onTap: () => _openSubscriber(
-                    context,
-                    model,
-                    model.rows[index].subscriberId,
+            if (model.loading)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: LoadingState(),
+              )
+            else if (model.error != null)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: ErrorState(
+                  message: model.error!,
+                  onRetry: model.refresh,
+                ),
+              )
+            else if (model.total == 0)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: EmptyState(
+                  message: 'No subscribers in the mailing list.',
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                sliver: SliverList.builder(
+                  itemCount: model.rows.length,
+                  itemBuilder: (context, index) => _MailingSubscriberTile(
+                    entry: model.rows[index],
+                    onTap: () => _openSubscriber(
+                      context,
+                      model,
+                      model.rows[index].subscriberId,
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -146,7 +146,7 @@ void main() {
         find.text('3 subscribers have incomplete mailing details.'),
         findsOneWidget,
       );
-      await tester.tap(find.text('Preview PDF'));
+      await tester.tap(find.text('Generate list'));
       await finishPreview(tester);
       final document = container.read(mailingListViewModelProvider).preview!;
       await tester.tap(find.text('Save PDF'));
@@ -165,21 +165,9 @@ void main() {
     'prints and saves preview bytes, with busy states and actual-size guidance',
     (tester) async {
       await pumpPage(tester);
-      expect(
-        tester
-            .widget<FilledButton>(find.widgetWithText(FilledButton, 'Save PDF'))
-            .onPressed,
-        isNull,
-      );
-      expect(
-        tester
-            .widget<OutlinedButton>(
-              find.widgetWithText(OutlinedButton, 'Print PDF'),
-            )
-            .onPressed,
-        isNull,
-      );
-      await tester.tap(find.text('Preview PDF'));
+      expect(find.text('Save PDF'), findsNothing);
+      expect(find.text('Print PDF'), findsNothing);
+      await tester.tap(find.text('Generate list'));
       await finishPreview(tester);
       final document = container.read(mailingListViewModelProvider).preview!;
       expect(find.textContaining('100% / actual size'), findsOneWidget);
@@ -196,22 +184,8 @@ void main() {
             .onPressed,
         isNull,
       );
-      expect(
-        tester
-            .widget<OutlinedButton>(
-              find.widgetWithText(OutlinedButton, 'Preview PDF'),
-            )
-            .onPressed,
-        isNull,
-      );
-      expect(
-        tester
-            .widget<DropdownButton<MailingLabelSize>>(
-              find.byType(DropdownButton<MailingLabelSize>),
-            )
-            .onChanged,
-        isNull,
-      );
+      expect(find.text('Generate list'), findsNothing);
+      expect(find.byType(DropdownButton<MailingLabelSize>), findsNothing);
       file.pending!.complete(true);
       await tester.pumpAndSettle();
       expect(find.text('PDF saved.'), findsOneWidget);
@@ -230,26 +204,16 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Print job submitted.'), findsOneWidget);
       expect(pdf.requests, hasLength(1));
+      await tester.tap(find.byTooltip('Close preview'));
+      await tester.pumpAndSettle();
       final dropdown = find.byType(DropdownButton<bool>);
       await tester.tap(dropdown);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Off').last);
       await tester.pumpAndSettle();
       expect(find.byType(PdfPreview), findsNothing);
-      expect(
-        tester
-            .widget<FilledButton>(find.widgetWithText(FilledButton, 'Save PDF'))
-            .onPressed,
-        isNull,
-      );
-      expect(
-        tester
-            .widget<OutlinedButton>(
-              find.widgetWithText(OutlinedButton, 'Print PDF'),
-            )
-            .onPressed,
-        isNull,
-      );
+      expect(find.text('Save PDF'), findsNothing);
+      expect(find.text('Print PDF'), findsNothing);
     },
   );
 
@@ -257,7 +221,7 @@ void main() {
     'print and save cancellation or errors keep the current preview retryable',
     (tester) async {
       await pumpPage(tester);
-      await tester.tap(find.text('Preview PDF'));
+      await tester.tap(find.text('Generate list'));
       await finishPreview(tester);
       file.canceled = true;
       await tester.tap(find.text('Save PDF'));
@@ -307,9 +271,9 @@ void main() {
         ),
       );
       await pumpPage(tester, rows: rows);
-      await tester.tap(find.text('Preview PDF'));
+      await tester.tap(find.text('Generate list'));
       await tester.pump();
-      expect(find.text('Preparing preview…'), findsOneWidget);
+      expect(find.text('Generating list…'), findsOneWidget);
       expect(file.savedBytes, isEmpty);
       await finishPreview(tester);
       expect(find.text('PDF preview · 35 pages'), findsOneWidget);
@@ -373,8 +337,10 @@ void main() {
     'changing settings removes the old preview and asks for regeneration',
     (tester) async {
       await pumpPage(tester);
-      await tester.tap(find.text('Preview PDF'));
+      await tester.tap(find.text('Generate list'));
       await finishPreview(tester);
+      await tester.tap(find.byTooltip('Close preview'));
+      await tester.pumpAndSettle();
       final dropdown = find.byType(DropdownButton<bool>);
       await tester.ensureVisible(dropdown);
       await tester.pumpAndSettle();
@@ -396,15 +362,17 @@ void main() {
     tester,
   ) async {
     await pumpPage(tester);
-    await tester.tap(find.text('Preview PDF'));
+    await tester.tap(find.text('Generate list'));
     await finishPreview(tester);
+    await tester.tap(find.byTooltip('Close preview'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Refresh mailing list'));
     await tester.pump();
     expect(find.byType(PdfPreview), findsNothing);
     expect(
       tester
-          .widget<OutlinedButton>(
-            find.widgetWithText(OutlinedButton, 'Preview PDF'),
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Generate list'),
           )
           .onPressed,
       isNull,
@@ -415,8 +383,8 @@ void main() {
     expect(find.byType(PdfPreview), findsNothing);
     expect(
       tester
-          .widget<OutlinedButton>(
-            find.widgetWithText(OutlinedButton, 'Preview PDF'),
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Generate list'),
           )
           .onPressed,
       isNull,
@@ -427,17 +395,17 @@ void main() {
     'reports generation errors and disables preview for unresolved fitting failures',
     (tester) async {
       await pumpPage(tester);
-      await tester.tap(find.text('Preview PDF'));
+      await tester.tap(find.text('Generate list'));
       await tester.pump();
       pdf.requests.last.result.completeError(StateError('failed'));
       await tester.pumpAndSettle();
       expect(
         find.text(
-          'Unable to generate the preview. Select Preview PDF to try again.',
+          'Unable to generate the preview. Select Generate list to try again.',
         ),
         findsOneWidget,
       );
-      await tester.tap(find.text('Preview PDF'));
+      await tester.tap(find.text('Generate list'));
       await tester.pump();
       pdf.requests.last.result.completeError(
         MailingTextFitFailure([mailingEntries.first]),
@@ -453,8 +421,8 @@ void main() {
       expect(find.byType(PdfPreview), findsNothing);
       expect(
         tester
-            .widget<OutlinedButton>(
-              find.widgetWithText(OutlinedButton, 'Preview PDF'),
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Generate list'),
             )
             .onPressed,
         isNull,
@@ -467,7 +435,7 @@ void main() {
   ) async {
     canRaster = false;
     await pumpPage(tester);
-    await tester.tap(find.text('Preview PDF'));
+    await tester.tap(find.text('Generate list'));
     pdf.requests.last.result.complete(Uint8List(1));
     await tester.pumpAndSettle();
     expect(
@@ -491,7 +459,7 @@ void main() {
     'changing selection during generation discards the late document',
     (tester) async {
       await pumpPage(tester);
-      await tester.tap(find.text('Preview PDF'));
+      await tester.tap(find.text('Generate list'));
       await tester.pump();
       await tester.tap(find.byType(DropdownButton<MailingOrientation>));
       await tester.pump(const Duration(milliseconds: 300));
@@ -500,7 +468,7 @@ void main() {
       pdf.requests.last.result.complete(Uint8List(1));
       await tester.pumpAndSettle();
       expect(find.byType(PdfPreview), findsNothing);
-      expect(find.text('Preview PDF'), findsOneWidget);
+      expect(find.text('Generate list'), findsOneWidget);
       expect(
         find.textContaining(
           'Preview cleared because settings or subscriber data changed.',

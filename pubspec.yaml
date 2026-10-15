@@ -5,6 +5,7 @@ version: 0.1.0+1
 
 environment:
   sdk: ^3.12.2
+  flutter: ">=3.47.7"
 
 dependencies:
   flutter:
@@ -25,6 +26,8 @@ dev_dependencies:
   drift_dev: ^2.35.0
 
 flutter:
+  config:
+    enable-windowing: true
   uses-material-design: true
   assets:
     - assets/fonts/LiberationSans-Regular.ttf
