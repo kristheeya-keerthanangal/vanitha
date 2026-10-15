@@ -18,6 +18,7 @@ class AppShell extends StatelessWidget {
             onDestinationSelected: (index) => context.go(switch (index) {
               1 => '/subscribers',
               2 => '/archived',
+              3 => '/settings',
               _ => '/dashboard',
             }),
           ),

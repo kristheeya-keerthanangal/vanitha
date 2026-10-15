@@ -31,7 +31,7 @@ FROM numbers;
 
 INSERT INTO subscribers (
   name, email, phone, postal_address,
-  city, state, postal_code, country, created_at, updated_at
+  postal_code, created_at, updated_at
 )
 SELECT first_name || ' ' || last_name ||
          CASE WHEN subscriber_type = 'organization' THEN ' Library' ELSE '' END ||
@@ -39,14 +39,14 @@ SELECT first_name || ' ' || last_name ||
        lower(first_name) || '.' || lower(last_name) || '.' || n ||
          '.' || lower(marker) || '@example.com',
        phone,
-       street_number || ' Test Street',
+       street_number || ' Test Street, ' ||
        CASE location WHEN 0 THEN 'Kochi' WHEN 1 THEN 'Chennai'
-         WHEN 2 THEN 'Bengaluru' ELSE 'Mumbai' END,
+         WHEN 2 THEN 'Bengaluru' ELSE 'Mumbai' END || ', ' ||
        CASE location WHEN 0 THEN 'Kerala' WHEN 1 THEN 'Tamil Nadu'
-         WHEN 2 THEN 'Karnataka' ELSE 'Maharashtra' END,
+         WHEN 2 THEN 'Karnataka' ELSE 'Maharashtra' END || ', India',
        CASE location WHEN 0 THEN '682001' WHEN 1 THEN '600001'
          WHEN 2 THEN '560001' ELSE '400001' END,
-       'India', created, created
+       created, created
 FROM seed_values CROSS JOIN seed_batch;
 
 CREATE TEMP TABLE seeded_ids AS
@@ -56,8 +56,8 @@ WHERE instr(name, '[' || (SELECT marker FROM seed_batch) || '-') > 0;
 INSERT INTO audit_logs (subscriber_id, previous_values, updated_values, modified_at)
 SELECT id, NULL, json_object(
   'id', id, 'name', name, 'email', email, 'phone', phone,
-  'postalAddress', postal_address, 'city', city, 'state', state,
-  'postalCode', postal_code, 'country', country,
+  'postalAddress', postal_address,
+  'postalCode', postal_code,
   'createdAt', created_at, 'updatedAt', updated_at, 'archivedAt', archived_at
 ), updated_at
 FROM subscribers WHERE id IN (SELECT id FROM seeded_ids);

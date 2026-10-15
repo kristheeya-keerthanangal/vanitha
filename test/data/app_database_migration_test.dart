@@ -7,7 +7,7 @@ import 'package:vanithabodhini/data/app_database.dart';
 
 void main() {
   for (final fromVersion in [2, 3, 4, 5, 6]) {
-    test('preserves data when upgrading from schema $fromVersion to 8', () async {
+    test('preserves data when upgrading from schema $fromVersion to 9', () async {
       final executor = NativeDatabase.memory(
         setup: (db) {
           final hasSubscriberType = fromVersion < 5;
@@ -72,6 +72,9 @@ void main() {
               subscriber_id, updated_values, modified_at
             ) VALUES (7, '{"name":"Existing Subscriber"}', '2026-01-01');
           ''');
+          db.execute(
+            "UPDATE subscribers SET postal_address = '10 Main Street', city = 'Kochi', state = 'Kerala', postal_code = '0682001', country = 'India'",
+          );
           // A table rebuild must retain numbers issued to deleted rows.
           db.execute(
             "UPDATE sqlite_sequence SET seq = 100 WHERE name = 'subscribers'",
@@ -122,13 +125,18 @@ void main() {
       expect(subscribers.single.id, 7);
       expect(subscribers.single.name, 'Existing Subscriber');
       expect(subscribers.single.email, isNull);
+      expect(
+        subscribers.single.postalAddress,
+        '10 Main Street, Kochi, Kerala, India',
+      );
+      expect(subscribers.single.postalCode, '0682001');
       expect(auditLogs, hasLength(1));
       expect(auditLogs.single.subscriberId, 7);
       final snapshots = await database
           .select(database.migrationSnapshots)
           .get();
       final subscriberSnapshots = snapshots.where(
-        (row) => row.sourceTable == 'subscribers',
+        (row) => row.sourceTable == 'subscribers' && row.sourceVersion < 8,
       );
       if (fromVersion < 6) {
         final original =
@@ -160,7 +168,7 @@ void main() {
       expect(
         (await database.customSelect('PRAGMA user_version').getSingle())
             .read<int>('user_version'),
-        8,
+        9,
       );
       final indexes = await database
           .customSelect("SELECT name FROM sqlite_master WHERE type = 'index'")

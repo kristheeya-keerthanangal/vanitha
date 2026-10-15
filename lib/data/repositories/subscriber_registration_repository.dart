@@ -22,10 +22,7 @@ class SubscriberRegistrationRepository {
     String? email,
     String? phone,
     String? postalAddress,
-    String? city,
-    String? state,
     String? postalCode,
-    String? country,
     required String edition,
     required String planType,
     required int durationYears,
@@ -37,10 +34,7 @@ class SubscriberRegistrationRepository {
         email: email,
         phone: phone,
         postalAddress: postalAddress,
-        city: city,
-        state: state,
         postalCode: postalCode,
-        country: country,
       );
       final subscription = await _subscriptionRepository.createSubscription(
         subscriberId: subscriber.id,

@@ -40,50 +40,16 @@ class SubscriberDetailsSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         AppTextFormField(
-          label: 'Postal address',
+          label: 'Address',
           initialValue: viewModel.postalAddress,
           onChanged: viewModel.setPostalAddress,
           maxLines: 2,
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: AppTextFormField(
-                label: 'City',
-                initialValue: viewModel.city,
-                onChanged: viewModel.setCity,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: AppTextFormField(
-                label: 'State',
-                initialValue: viewModel.state,
-                onChanged: viewModel.setState,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: AppTextFormField(
-                label: 'Postal code',
-                initialValue: viewModel.postalCode,
-                onChanged: viewModel.setPostalCode,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: AppTextFormField(
-                label: 'Country',
-                initialValue: viewModel.country,
-                onChanged: viewModel.setCountry,
-              ),
-            ),
-          ],
+        AppTextFormField(
+          label: 'Pincode',
+          initialValue: viewModel.postalCode,
+          onChanged: viewModel.setPostalCode,
         ),
       ],
     );

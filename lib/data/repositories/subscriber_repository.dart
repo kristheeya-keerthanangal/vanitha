@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
+import '../subscriber_import.dart';
 import '../subscription_expiry.dart';
 import '../subscription_status.dart';
 import 'update_timestamp.dart';
@@ -150,10 +151,7 @@ class SubscriberRepository {
     String? email,
     String? phone,
     String? postalAddress,
-    String? city,
-    String? state,
     String? postalCode,
-    String? country,
   }) async {
     final now = _now();
 
@@ -166,10 +164,7 @@ class SubscriberRepository {
               email: Value(_optional(email)),
               phone: Value(_optional(phone)),
               postalAddress: Value(_optional(postalAddress)),
-              city: Value(_optional(city)),
-              state: Value(_optional(state)),
               postalCode: Value(_optional(postalCode)),
-              country: Value(_optional(country)),
               createdAt: Value(now),
               updatedAt: Value(now),
             ),
@@ -181,6 +176,57 @@ class SubscriberRepository {
       await _writeAudit(subscriberId: id, updated: subscriber);
       return subscriber;
     });
+  }
+
+  Future<SubscriberImportPreview> previewImport(
+    List<SubscriberImportEntry> entries,
+  ) async {
+    final seen = await _importIdentities();
+    return SubscriberImportPreview(
+      total: entries.length,
+      entries: [
+        for (final entry in entries)
+          if (seen.add(entry.identity)) entry,
+      ],
+    );
+  }
+
+  Future<SubscriberImportResult> importSubscribers(
+    SubscriberImportPreview preview,
+  ) {
+    return _database.transaction(() async {
+      final seen = await _importIdentities();
+      var inserted = 0;
+      for (final entry in preview.entries) {
+        if (!seen.add(entry.identity)) continue;
+        await createSubscriber(
+          name: entry.name,
+          postalAddress: entry.address,
+          postalCode: entry.pincode,
+        );
+        inserted++;
+      }
+      return SubscriberImportResult(
+        inserted: inserted,
+        skipped: preview.total - inserted,
+      );
+    });
+  }
+
+  Future<Set<(String, String, String)>> _importIdentities() async {
+    final table = _database.subscribers;
+    final query = _database.selectOnly(table)
+      ..addColumns([table.name, table.postalAddress, table.postalCode])
+      ..where(table.archivedAt.isNull());
+    final rows = await query.get();
+    return {
+      for (final row in rows)
+        (
+          row.read(table.name)!.trim(),
+          row.read(table.postalAddress)?.trim() ?? '',
+          row.read(table.postalCode)?.trim() ?? '',
+        ),
+    };
   }
 
   Future<Subscriber?> getSubscriber(int id, {bool includeArchived = false}) {

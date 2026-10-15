@@ -9,11 +9,8 @@ class SubscriberAddressCard extends StatelessWidget {
   Widget build(BuildContext context) => DetailsCard(
     title: 'Address',
     fields: {
-      'Postal address': subscriber.postalAddress,
-      'City': subscriber.city,
-      'State': subscriber.state,
-      'Postal code': subscriber.postalCode,
-      'Country': subscriber.country,
+      'Address': subscriber.postalAddress,
+      'Pincode': subscriber.postalCode,
     },
   );
 }

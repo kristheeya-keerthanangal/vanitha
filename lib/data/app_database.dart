@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'vanithabodhini'));
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -36,7 +36,9 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('PRAGMA foreign_keys = OFF');
       try {
         await transaction(() async {
-          if (from < 6) {
+          if (from < 2) {
+            await m.createAll();
+          } else if (from < 6) {
             // The exported history begins at version 6. Keep the established
             // upgrade path for older databases, then continue with guided
             // migrations from version 7 onward.
@@ -131,7 +133,7 @@ class AppDatabase extends _$AppDatabase {
 
     // Retired subscriber columns are snapshotted above. Rebuild while keeping
     // all shared values and the IDs referenced by subscriptions and audit logs.
-    await _rebuildTable(m, subscribers);
+    await _rebuildTable(m, Schema7(database: this).subscribers);
   }
 
   OnUpgrade get _schemaUpgrade => stepByStep(
@@ -146,6 +148,27 @@ class AppDatabase extends _$AppDatabase {
           newColumns: [schema.subscriptions.archivedAt],
         ),
       );
+    },
+    from8To9: (m, schema) async {
+      await _snapshotTable('subscribers', 8);
+      // Keep every populated address component in display order before
+      // dropping the separate locality columns. Pincode stays separate.
+      final rows = await customSelect(
+        'SELECT id, postal_address, city, state, country FROM subscribers',
+      ).get();
+      for (final row in rows) {
+        final parts = [
+          for (final column in ['postal_address', 'city', 'state', 'country'])
+            if (row.readNullable<String>(column)?.trim() case final String part
+                when part.isNotEmpty)
+              part,
+        ];
+        await customStatement(
+          'UPDATE subscribers SET postal_address = ? WHERE id = ?',
+          [parts.isEmpty ? null : parts.join(', '), row.read<int>('id')],
+        );
+      }
+      await _rebuildTable(m, schema.subscribers);
     },
     from7To8: (m, schema) async {
       // Payment status is no longer part of the subscription model. Rebuild

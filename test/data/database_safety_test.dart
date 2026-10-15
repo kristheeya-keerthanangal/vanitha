@@ -34,11 +34,8 @@ void main() {
             (await database.select(database.subscribers).get()).single;
         expect(existing.email, 'existing@example.com');
         expect(existing.phone, '555-0100');
-        expect(existing.postalAddress, '10 Main Street');
-        expect(existing.city, 'Kochi');
-        expect(existing.state, 'Kerala');
+        expect(existing.postalAddress, '10 Main Street, Kochi, Kerala, India');
         expect(existing.postalCode, '682001');
-        expect(existing.country, 'India');
         expect(existing.createdAt, '2026-01-01');
         expect(existing.updatedAt, '2026-01-01');
         expect(existing.archivedAt, '2026-02-01');
@@ -48,7 +45,11 @@ void main() {
         final subscriber =
             jsonDecode(
                   snapshots
-                      .singleWhere((row) => row.sourceTable == 'subscribers')
+                      .singleWhere(
+                        (row) =>
+                            row.sourceTable == 'subscribers' &&
+                            row.sourceVersion == 3,
+                      )
                       .valuesJson,
                 )
                 as Map<String, dynamic>;
@@ -80,7 +81,7 @@ void main() {
       try {
         expect(
           await reopened.select(reopened.migrationSnapshots).get(),
-          hasLength(2),
+          hasLength(3),
         );
         expect(
           await reopened.select(reopened.subscriptions).get(),
@@ -167,7 +168,7 @@ void main() {
   test(
     'rejects newer databases without changing their version or data',
     () async {
-      final database = AppDatabase(_version3Database(file, version: 9));
+      final database = AppDatabase(_version3Database(file, version: 10));
       try {
         await expectLater(
           database.customSelect('SELECT 1').get(),
@@ -176,12 +177,12 @@ void main() {
       } finally {
         await database.close();
       }
-      final original = _OriginalDatabase(NativeDatabase(file), 9);
+      final original = _OriginalDatabase(NativeDatabase(file), 10);
       try {
         expect(
           (await original.customSelect('PRAGMA user_version').getSingle())
               .read<int>('user_version'),
-          9,
+          10,
         );
         expect(
           (await original

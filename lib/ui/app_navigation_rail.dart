@@ -26,6 +26,11 @@ class AppNavigationRail extends StatelessWidget {
       icon: Icons.archive_outlined,
       selectedIcon: Icons.archive,
     ),
+    _AppDestination(
+      label: 'Settings',
+      icon: Icons.settings_outlined,
+      selectedIcon: Icons.settings,
+    ),
   ];
 
   @override

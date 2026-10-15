@@ -1,7 +1,7 @@
 # Database migrations
 
 The database uses Drift guided migrations from schema version 6 onward. The
-version 6, 7, and 8 schema exports are in `drift_schemas/app_database/`, and Drift
+version 6, 7, 8, and 9 schema exports are in `drift_schemas/app_database/`, and Drift
 generates the versioned schema helpers and migration verification database in
 `lib/data/app_database.steps.dart` and `test/drift/app_database/generated/`.
 
@@ -30,3 +30,19 @@ separate from Drift's schema exports.
 
 Keep the legacy compatibility path for versions 1 through 5 unless support for
 those installations is deliberately ended in a separately reviewed change.
+
+## Version 9: Address and pincode
+
+Subscriber addresses use `postal_address` and `postal_code` (shown as Address
+and Pincode). The 8-to-9 migration snapshots each original subscriber row in
+`migration_snapshots` with source version 8, then combines nonblank address,
+city, state, and country values, in that order, separated by commas. An address
+with no populated components becomes NULL. Pincodes remain text, preserving
+leading zeros. The subscriber table is rebuilt without city, state, or country.
+
+The upgrade runs in the existing transaction and preserves subscriber IDs,
+timestamps, archive status, audit history, subscription references, indexes,
+and previously issued subscriber numbers. Versions 2 through 5 first rebuild
+subscribers against the historical version 7 schema so their locality values
+reach the version 9 migration intact. Empty version 1 databases create the
+current schema directly.

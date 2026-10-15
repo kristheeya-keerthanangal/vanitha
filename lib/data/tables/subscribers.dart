@@ -13,10 +13,7 @@ class Subscribers extends Table {
   TextColumn get email => text().nullable()();
   TextColumn get phone => text().nullable()();
   TextColumn get postalAddress => text().nullable()();
-  TextColumn get city => text().nullable()();
-  TextColumn get state => text().nullable()();
   TextColumn get postalCode => text().nullable()();
-  TextColumn get country => text().nullable()();
 
   TextColumn get createdAt =>
       text().customConstraint('NOT NULL DEFAULT CURRENT_TIMESTAMP')();

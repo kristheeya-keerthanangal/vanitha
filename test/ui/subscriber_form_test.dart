@@ -147,6 +147,17 @@ void main() {
       find.widgetWithText(TextFormField, 'Name'),
       'Delayed Reader',
     );
+    expect(find.widgetWithText(TextFormField, 'City'), findsNothing);
+    expect(find.widgetWithText(TextFormField, 'State'), findsNothing);
+    expect(find.widgetWithText(TextFormField, 'Country'), findsNothing);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Address'),
+      '10 Main Street, Kochi, Kerala, India',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Pincode'),
+      '0682001',
+    );
     final editionField = find.byType(DropdownButtonFormField<String>).at(0);
     await tester.ensureVisible(editionField);
     await tester.tap(editionField);
@@ -160,7 +171,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Annual').last);
     await tester.pumpAndSettle();
-    final startDateField = find.byType(TextFormField).at(8);
+    final startDateField = find.widgetWithText(TextFormField, 'Start date');
     await tester.ensureVisible(startDateField);
     await tester.tap(startDateField);
     await tester.pumpAndSettle();
@@ -188,7 +199,9 @@ void main() {
     saveGate.complete();
     await tester.pumpAndSettle();
 
-    expect(await database.select(database.subscribers).get(), hasLength(1));
+    final subscriber = await database.select(database.subscribers).getSingle();
+    expect(subscriber.postalAddress, '10 Main Street, Kochi, Kerala, India');
+    expect(subscriber.postalCode, '0682001');
     expect(await database.select(database.subscriptions).get(), hasLength(1));
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.text('Subscribers: 1'), findsOneWidget);
@@ -210,10 +223,7 @@ class DelayedSubscriberRegistrationRepository
     String? email,
     String? phone,
     String? postalAddress,
-    String? city,
-    String? state,
     String? postalCode,
-    String? country,
     required String edition,
     required String planType,
     required int durationYears,
@@ -226,10 +236,7 @@ class DelayedSubscriberRegistrationRepository
       email: email,
       phone: phone,
       postalAddress: postalAddress,
-      city: city,
-      state: state,
       postalCode: postalCode,
-      country: country,
       edition: edition,
       planType: planType,
       durationYears: durationYears,

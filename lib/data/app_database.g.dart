@@ -61,41 +61,12 @@ class $SubscribersTable extends Subscribers
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _cityMeta = const VerificationMeta('city');
-  @override
-  late final GeneratedColumn<String> city = GeneratedColumn<String>(
-    'city',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _stateMeta = const VerificationMeta('state');
-  @override
-  late final GeneratedColumn<String> state = GeneratedColumn<String>(
-    'state',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
   static const VerificationMeta _postalCodeMeta = const VerificationMeta(
     'postalCode',
   );
   @override
   late final GeneratedColumn<String> postalCode = GeneratedColumn<String>(
     'postal_code',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _countryMeta = const VerificationMeta(
-    'country',
-  );
-  @override
-  late final GeneratedColumn<String> country = GeneratedColumn<String>(
-    'country',
     aliasedName,
     true,
     type: DriftSqlType.string,
@@ -145,10 +116,7 @@ class $SubscribersTable extends Subscribers
     email,
     phone,
     postalAddress,
-    city,
-    state,
     postalCode,
-    country,
     createdAt,
     updatedAt,
     archivedAt,
@@ -197,28 +165,10 @@ class $SubscribersTable extends Subscribers
         ),
       );
     }
-    if (data.containsKey('city')) {
-      context.handle(
-        _cityMeta,
-        city.isAcceptableOrUnknown(data['city']!, _cityMeta),
-      );
-    }
-    if (data.containsKey('state')) {
-      context.handle(
-        _stateMeta,
-        state.isAcceptableOrUnknown(data['state']!, _stateMeta),
-      );
-    }
     if (data.containsKey('postal_code')) {
       context.handle(
         _postalCodeMeta,
         postalCode.isAcceptableOrUnknown(data['postal_code']!, _postalCodeMeta),
-      );
-    }
-    if (data.containsKey('country')) {
-      context.handle(
-        _countryMeta,
-        country.isAcceptableOrUnknown(data['country']!, _countryMeta),
       );
     }
     if (data.containsKey('created_at')) {
@@ -268,21 +218,9 @@ class $SubscribersTable extends Subscribers
         DriftSqlType.string,
         data['${effectivePrefix}postal_address'],
       ),
-      city: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}city'],
-      ),
-      state: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}state'],
-      ),
       postalCode: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}postal_code'],
-      ),
-      country: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}country'],
       ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -311,10 +249,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
   final String? email;
   final String? phone;
   final String? postalAddress;
-  final String? city;
-  final String? state;
   final String? postalCode;
-  final String? country;
   final String createdAt;
   final String updatedAt;
   final String? archivedAt;
@@ -324,10 +259,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
     this.email,
     this.phone,
     this.postalAddress,
-    this.city,
-    this.state,
     this.postalCode,
-    this.country,
     required this.createdAt,
     required this.updatedAt,
     this.archivedAt,
@@ -346,17 +278,8 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
     if (!nullToAbsent || postalAddress != null) {
       map['postal_address'] = Variable<String>(postalAddress);
     }
-    if (!nullToAbsent || city != null) {
-      map['city'] = Variable<String>(city);
-    }
-    if (!nullToAbsent || state != null) {
-      map['state'] = Variable<String>(state);
-    }
     if (!nullToAbsent || postalCode != null) {
       map['postal_code'] = Variable<String>(postalCode);
-    }
-    if (!nullToAbsent || country != null) {
-      map['country'] = Variable<String>(country);
     }
     map['created_at'] = Variable<String>(createdAt);
     map['updated_at'] = Variable<String>(updatedAt);
@@ -379,16 +302,9 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
       postalAddress: postalAddress == null && nullToAbsent
           ? const Value.absent()
           : Value(postalAddress),
-      city: city == null && nullToAbsent ? const Value.absent() : Value(city),
-      state: state == null && nullToAbsent
-          ? const Value.absent()
-          : Value(state),
       postalCode: postalCode == null && nullToAbsent
           ? const Value.absent()
           : Value(postalCode),
-      country: country == null && nullToAbsent
-          ? const Value.absent()
-          : Value(country),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       archivedAt: archivedAt == null && nullToAbsent
@@ -408,10 +324,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
       email: serializer.fromJson<String?>(json['email']),
       phone: serializer.fromJson<String?>(json['phone']),
       postalAddress: serializer.fromJson<String?>(json['postalAddress']),
-      city: serializer.fromJson<String?>(json['city']),
-      state: serializer.fromJson<String?>(json['state']),
       postalCode: serializer.fromJson<String?>(json['postalCode']),
-      country: serializer.fromJson<String?>(json['country']),
       createdAt: serializer.fromJson<String>(json['createdAt']),
       updatedAt: serializer.fromJson<String>(json['updatedAt']),
       archivedAt: serializer.fromJson<String?>(json['archivedAt']),
@@ -426,10 +339,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
       'email': serializer.toJson<String?>(email),
       'phone': serializer.toJson<String?>(phone),
       'postalAddress': serializer.toJson<String?>(postalAddress),
-      'city': serializer.toJson<String?>(city),
-      'state': serializer.toJson<String?>(state),
       'postalCode': serializer.toJson<String?>(postalCode),
-      'country': serializer.toJson<String?>(country),
       'createdAt': serializer.toJson<String>(createdAt),
       'updatedAt': serializer.toJson<String>(updatedAt),
       'archivedAt': serializer.toJson<String?>(archivedAt),
@@ -442,10 +352,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
     Value<String?> email = const Value.absent(),
     Value<String?> phone = const Value.absent(),
     Value<String?> postalAddress = const Value.absent(),
-    Value<String?> city = const Value.absent(),
-    Value<String?> state = const Value.absent(),
     Value<String?> postalCode = const Value.absent(),
-    Value<String?> country = const Value.absent(),
     String? createdAt,
     String? updatedAt,
     Value<String?> archivedAt = const Value.absent(),
@@ -457,10 +364,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
     postalAddress: postalAddress.present
         ? postalAddress.value
         : this.postalAddress,
-    city: city.present ? city.value : this.city,
-    state: state.present ? state.value : this.state,
     postalCode: postalCode.present ? postalCode.value : this.postalCode,
-    country: country.present ? country.value : this.country,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
@@ -474,12 +378,9 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
       postalAddress: data.postalAddress.present
           ? data.postalAddress.value
           : this.postalAddress,
-      city: data.city.present ? data.city.value : this.city,
-      state: data.state.present ? data.state.value : this.state,
       postalCode: data.postalCode.present
           ? data.postalCode.value
           : this.postalCode,
-      country: data.country.present ? data.country.value : this.country,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       archivedAt: data.archivedAt.present
@@ -496,10 +397,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
           ..write('email: $email, ')
           ..write('phone: $phone, ')
           ..write('postalAddress: $postalAddress, ')
-          ..write('city: $city, ')
-          ..write('state: $state, ')
           ..write('postalCode: $postalCode, ')
-          ..write('country: $country, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('archivedAt: $archivedAt')
@@ -514,10 +412,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
     email,
     phone,
     postalAddress,
-    city,
-    state,
     postalCode,
-    country,
     createdAt,
     updatedAt,
     archivedAt,
@@ -531,10 +426,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
           other.email == this.email &&
           other.phone == this.phone &&
           other.postalAddress == this.postalAddress &&
-          other.city == this.city &&
-          other.state == this.state &&
           other.postalCode == this.postalCode &&
-          other.country == this.country &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.archivedAt == this.archivedAt);
@@ -546,10 +438,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
   final Value<String?> email;
   final Value<String?> phone;
   final Value<String?> postalAddress;
-  final Value<String?> city;
-  final Value<String?> state;
   final Value<String?> postalCode;
-  final Value<String?> country;
   final Value<String> createdAt;
   final Value<String> updatedAt;
   final Value<String?> archivedAt;
@@ -559,10 +448,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
     this.email = const Value.absent(),
     this.phone = const Value.absent(),
     this.postalAddress = const Value.absent(),
-    this.city = const Value.absent(),
-    this.state = const Value.absent(),
     this.postalCode = const Value.absent(),
-    this.country = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -573,10 +459,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
     this.email = const Value.absent(),
     this.phone = const Value.absent(),
     this.postalAddress = const Value.absent(),
-    this.city = const Value.absent(),
-    this.state = const Value.absent(),
     this.postalCode = const Value.absent(),
-    this.country = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -587,10 +470,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
     Expression<String>? email,
     Expression<String>? phone,
     Expression<String>? postalAddress,
-    Expression<String>? city,
-    Expression<String>? state,
     Expression<String>? postalCode,
-    Expression<String>? country,
     Expression<String>? createdAt,
     Expression<String>? updatedAt,
     Expression<String>? archivedAt,
@@ -601,10 +481,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
       if (email != null) 'email': email,
       if (phone != null) 'phone': phone,
       if (postalAddress != null) 'postal_address': postalAddress,
-      if (city != null) 'city': city,
-      if (state != null) 'state': state,
       if (postalCode != null) 'postal_code': postalCode,
-      if (country != null) 'country': country,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (archivedAt != null) 'archived_at': archivedAt,
@@ -617,10 +494,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
     Value<String?>? email,
     Value<String?>? phone,
     Value<String?>? postalAddress,
-    Value<String?>? city,
-    Value<String?>? state,
     Value<String?>? postalCode,
-    Value<String?>? country,
     Value<String>? createdAt,
     Value<String>? updatedAt,
     Value<String?>? archivedAt,
@@ -631,10 +505,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
       email: email ?? this.email,
       phone: phone ?? this.phone,
       postalAddress: postalAddress ?? this.postalAddress,
-      city: city ?? this.city,
-      state: state ?? this.state,
       postalCode: postalCode ?? this.postalCode,
-      country: country ?? this.country,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       archivedAt: archivedAt ?? this.archivedAt,
@@ -659,17 +530,8 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
     if (postalAddress.present) {
       map['postal_address'] = Variable<String>(postalAddress.value);
     }
-    if (city.present) {
-      map['city'] = Variable<String>(city.value);
-    }
-    if (state.present) {
-      map['state'] = Variable<String>(state.value);
-    }
     if (postalCode.present) {
       map['postal_code'] = Variable<String>(postalCode.value);
-    }
-    if (country.present) {
-      map['country'] = Variable<String>(country.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<String>(createdAt.value);
@@ -691,10 +553,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
           ..write('email: $email, ')
           ..write('phone: $phone, ')
           ..write('postalAddress: $postalAddress, ')
-          ..write('city: $city, ')
-          ..write('state: $state, ')
           ..write('postalCode: $postalCode, ')
-          ..write('country: $country, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('archivedAt: $archivedAt')
@@ -2071,10 +1930,7 @@ typedef $$SubscribersTableCreateCompanionBuilder =
       Value<String?> email,
       Value<String?> phone,
       Value<String?> postalAddress,
-      Value<String?> city,
-      Value<String?> state,
       Value<String?> postalCode,
-      Value<String?> country,
       Value<String> createdAt,
       Value<String> updatedAt,
       Value<String?> archivedAt,
@@ -2086,10 +1942,7 @@ typedef $$SubscribersTableUpdateCompanionBuilder =
       Value<String?> email,
       Value<String?> phone,
       Value<String?> postalAddress,
-      Value<String?> city,
-      Value<String?> state,
       Value<String?> postalCode,
-      Value<String?> country,
       Value<String> createdAt,
       Value<String> updatedAt,
       Value<String?> archivedAt,
@@ -2170,23 +2023,8 @@ class $$SubscribersTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get city => $composableBuilder(
-    column: $table.city,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get state => $composableBuilder(
-    column: $table.state,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<String> get postalCode => $composableBuilder(
     column: $table.postalCode,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get country => $composableBuilder(
-    column: $table.country,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2290,23 +2128,8 @@ class $$SubscribersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get city => $composableBuilder(
-    column: $table.city,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get state => $composableBuilder(
-    column: $table.state,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get postalCode => $composableBuilder(
     column: $table.postalCode,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get country => $composableBuilder(
-    column: $table.country,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2352,19 +2175,10 @@ class $$SubscribersTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get city =>
-      $composableBuilder(column: $table.city, builder: (column) => column);
-
-  GeneratedColumn<String> get state =>
-      $composableBuilder(column: $table.state, builder: (column) => column);
-
   GeneratedColumn<String> get postalCode => $composableBuilder(
     column: $table.postalCode,
     builder: (column) => column,
   );
-
-  GeneratedColumn<String> get country =>
-      $composableBuilder(column: $table.country, builder: (column) => column);
 
   GeneratedColumn<String> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -2461,10 +2275,7 @@ class $$SubscribersTableTableManager
                 Value<String?> email = const Value.absent(),
                 Value<String?> phone = const Value.absent(),
                 Value<String?> postalAddress = const Value.absent(),
-                Value<String?> city = const Value.absent(),
-                Value<String?> state = const Value.absent(),
                 Value<String?> postalCode = const Value.absent(),
-                Value<String?> country = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
                 Value<String?> archivedAt = const Value.absent(),
@@ -2474,10 +2285,7 @@ class $$SubscribersTableTableManager
                 email: email,
                 phone: phone,
                 postalAddress: postalAddress,
-                city: city,
-                state: state,
                 postalCode: postalCode,
-                country: country,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 archivedAt: archivedAt,
@@ -2489,10 +2297,7 @@ class $$SubscribersTableTableManager
                 Value<String?> email = const Value.absent(),
                 Value<String?> phone = const Value.absent(),
                 Value<String?> postalAddress = const Value.absent(),
-                Value<String?> city = const Value.absent(),
-                Value<String?> state = const Value.absent(),
                 Value<String?> postalCode = const Value.absent(),
-                Value<String?> country = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
                 Value<String?> archivedAt = const Value.absent(),
@@ -2502,10 +2307,7 @@ class $$SubscribersTableTableManager
                 email: email,
                 phone: phone,
                 postalAddress: postalAddress,
-                city: city,
-                state: state,
                 postalCode: postalCode,
-                country: country,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 archivedAt: archivedAt,

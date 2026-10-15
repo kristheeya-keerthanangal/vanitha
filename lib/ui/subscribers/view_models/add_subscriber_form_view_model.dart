@@ -11,10 +11,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
   String email = '';
   String phone = '';
   String postalAddress = '';
-  String city = '';
-  String state = '';
   String postalCode = '';
-  String country = '';
   String? edition;
   String? planType;
   String durationYears = '';
@@ -41,13 +38,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
 
   void setPostalAddress(String value) => _set(() => postalAddress = value);
 
-  void setCity(String value) => _set(() => city = value);
-
-  void setState(String value) => _set(() => state = value);
-
   void setPostalCode(String value) => _set(() => postalCode = value);
-
-  void setCountry(String value) => _set(() => country = value);
 
   void setEdition(String? value) {
     edition = value;
@@ -133,10 +124,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
         email: email,
         phone: phone,
         postalAddress: postalAddress,
-        city: city,
-        state: state,
         postalCode: postalCode,
-        country: country,
         edition: edition!,
         planType: selectedPlan,
         durationYears: effectiveDuration,
