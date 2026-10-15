@@ -67,6 +67,27 @@ void main() {
     );
   });
 
+  test(
+    '930 addresses produce a complete document beyond the first page',
+    () async {
+      const layout = MailingLayout();
+      final bytes = await generator.generate(
+        subscribers: List.generate(930, (i) => reader(i + 1)),
+        layout: layout,
+        cuttingGuides: true,
+      );
+      final pages = contentStreams(bytes);
+      expect(pages, hasLength(35));
+      final labels = pages
+          .map((page) => RegExp(r'/I\d+ Do').allMatches(page).length)
+          .toList();
+      expect(labels.take(34), everyElement(27));
+      expect(labels.last, 12);
+      expect(labels.reduce((a, b) => a + b), 930);
+    },
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
+
   for (final orientation in MailingOrientation.values) {
     for (final size in MailingLabelSize.values) {
       test(

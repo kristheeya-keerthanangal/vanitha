@@ -9,6 +9,7 @@ import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 import 'package:vanithabodhini/data/app_database.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
+import 'package:vanithabodhini/main.dart';
 import 'package:vanithabodhini/mailing/mailing_pdf.dart';
 import 'package:vanithabodhini/providers/database_provider.dart';
 import 'package:vanithabodhini/ui/mailing_list/mailing_list_page.dart';
@@ -74,6 +75,7 @@ void main() {
   Future<void> pumpPage(
     WidgetTester tester, {
     List<MailingListEntry> rows = mailingEntries,
+    bool navigate = false,
   }) async {
     tester.view.physicalSize = const Size(1200, 1000);
     tester.view.devicePixelRatio = 1;
@@ -82,19 +84,20 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: Scaffold(body: MailingListPage())),
+        child: navigate
+            ? const MainApp()
+            : const MaterialApp(home: Scaffold(body: MailingListPage())),
       ),
     );
+    if (navigate) {
+      await tester.tap(find.text('Mailing list'));
+      await tester.pump();
+    }
     repository.requests.last.complete(rows);
     await tester.pumpAndSettle();
   }
 
-  Future<void> finishPreview(WidgetTester tester, {int pages = 1}) async {
-    pdf.requests.last.result.complete(Uint8List.fromList([37, 80, 68, 70]));
-    await tester.pump();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.pump();
+  Future<void> finishRaster(WidgetTester tester, {int pages = 1}) async {
     expect(rasters, isNotEmpty);
     final job = rasters.last['job'];
     // Raster decoding needs the real engine event loop rather than fake time.
@@ -121,6 +124,42 @@ void main() {
     await ended;
     await tester.pumpAndSettle();
   }
+
+  Future<void> finishPreview(WidgetTester tester, {int pages = 1}) async {
+    pdf.requests.last.result.complete(Uint8List.fromList([37, 80, 68, 70]));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+    await finishRaster(tester, pages: pages);
+  }
+
+  testWidgets(
+    'navigation through preview, save, and print keeps Settings last',
+    (tester) async {
+      await pumpPage(tester, navigate: true);
+      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
+      expect(rail.selectedIndex, 3);
+      expect((rail.destinations.last.label as Text).data, 'Settings');
+      expect(find.text('Subscribers: 5'), findsOneWidget);
+      expect(
+        find.text('3 subscribers have incomplete mailing details.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Preview PDF'));
+      await finishPreview(tester);
+      final document = container.read(mailingListViewModelProvider).preview!;
+      await tester.tap(find.text('Save PDF'));
+      await tester.pumpAndSettle();
+      expect(find.text('PDF saved.'), findsOneWidget);
+      await tester.tap(find.text('Print PDF'));
+      await tester.pumpAndSettle();
+      expect(find.text('Print job submitted.'), findsOneWidget);
+      expect(file.savedBytes.single, document.bytes);
+      expect(printer.documents.single, document);
+      expect(pdf.requests, hasLength(1));
+    },
+  );
 
   testWidgets(
     'prints and saves preview bytes, with busy states and actual-size guidance',
@@ -256,10 +295,10 @@ void main() {
   );
 
   testWidgets(
-    'embeds every page from the snapshot without saving or changing PDF settings',
+    'large mailing lists rasterize only the selected page at bounded resolution',
     (tester) async {
       final rows = List.generate(
-        28,
+        930,
         (i) => MailingListEntry(
           subscriberId: i + 1,
           name: 'Reader $i',
@@ -271,48 +310,62 @@ void main() {
       await tester.tap(find.text('Preview PDF'));
       await tester.pump();
       expect(find.text('Preparing preview…'), findsOneWidget);
-      expect(find.textContaining('Generating PDF preview'), findsOneWidget);
       expect(file.savedBytes, isEmpty);
-      await finishPreview(tester, pages: 2);
-      expect(find.text('PDF preview · 2 pages'), findsOneWidget);
-      expect(
-        find.textContaining('28 subscribers · A4 Portrait · 60 × 30 mm'),
-        findsOneWidget,
-      );
+      await finishPreview(tester);
+      expect(find.text('PDF preview · 35 pages'), findsOneWidget);
+      expect(find.text('Page 1 of 35'), findsOneWidget);
       final preview = tester.widget<PdfPreview>(find.byType(PdfPreview));
-      expect(preview.pages, isNull);
+      expect(preview.pages, [0]);
+      expect(preview.dpi, 144);
       expect(preview.canChangeOrientation, isFalse);
       expect(preview.canChangePageFormat, isFalse);
       expect(preview.canDebug, isFalse);
       expect(preview.useActions, isFalse);
       expect(await preview.build(PdfPageFormat.letter), [37, 80, 68, 70]);
-      expect(rasters.last['doc'], [37, 80, 68, 70]);
-      expect(rasters.last['pages'], isNull);
-      expect(pdf.requests, hasLength(1));
-      final state = tester
-          .state<PdfPreviewState>(find.byType(PdfPreview))
-          .previewWidget
-          .currentState!;
-      expect(state.pages, hasLength(2));
-      await tester.ensureVisible(find.byType(PdfPreview));
-      await tester.pumpAndSettle();
-      expect(state.scrollController.position.maxScrollExtent, greaterThan(0));
-      state.scrollController.jumpTo(
-        state.scrollController.position.maxScrollExtent,
-      );
-      await tester.pumpAndSettle();
+      expect(rasters.last['pages'], [0]);
+      expect(rasters.last['scale'], 2);
       expect(
         tester
-            .widgetList<Image>(
-              find.descendant(
-                of: find.byType(PdfPreview),
-                matching: find.byType(Image),
-              ),
-            )
-            .any((image) => image.image == state.pages.last.image),
-        isTrue,
+            .state<PdfPreviewState>(find.byType(PdfPreview))
+            .previewWidget
+            .currentState!
+            .pages,
+        hasLength(1),
       );
-      expect(file.savedBytes, isEmpty);
+
+      Future<void> select(String tooltip, int page) async {
+        await tester.ensureVisible(find.byTooltip(tooltip));
+        await tester.tap(find.byTooltip(tooltip));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.pump();
+        expect(rasters.last['pages'], [page]);
+        await finishRaster(tester);
+        expect(find.text('Page ${page + 1} of 35'), findsOneWidget);
+      }
+
+      await select('Next page', 1);
+      await select('Last page', 34);
+      await select('Previous page', 33);
+      await select('First page', 0);
+      final rasterCount = rasters.length;
+      // Parent notifications during output must not rasterize the PDF again.
+      await container.read(mailingListViewModelProvider).savePdf();
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(rasters, hasLength(rasterCount));
+      await container.read(mailingListViewModelProvider).printPdf();
+      await tester.pumpAndSettle();
+      expect(file.savedBytes.single, [37, 80, 68, 70]);
+      expect(printer.documents.single.bytes, file.savedBytes.single);
+      expect(pdf.requests, hasLength(1));
+      expect(pdf.requests.single.subscribers, hasLength(930));
+      await select('Last page', 34);
+      unawaited(container.read(mailingListViewModelProvider).previewPdf());
+      await tester.pump();
+      await finishPreview(tester);
+      expect(find.text('Page 1 of 35'), findsOneWidget);
+      expect(rasters.last['pages'], [0]);
     },
   );
 
