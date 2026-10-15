@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -31,6 +33,7 @@ void main() {
   late ControlledMailingListRepository repository;
   late ControlledMailingPdf pdf;
   late FakeMailingPdfFile file;
+  late FakeMailingPdfPrinter printer;
   late ProviderContainer container;
   late List<Map<dynamic, dynamic>> rasters;
   late bool canRaster;
@@ -40,6 +43,7 @@ void main() {
     repository = ControlledMailingListRepository(database);
     pdf = ControlledMailingPdf();
     file = FakeMailingPdfFile();
+    printer = FakeMailingPdfPrinter();
     rasters = [];
     canRaster = true;
     container = ProviderContainer(
@@ -47,6 +51,7 @@ void main() {
         subscriberRepositoryProvider.overrideWithValue(repository),
         mailingPdfProvider.overrideWithValue(pdf),
         mailingPdfFileProvider.overrideWithValue(file),
+        mailingPdfPrinterProvider.overrideWithValue(printer),
       ],
     );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -116,6 +121,139 @@ void main() {
     await ended;
     await tester.pumpAndSettle();
   }
+
+  testWidgets(
+    'prints and saves preview bytes, with busy states and actual-size guidance',
+    (tester) async {
+      await pumpPage(tester);
+      expect(
+        tester
+            .widget<FilledButton>(find.widgetWithText(FilledButton, 'Save PDF'))
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, 'Print PDF'),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(find.text('Preview PDF'));
+      await finishPreview(tester);
+      final document = container.read(mailingListViewModelProvider).preview!;
+      expect(find.textContaining('100% / actual size'), findsOneWidget);
+      file.pending = Completer<bool>();
+      await tester.tap(find.text('Save PDF'));
+      await tester.pump();
+      expect(find.text('Saving PDF…'), findsOneWidget);
+      expect(identical(file.savedBytes.single, document.bytes), isTrue);
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, 'Print PDF'),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, 'Preview PDF'),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<DropdownButton<MailingLabelSize>>(
+              find.byType(DropdownButton<MailingLabelSize>),
+            )
+            .onChanged,
+        isNull,
+      );
+      file.pending!.complete(true);
+      await tester.pumpAndSettle();
+      expect(find.text('PDF saved.'), findsOneWidget);
+      printer.pending = Completer<bool>();
+      await tester.tap(find.text('Print PDF'));
+      await tester.pump();
+      expect(find.text('Printing PDF…'), findsOneWidget);
+      expect(identical(printer.documents.single, document), isTrue);
+      expect(
+        tester
+            .widget<FilledButton>(find.widgetWithText(FilledButton, 'Save PDF'))
+            .onPressed,
+        isNull,
+      );
+      printer.pending!.complete(true);
+      await tester.pumpAndSettle();
+      expect(find.text('Print job submitted.'), findsOneWidget);
+      expect(pdf.requests, hasLength(1));
+      final dropdown = find.byType(DropdownButton<bool>);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Off').last);
+      await tester.pumpAndSettle();
+      expect(find.byType(PdfPreview), findsNothing);
+      expect(
+        tester
+            .widget<FilledButton>(find.widgetWithText(FilledButton, 'Save PDF'))
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, 'Print PDF'),
+            )
+            .onPressed,
+        isNull,
+      );
+    },
+  );
+
+  testWidgets(
+    'print and save cancellation or errors keep the current preview retryable',
+    (tester) async {
+      await pumpPage(tester);
+      await tester.tap(find.text('Preview PDF'));
+      await finishPreview(tester);
+      file.canceled = true;
+      await tester.tap(find.text('Save PDF'));
+      await tester.pumpAndSettle();
+      expect(find.text('Save canceled.'), findsOneWidget);
+      printer.canceled = true;
+      await tester.tap(find.text('Print PDF'));
+      await tester.pumpAndSettle();
+      expect(find.text('Print canceled.'), findsOneWidget);
+      file.fail = true;
+      await tester.tap(find.text('Save PDF'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Choose a writable location'), findsOneWidget);
+      printer.fail = true;
+      await tester.tap(find.text('Print PDF'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Check your printer'), findsOneWidget);
+      expect(find.byType(PdfPreview), findsOneWidget);
+      expect(pdf.requests, hasLength(1));
+      expect(
+        tester
+            .widget<FilledButton>(find.widgetWithText(FilledButton, 'Save PDF'))
+            .onPressed,
+        isNotNull,
+      );
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, 'Print PDF'),
+            )
+            .onPressed,
+        isNotNull,
+      );
+    },
+  );
 
   testWidgets(
     'embeds every page from the snapshot without saving or changing PDF settings',
@@ -281,7 +419,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        'Unable to display the PDF. Retry the preview, or use Generate PDF to save it and open it in a PDF viewer.',
+        'Unable to display the PDF. Retry the preview, or use Save PDF to open it in a PDF viewer.',
       ),
       findsOneWidget,
     );

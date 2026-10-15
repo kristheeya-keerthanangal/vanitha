@@ -35,7 +35,7 @@ class MailingListPage extends ConsumerWidget {
                       ),
                       IconButton(
                         tooltip: 'Refresh mailing list',
-                        onPressed: model.loading || model.generating
+                        onPressed: model.loading || model.outputBusy
                             ? null
                             : model.refresh,
                         icon: const Icon(Icons.refresh),
@@ -67,8 +67,8 @@ class MailingListPage extends ConsumerWidget {
                         ),
                       ),
                       FilledButton.icon(
-                        onPressed: model.canGenerate ? model.generatePdf : null,
-                        icon: model.generating
+                        onPressed: model.canOutput ? model.savePdf : null,
+                        icon: model.outputAction == PdfOutputAction.save
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
@@ -76,12 +76,35 @@ class MailingListPage extends ConsumerWidget {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Icon(Icons.picture_as_pdf_outlined),
+                            : const Icon(Icons.save_outlined),
                         label: Text(
-                          model.generating ? 'Generating PDF…' : 'Generate PDF',
+                          model.outputAction == PdfOutputAction.save
+                              ? 'Saving PDF…'
+                              : 'Save PDF',
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: model.canOutput ? model.printPdf : null,
+                        icon: model.outputAction == PdfOutputAction.print
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.print_outlined),
+                        label: Text(
+                          model.outputAction == PdfOutputAction.print
+                              ? 'Printing PDF…'
+                              : 'Print PDF',
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Print at 100% / actual size. Turn off Fit to page to preserve label dimensions.',
                   ),
                   if (model.previewing)
                     Semantics(
@@ -97,9 +120,8 @@ class MailingListPage extends ConsumerWidget {
                     const Text(
                       'Preview cleared because settings or subscriber data changed. Select Preview PDF to regenerate.',
                     ),
-                  if (model.pdfSaved) const Text('PDF saved.'),
-                  if (model.generationError != null)
-                    Text(model.generationError!),
+                  if (model.outputMessage != null) Text(model.outputMessage!),
+                  if (model.outputError != null) Text(model.outputError!),
                   if (model.fittingFailures.isNotEmpty)
                     Card(
                       color: Theme.of(context).colorScheme.errorContainer,
@@ -301,13 +323,13 @@ class _MailingSettings extends StatelessWidget {
           MailingOrientation.portrait: 'Portrait',
           MailingOrientation.landscape: 'Landscape',
         },
-        onChanged: model.generating ? null : model.changeOrientation,
+        onChanged: model.outputBusy ? null : model.changeOrientation,
       ),
       _setting<MailingLabelSize>(
         label: 'Label size',
         value: model.labelSize,
         options: {for (final size in MailingLabelSize.values) size: size.label},
-        onChanged: model.generating ? null : model.changeLabelSize,
+        onChanged: model.outputBusy ? null : model.changeLabelSize,
       ),
       _setting<MailingOrdering>(
         label: 'Ordering',
@@ -316,7 +338,7 @@ class _MailingSettings extends StatelessWidget {
           MailingOrdering.name: 'Name',
           MailingOrdering.postalCode: 'PIN code',
         },
-        onChanged: model.generating ? null : model.changeOrdering,
+        onChanged: model.outputBusy ? null : model.changeOrdering,
       ),
       _setting<String>(
         label: 'Font size',
@@ -327,7 +349,7 @@ class _MailingSettings extends StatelessWidget {
         label: 'Cutting guides',
         value: model.cuttingGuides,
         options: const {true: 'On', false: 'Off'},
-        onChanged: model.generating ? null : model.changeCuttingGuides,
+        onChanged: model.outputBusy ? null : model.changeCuttingGuides,
       ),
     ],
   );

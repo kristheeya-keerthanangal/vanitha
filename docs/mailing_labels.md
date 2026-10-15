@@ -26,9 +26,6 @@ correct their details or select a larger label. Returning from subscriber detail
 refreshes the list; changing label dimensions also clears the failed attempt so
 generation can validate the revised layout.
 
-Use **Generate PDF** to create the document and choose where to save it. Print
-at actual size (100%) to preserve the label dimensions.
-
 Use **Preview PDF** to generate an embedded, scrollable preview of every page.
 Each preview captures an immutable copy of the loaded subscribers, their order,
 and the selected layout and cutting-guide settings. The viewer uses those PDF
@@ -39,3 +36,15 @@ preview and prompts regeneration. Results from earlier requests are ignored,
 including requests still running when the selection changes. Generation and
 page rendering show progress; errors offer retry guidance. Preview is disabled
 while loading, for an empty list, or until known fitting failures are corrected.
+
+Once a current preview exists, use **Print PDF** to open the platform print
+dialog or **Save PDF** to choose a location with the existing file selector.
+Both actions use the exact preview bytes without regenerating the document.
+Printing requests the preview's A4 dimensions and disables dynamic relayout.
+Choose **100% / actual size** and turn off **Fit to page** in the print dialog
+to preserve label dimensions.
+
+Print and Save are disabled without a current PDF, during preview generation,
+and while either output dialog is active. Settings and refresh are also locked
+during output. Cancellation leaves the preview available; failures explain how
+to retry with a working printer or a writable save location.

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:drift/native.dart';
@@ -16,13 +17,20 @@ void main() {
   late MailingListViewModel model;
   late ControlledMailingPdf pdf;
   late FakeMailingPdfFile file;
+  late FakeMailingPdfPrinter printer;
 
   setUp(() {
     database = AppDatabase(NativeDatabase.memory());
     repository = ControlledMailingListRepository(database);
     pdf = ControlledMailingPdf();
     file = FakeMailingPdfFile();
-    model = MailingListViewModel(repository, pdf: pdf, file: file);
+    printer = FakeMailingPdfPrinter();
+    model = MailingListViewModel(
+      repository,
+      pdf: pdf,
+      file: file,
+      printer: printer,
+    );
   });
 
   tearDown(() async {
@@ -46,7 +54,7 @@ void main() {
       final pending = model.previewPdf();
       expect(model.previewing, isTrue);
       expect(model.canPreview, isFalse);
-      expect(model.canGenerate, isFalse);
+      expect(model.canOutput, isFalse);
       await model.previewPdf();
       expect(pdf.requests, hasLength(1));
       final bytes = Uint8List.fromList([1, 2, 3]);
@@ -232,103 +240,114 @@ void main() {
     expect(disposed.preview, isNull);
   });
 
+  Future<void> preparePreview() async {
+    final pending = model.previewPdf();
+    pdf.requests.last.result.complete(Uint8List.fromList([37, 80, 68, 70, 7]));
+    await pending;
+  }
+
+  test('prints and saves the exact preview without regeneration', () async {
+    await load();
+    model.changeOrientation(MailingOrientation.landscape);
+    await preparePreview();
+    final document = model.preview!;
+    await model.savePdf();
+    expect(identical(file.savedBytes.single, document.bytes), isTrue);
+    expect(model.outputMessage, 'PDF saved.');
+    await model.printPdf();
+    expect(identical(printer.documents.single, document), isTrue);
+    expect(model.outputMessage, 'Print job submitted.');
+    expect(pdf.requests, hasLength(1));
+    expect(identical(model.preview, document), isTrue);
+  });
+
   test(
-    'generates the complete ordered list using selected layout and guides',
+    'no output is possible before preview or after selection is invalidated',
     () async {
-      expect(model.canGenerate, isFalse);
+      await model.savePdf();
+      await model.printPdf();
       await load();
-      model.changeOrdering(MailingOrdering.postalCode);
-      model.changeOrientation(MailingOrientation.landscape);
-      model.changeLabelSize(MailingLabelSize.large);
+      expect(model.canOutput, isFalse);
+      await model.savePdf();
+      await model.printPdf();
+      await preparePreview();
       model.changeCuttingGuides(false);
-      final generation = model.generatePdf();
-      expect(model.generating, isTrue);
-      expect(model.canGenerate, isFalse);
-      await model.generatePdf();
-      expect(pdf.requests, hasLength(1));
-      expect(pdf.requests.single.subscribers.map((row) => row.subscriberId), [
-        1,
-        2,
-        3,
-        4,
-        5,
-      ]);
-      expect(
-        pdf.requests.single.layout.orientation,
-        MailingOrientation.landscape,
-      );
-      expect(pdf.requests.single.layout.labelSize, MailingLabelSize.large);
-      expect(pdf.requests.single.cuttingGuides, isFalse);
-      model.changeLabelSize(MailingLabelSize.small);
-      expect(model.labelSize, MailingLabelSize.large);
-      await model.refresh();
-      expect(repository.requests, hasLength(1));
-      final bytes = Uint8List.fromList([37, 80, 68, 70]);
-      pdf.requests.single.result.complete(bytes);
-      await generation;
-      expect(file.savedBytes, [bytes]);
-      expect(model.pdfSaved, isTrue);
-      expect(model.generating, isFalse);
-    },
-  );
-
-  test(
-    'blocks saving and regeneration on fit failures until details or layout change',
-    () async {
-      await load();
-      final generation = model.generatePdf();
-      pdf.requests.single.result.completeError(
-        MailingTextFitFailure([mailingEntries[0], mailingEntries[2]]),
-      );
-      await generation;
-      expect(model.fittingFailures.map((row) => row.subscriberId), [3, 1]);
+      expect(model.canOutput, isFalse);
+      await model.savePdf();
+      await model.printPdf();
       expect(file.savedBytes, isEmpty);
-      expect(model.canGenerate, isFalse);
-      await model.generatePdf();
+      expect(printer.documents, isEmpty);
       expect(pdf.requests, hasLength(1));
-      model.changeLabelSize(MailingLabelSize.large);
-      expect(model.canGenerate, isTrue);
-      final retry = model.generatePdf();
-      pdf.requests.last.result.complete(Uint8List(1));
-      await retry;
-      expect(model.pdfSaved, isTrue);
-      expect(model.fittingFailures, isEmpty);
     },
   );
 
-  test(
-    'handles save cancellation and generation or save errors without losing subscribers',
-    () async {
+  for (final action in PdfOutputAction.values) {
+    test('$action locks output and settings until the dialog closes', () async {
       await load();
-      final failed = model.generatePdf();
-      pdf.requests.last.result.completeError(StateError('generation failed'));
-      await failed;
-      expect(model.generationError, isNotNull);
-      expect(model.total, 5);
-      file.canceled = true;
-      final canceled = model.generatePdf();
-      pdf.requests.last.result.complete(Uint8List(1));
-      await canceled;
-      expect(model.pdfSaved, isFalse);
-      expect(model.generationError, isNull);
-      file.fail = true;
-      final saveFailed = model.generatePdf();
-      pdf.requests.last.result.complete(Uint8List(1));
-      await saveFailed;
-      expect(model.generationError, isNotNull);
-      expect(model.canGenerate, isTrue);
-    },
-  );
+      await preparePreview();
+      final completed = Completer<bool>();
+      file.pending = completed;
+      printer.pending = completed;
+      final pending = action == PdfOutputAction.print
+          ? model.printPdf()
+          : model.savePdf();
+      expect(model.outputAction, action);
+      expect(model.canOutput, isFalse);
+      expect(model.canPreview, isFalse);
+      model.changeOrientation(MailingOrientation.landscape);
+      expect(model.orientation, MailingOrientation.portrait);
+      await model.refresh();
+      await model.savePdf();
+      await model.printPdf();
+      await model.previewPdf();
+      expect(file.savedBytes.length + printer.documents.length, 1);
+      expect(pdf.requests, hasLength(1));
+      expect(repository.requests, hasLength(1));
+      completed.complete(false);
+      await pending;
+      expect(model.outputBusy, isFalse);
+      expect(model.canOutput, isTrue);
+      expect(
+        model.outputMessage,
+        action == PdfOutputAction.print ? 'Print canceled.' : 'Save canceled.',
+      );
+      expect(model.outputError, isNull);
+    });
+  }
 
-  test('does not save if disposed while generating', () async {
+  test('save and print errors allow retrying the same preview', () async {
+    await load();
+    await preparePreview();
+    final document = model.preview;
+    file.fail = true;
+    await model.savePdf();
+    expect(model.outputError, contains('Choose a writable location'));
+    expect(model.outputBusy, isFalse);
+    printer.fail = true;
+    await model.printPdf();
+    expect(model.outputError, contains('Check your printer'));
+    expect(model.canOutput, isTrue);
+    expect(model.preview, document);
+    file.fail = false;
+    await model.savePdf();
+    expect(model.outputError, isNull);
+    expect(model.outputMessage, 'PDF saved.');
+    expect(pdf.requests, hasLength(1));
+  });
+
+  test('ignores output completion after disposal', () async {
     final disposed = MailingListViewModel(repository, pdf: pdf, file: file);
     repository.requests.last.complete(mailingEntries);
     await Future<void>.delayed(Duration.zero);
-    final generation = disposed.generatePdf();
-    disposed.dispose();
+    final preparing = disposed.previewPdf();
     pdf.requests.last.result.complete(Uint8List(1));
-    await generation;
-    expect(file.savedBytes, isEmpty);
+    await preparing;
+    file.pending = Completer<bool>();
+    final saving = disposed.savePdf();
+    disposed.dispose();
+    file.pending!.complete(true);
+    await saving;
+    expect(disposed.outputMessage, isNull);
   });
 
   test('starts loading with the requested default settings', () {

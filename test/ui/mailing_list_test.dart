@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -85,35 +83,33 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('generates and saves PDF, disabling changes while working', (
+  testWidgets('print and save stay disabled until a current preview exists', (
     tester,
   ) async {
     await pumpPage(tester);
     expect(
       tester
-          .widget<FilledButton>(
-            find.widgetWithText(FilledButton, 'Generate PDF'),
-          )
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Save PDF'))
           .onPressed,
       isNull,
     );
     await load(tester);
-    await tester.tap(find.text('Generate PDF'));
-    await tester.pump();
-    expect(find.text('Generating PDF…'), findsOneWidget);
     expect(
       tester
-          .widget<DropdownButton<MailingLabelSize>>(
-            find.byType(DropdownButton<MailingLabelSize>),
-          )
-          .onChanged,
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Save PDF'))
+          .onPressed,
       isNull,
     );
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Print PDF'),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(find.textContaining('100% / actual size'), findsOneWidget);
     expect(file.savedBytes, isEmpty);
-    pdf.requests.single.result.complete(Uint8List.fromList([37, 80, 68, 70]));
-    await tester.pumpAndSettle();
-    expect(find.text('PDF saved.'), findsOneWidget);
-    expect(file.savedBytes, hasLength(1));
   });
 
   testWidgets(
@@ -121,7 +117,7 @@ void main() {
     (tester) async {
       await pumpPage(tester);
       await load(tester);
-      await tester.tap(find.text('Generate PDF'));
+      await tester.tap(find.text('Preview PDF'));
       await tester.pump();
       pdf.requests.single.result.completeError(
         MailingTextFitFailure([mailingEntries.first]),
@@ -138,8 +134,8 @@ void main() {
       expect(file.savedBytes, isEmpty);
       expect(
         tester
-            .widget<FilledButton>(
-              find.widgetWithText(FilledButton, 'Generate PDF'),
+            .widget<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, 'Preview PDF'),
             )
             .onPressed,
         isNull,
@@ -162,8 +158,8 @@ void main() {
       expect(find.text('View subscribers that do not fit'), findsNothing);
       expect(
         tester
-            .widget<FilledButton>(
-              find.widgetWithText(FilledButton, 'Generate PDF'),
+            .widget<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, 'Preview PDF'),
             )
             .onPressed,
         isNotNull,
@@ -174,18 +170,20 @@ void main() {
   testWidgets('generation failures are visible and retryable', (tester) async {
     await pumpPage(tester);
     await load(tester);
-    await tester.tap(find.text('Generate PDF'));
+    await tester.tap(find.text('Preview PDF'));
     await tester.pump();
     pdf.requests.single.result.completeError(StateError('failed'));
     await tester.pumpAndSettle();
     expect(
-      find.text('Unable to generate or save the PDF. Please try again.'),
+      find.text(
+        'Unable to generate the preview. Select Preview PDF to try again.',
+      ),
       findsOneWidget,
     );
     expect(
       tester
-          .widget<FilledButton>(
-            find.widgetWithText(FilledButton, 'Generate PDF'),
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Preview PDF'),
           )
           .onPressed,
       isNotNull,

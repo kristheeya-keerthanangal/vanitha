@@ -6,6 +6,7 @@ import '../../../mailing/mailing_layout.dart';
 import '../../../mailing/mailing_pdf.dart';
 import '../../../mailing/mailing_pdf_file.dart';
 import '../../../mailing/mailing_pdf_preview.dart';
+import '../../../mailing/mailing_pdf_printer.dart';
 import '../../../providers/database_provider.dart';
 
 export '../../../mailing/mailing_layout.dart';
@@ -14,6 +15,11 @@ final mailingPdfProvider = Provider<MailingPdf>((ref) => MailingPdf());
 final mailingPdfFileProvider = Provider<MailingPdfFile>(
   (ref) => MailingPdfFile(),
 );
+final mailingPdfPrinterProvider = Provider<MailingPdfPrinter>(
+  (ref) => MailingPdfPrinter(),
+);
+
+enum PdfOutputAction { print, save }
 
 final mailingListViewModelProvider = Provider.autoDispose<MailingListViewModel>(
   (ref) {
@@ -21,6 +27,7 @@ final mailingListViewModelProvider = Provider.autoDispose<MailingListViewModel>(
       ref.watch(subscriberRepositoryProvider),
       pdf: ref.watch(mailingPdfProvider),
       file: ref.watch(mailingPdfFileProvider),
+      printer: ref.watch(mailingPdfPrinterProvider),
     );
     ref.onDispose(model.dispose);
     return model;
@@ -32,14 +39,17 @@ class MailingListViewModel extends ChangeNotifier {
     this._repository, {
     MailingPdf? pdf,
     MailingPdfFile? file,
+    MailingPdfPrinter? printer,
   }) : _pdf = pdf ?? MailingPdf(),
-       _file = file ?? MailingPdfFile() {
+       _file = file ?? MailingPdfFile(),
+       _printer = printer ?? MailingPdfPrinter() {
     refresh();
   }
 
   final SubscriberRepository _repository;
   final MailingPdf _pdf;
   final MailingPdfFile _file;
+  final MailingPdfPrinter _printer;
   List<MailingListEntry> _entries = [];
   List<MailingListEntry> _rows = [];
   List<MailingListEntry> get rows => _rows;
@@ -54,44 +64,46 @@ class MailingListViewModel extends ChangeNotifier {
   bool cuttingGuides = true;
   bool loading = true;
   String? error;
-  bool generating = false;
-  String? generationError;
-  bool pdfSaved = false;
+  PdfOutputAction? outputAction;
+  bool get outputBusy => outputAction != null;
+  String? outputMessage;
+  String? outputError;
   MailingPdfPreview? preview;
   bool previewing = false;
   bool previewInvalidated = false;
   String? previewError;
   List<MailingListEntry> fittingFailures = const [];
-  bool get canGenerate =>
+  bool get canPreview =>
+      !_disposed &&
       !loading &&
       error == null &&
       total > 0 &&
-      !generating &&
+      !outputBusy &&
       !previewing &&
       fittingFailures.isEmpty;
-  bool get canPreview => canGenerate;
+  bool get canOutput => preview != null && canPreview;
   int _request = 0;
   int _previewRequest = 0;
   bool _disposed = false;
 
   void changeOrientation(MailingOrientation value) {
-    if (generating) return;
+    if (outputBusy) return;
     orientation = value;
     _invalidatePreview();
-    _clearGenerationResult();
+    fittingFailures = const [];
     notifyListeners();
   }
 
   void changeLabelSize(MailingLabelSize value) {
-    if (generating) return;
+    if (outputBusy) return;
     labelSize = value;
     _invalidatePreview();
-    _clearGenerationResult();
+    fittingFailures = const [];
     notifyListeners();
   }
 
   void changeOrdering(MailingOrdering value) {
-    if (generating) return;
+    if (outputBusy) return;
     ordering = value;
     _invalidatePreview();
     _orderRows();
@@ -99,7 +111,7 @@ class MailingListViewModel extends ChangeNotifier {
   }
 
   void changeCuttingGuides(bool value) {
-    if (generating) return;
+    if (outputBusy) return;
     cuttingGuides = value;
     _invalidatePreview();
     notifyListeners();
@@ -124,12 +136,12 @@ class MailingListViewModel extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
-    if (generating) return;
+    if (outputBusy) return;
     final request = ++_request;
     loading = true;
     error = null;
     _invalidatePreview();
-    _clearGenerationResult();
+    fittingFailures = const [];
     notifyListeners();
     try {
       final entries = await _repository.getMailingList();
@@ -144,19 +156,14 @@ class MailingListViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _clearGenerationResult() {
-    fittingFailures = const [];
-    generationError = null;
-    pdfSaved = false;
-  }
-
   void _invalidatePreview() {
     _previewRequest++;
     previewInvalidated = previewInvalidated || preview != null || previewing;
     preview = null;
     previewing = false;
     previewError = null;
-    pdfSaved = false;
+    outputMessage = null;
+    outputError = null;
   }
 
   Future<void> previewPdf() async {
@@ -171,6 +178,8 @@ class MailingListViewModel extends ChangeNotifier {
     preview = null;
     previewing = true;
     previewError = null;
+    outputMessage = null;
+    outputError = null;
     notifyListeners();
     try {
       final bytes = await _pdf.generate(
@@ -195,31 +204,36 @@ class MailingListViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> generatePdf() async {
-    if (!canGenerate) return;
-    generating = true;
-    _clearGenerationResult();
+  Future<void> savePdf() => _outputPdf(PdfOutputAction.save);
+
+  Future<void> printPdf() => _outputPdf(PdfOutputAction.print);
+
+  Future<void> _outputPdf(PdfOutputAction action) async {
+    if (!canOutput) return;
+    final document = preview!;
+    outputAction = action;
+    outputMessage = null;
+    outputError = null;
     notifyListeners();
     try {
-      final bytes = await _pdf.generate(
-        subscribers: rows,
-        layout: MailingLayout(orientation: orientation, labelSize: labelSize),
-        cuttingGuides: cuttingGuides,
-      );
+      final completed = action == PdfOutputAction.print
+          ? await _printer.printPdf(document)
+          : await _file.save(document.bytes);
       if (_disposed) return;
-      final saved = await _file.save(bytes);
-      if (_disposed) return;
-      pdfSaved = saved;
-    } on MailingTextFitFailure catch (failure) {
-      if (_disposed) return;
-      _invalidatePreview();
-      fittingFailures = failure.subscribers;
+      outputMessage = action == PdfOutputAction.print
+          ? (completed ? 'Print job submitted.' : 'Print canceled.')
+          : (completed ? 'PDF saved.' : 'Save canceled.');
     } catch (_) {
       if (_disposed) return;
-      generationError = 'Unable to generate or save the PDF. Please try again.';
+      outputError = action == PdfOutputAction.print
+          ? 'Unable to print the PDF. Check your printer and try Print PDF again.'
+          : 'Unable to save the PDF. Choose a writable location and try Save PDF again.';
+    } finally {
+      if (!_disposed) {
+        outputAction = null;
+        notifyListeners();
+      }
     }
-    generating = false;
-    notifyListeners();
   }
 
   @override

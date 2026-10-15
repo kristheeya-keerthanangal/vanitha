@@ -66,7 +66,7 @@ class MailingPdfPreviewPane extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               child: ErrorState(
                 message:
-                    'Unable to display the PDF. Retry the preview, or use Generate PDF to save it and open it in a PDF viewer.',
+                    'Unable to display the PDF. Retry the preview, or use Save PDF to open it in a PDF viewer.',
                 onRetry: onRetry,
               ),
             ),
