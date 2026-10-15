@@ -34,13 +34,66 @@ class MailingListPage extends ConsumerWidget {
                       ),
                       IconButton(
                         tooltip: 'Refresh mailing list',
-                        onPressed: model.loading ? null : model.refresh,
+                        onPressed: model.loading || model.generating
+                            ? null
+                            : model.refresh,
                         icon: const Icon(Icons.refresh),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   _MailingSettings(model: model),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FilledButton.icon(
+                      onPressed: model.canGenerate ? model.generatePdf : null,
+                      icon: model.generating
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.picture_as_pdf_outlined),
+                      label: Text(
+                        model.generating ? 'Generating PDF…' : 'Generate PDF',
+                      ),
+                    ),
+                  ),
+                  if (model.pdfSaved) const Text('PDF saved.'),
+                  if (model.generationError != null)
+                    Text(model.generationError!),
+                  if (model.fittingFailures.isNotEmpty)
+                    Card(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              model.fittingFailures.length == 1
+                                  ? '1 subscriber does not fit in the selected label.'
+                                  : '${model.fittingFailures.length} subscribers do not fit in the selected label.',
+                            ),
+                            const Text(
+                              'PDF generation is blocked. Correct their details or choose a larger label. Text must fit at 8 pt or larger.',
+                            ),
+                            TextButton(
+                              onPressed: () => _showAffected(
+                                context,
+                                model,
+                                model.fittingFailures,
+                                'Text does not fit',
+                              ),
+                              child: const Text(
+                                'View subscribers that do not fit',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   if (!model.loading && model.error == null) ...[
                     const SizedBox(height: 24),
                     Text('Subscribers: ${model.total}'),
@@ -60,8 +113,12 @@ class MailingListPage extends ConsumerWidget {
                                 'An address or PIN code is missing or blank.',
                               ),
                               TextButton(
-                                onPressed: () =>
-                                    _showIncomplete(context, model),
+                                onPressed: () => _showAffected(
+                                  context,
+                                  model,
+                                  model.incompleteRows,
+                                  'Incomplete mailing details',
+                                ),
                                 child: const Text('View affected subscribers'),
                               ),
                             ],
@@ -118,15 +175,16 @@ class MailingListPage extends ConsumerWidget {
     if (context.mounted) await model.refresh();
   }
 
-  Future<void> _showIncomplete(
+  Future<void> _showAffected(
     BuildContext context,
     MailingListViewModel model,
+    List<MailingListEntry> affected,
+    String title,
   ) async {
-    final affected = model.incompleteRows;
     final id = await showDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Incomplete mailing details (${affected.length})'),
+        title: Text('$title (${affected.length})'),
         content: SizedBox(
           width: 520,
           height: 360,
@@ -196,13 +254,13 @@ class _MailingSettings extends StatelessWidget {
           MailingOrientation.portrait: 'Portrait',
           MailingOrientation.landscape: 'Landscape',
         },
-        onChanged: model.changeOrientation,
+        onChanged: model.generating ? null : model.changeOrientation,
       ),
       _setting<MailingLabelSize>(
         label: 'Label size',
         value: model.labelSize,
         options: {for (final size in MailingLabelSize.values) size: size.label},
-        onChanged: model.changeLabelSize,
+        onChanged: model.generating ? null : model.changeLabelSize,
       ),
       _setting<MailingOrdering>(
         label: 'Ordering',
@@ -211,7 +269,7 @@ class _MailingSettings extends StatelessWidget {
           MailingOrdering.name: 'Name',
           MailingOrdering.postalCode: 'PIN code',
         },
-        onChanged: model.changeOrdering,
+        onChanged: model.generating ? null : model.changeOrdering,
       ),
       _setting<String>(
         label: 'Font size',
@@ -222,7 +280,7 @@ class _MailingSettings extends StatelessWidget {
         label: 'Cutting guides',
         value: model.cuttingGuides,
         options: const {true: 'On', false: 'Off'},
-        onChanged: model.changeCuttingGuides,
+        onChanged: model.generating ? null : model.changeCuttingGuides,
       ),
     ],
   );

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,25 +7,33 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vanithabodhini/data/app_database.dart';
 import 'package:vanithabodhini/main.dart';
+import 'package:vanithabodhini/mailing/mailing_pdf.dart';
 import 'package:vanithabodhini/providers/database_provider.dart';
 import 'package:vanithabodhini/providers/router_provider.dart';
 import 'package:vanithabodhini/ui/mailing_list/mailing_list_page.dart';
 import 'package:vanithabodhini/ui/mailing_list/view_models/mailing_list_view_model.dart';
 
 import '../support/controlled_mailing_list_repository.dart';
+import '../support/controlled_mailing_pdf.dart';
 
 void main() {
   late AppDatabase database;
   late ControlledMailingListRepository repository;
   late ProviderContainer container;
+  late ControlledMailingPdf pdf;
+  late FakeMailingPdfFile file;
 
   setUp(() {
     database = AppDatabase(NativeDatabase.memory());
     repository = ControlledMailingListRepository(database);
+    pdf = ControlledMailingPdf();
+    file = FakeMailingPdfFile();
     container = ProviderContainer(
       overrides: [
         databaseProvider.overrideWithValue(database),
         subscriberRepositoryProvider.overrideWithValue(repository),
+        mailingPdfProvider.overrideWithValue(pdf),
+        mailingPdfFileProvider.overrideWithValue(file),
       ],
     );
   });
@@ -74,6 +84,113 @@ void main() {
     await tester.tap(find.text(text).last);
     await tester.pumpAndSettle();
   }
+
+  testWidgets('generates and saves PDF, disabling changes while working', (
+    tester,
+  ) async {
+    await pumpPage(tester);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Generate PDF'),
+          )
+          .onPressed,
+      isNull,
+    );
+    await load(tester);
+    await tester.tap(find.text('Generate PDF'));
+    await tester.pump();
+    expect(find.text('Generating PDF…'), findsOneWidget);
+    expect(
+      tester
+          .widget<DropdownButton<MailingLabelSize>>(
+            find.byType(DropdownButton<MailingLabelSize>),
+          )
+          .onChanged,
+      isNull,
+    );
+    expect(file.savedBytes, isEmpty);
+    pdf.requests.single.result.complete(Uint8List.fromList([37, 80, 68, 70]));
+    await tester.pumpAndSettle();
+    expect(find.text('PDF saved.'), findsOneWidget);
+    expect(file.savedBytes, hasLength(1));
+  });
+
+  testWidgets(
+    'blocks PDF on fitting failures, shows affected subscribers and guidance, and allows larger labels',
+    (tester) async {
+      await pumpPage(tester);
+      await load(tester);
+      await tester.tap(find.text('Generate PDF'));
+      await tester.pump();
+      pdf.requests.single.result.completeError(
+        MailingTextFitFailure([mailingEntries.first]),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text('1 subscriber does not fit in the selected label.'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Correct their details or choose a larger label.'),
+        findsOneWidget,
+      );
+      expect(file.savedBytes, isEmpty);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Generate PDF'),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(find.text('View subscribers that do not fit'));
+      await tester.pumpAndSettle();
+      final dialog = find.byType(AlertDialog);
+      expect(find.text('Text does not fit (1)'), findsOneWidget);
+      expect(
+        find.descendant(of: dialog, matching: find.text('Anita')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.text('Bela')),
+        findsNothing,
+      );
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+      await choose<MailingLabelSize>(tester, '65 × 40 mm');
+      expect(find.text('View subscribers that do not fit'), findsNothing);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Generate PDF'),
+            )
+            .onPressed,
+        isNotNull,
+      );
+    },
+  );
+
+  testWidgets('generation failures are visible and retryable', (tester) async {
+    await pumpPage(tester);
+    await load(tester);
+    await tester.tap(find.text('Generate PDF'));
+    await tester.pump();
+    pdf.requests.single.result.completeError(StateError('failed'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Unable to generate or save the PDF. Please try again.'),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Generate PDF'),
+          )
+          .onPressed,
+      isNotNull,
+    );
+  });
 
   testWidgets(
     'shows defaults, full count, incomplete count and all subscribers',

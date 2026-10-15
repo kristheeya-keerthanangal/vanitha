@@ -2,39 +2,43 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/subscriber_repository.dart';
+import '../../../mailing/mailing_layout.dart';
+import '../../../mailing/mailing_pdf.dart';
+import '../../../mailing/mailing_pdf_file.dart';
 import '../../../providers/database_provider.dart';
+
+export '../../../mailing/mailing_layout.dart';
+
+final mailingPdfProvider = Provider<MailingPdf>((ref) => MailingPdf());
+final mailingPdfFileProvider = Provider<MailingPdfFile>(
+  (ref) => MailingPdfFile(),
+);
 
 final mailingListViewModelProvider = Provider.autoDispose<MailingListViewModel>(
   (ref) {
-    final model = MailingListViewModel(ref.watch(subscriberRepositoryProvider));
+    final model = MailingListViewModel(
+      ref.watch(subscriberRepositoryProvider),
+      pdf: ref.watch(mailingPdfProvider),
+      file: ref.watch(mailingPdfFileProvider),
+    );
     ref.onDispose(model.dispose);
     return model;
   },
 );
 
-enum MailingOrientation { portrait, landscape }
-
-enum MailingOrdering { name, postalCode }
-
-enum MailingLabelSize {
-  small(60, 30),
-  medium(65, 35),
-  large(65, 40);
-
-  const MailingLabelSize(this.widthMm, this.heightMm);
-
-  final int widthMm;
-  final int heightMm;
-
-  String get label => '$widthMm × $heightMm mm';
-}
-
 class MailingListViewModel extends ChangeNotifier {
-  MailingListViewModel(this._repository) {
+  MailingListViewModel(
+    this._repository, {
+    MailingPdf? pdf,
+    MailingPdfFile? file,
+  }) : _pdf = pdf ?? MailingPdf(),
+       _file = file ?? MailingPdfFile() {
     refresh();
   }
 
   final SubscriberRepository _repository;
+  final MailingPdf _pdf;
+  final MailingPdfFile _file;
   List<MailingListEntry> _entries = [];
   List<MailingListEntry> _rows = [];
   List<MailingListEntry> get rows => _rows;
@@ -49,26 +53,42 @@ class MailingListViewModel extends ChangeNotifier {
   bool cuttingGuides = true;
   bool loading = true;
   String? error;
+  bool generating = false;
+  String? generationError;
+  bool pdfSaved = false;
+  List<MailingListEntry> fittingFailures = const [];
+  bool get canGenerate =>
+      !loading &&
+      error == null &&
+      total > 0 &&
+      !generating &&
+      fittingFailures.isEmpty;
   int _request = 0;
   bool _disposed = false;
 
   void changeOrientation(MailingOrientation value) {
+    if (generating) return;
     orientation = value;
+    _clearGenerationResult();
     notifyListeners();
   }
 
   void changeLabelSize(MailingLabelSize value) {
+    if (generating) return;
     labelSize = value;
+    _clearGenerationResult();
     notifyListeners();
   }
 
   void changeOrdering(MailingOrdering value) {
+    if (generating) return;
     ordering = value;
     _orderRows();
     notifyListeners();
   }
 
   void changeCuttingGuides(bool value) {
+    if (generating) return;
     cuttingGuides = value;
     notifyListeners();
   }
@@ -92,9 +112,11 @@ class MailingListViewModel extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
+    if (generating) return;
     final request = ++_request;
     loading = true;
     error = null;
+    _clearGenerationResult();
     notifyListeners();
     try {
       final entries = await _repository.getMailingList();
@@ -106,6 +128,38 @@ class MailingListViewModel extends ChangeNotifier {
       error = 'Unable to load the mailing list.';
     }
     loading = false;
+    notifyListeners();
+  }
+
+  void _clearGenerationResult() {
+    fittingFailures = const [];
+    generationError = null;
+    pdfSaved = false;
+  }
+
+  Future<void> generatePdf() async {
+    if (!canGenerate) return;
+    generating = true;
+    _clearGenerationResult();
+    notifyListeners();
+    try {
+      final bytes = await _pdf.generate(
+        subscribers: rows,
+        layout: MailingLayout(orientation: orientation, labelSize: labelSize),
+        cuttingGuides: cuttingGuides,
+      );
+      if (_disposed) return;
+      final saved = await _file.save(bytes);
+      if (_disposed) return;
+      pdfSaved = saved;
+    } on MailingTextFitFailure catch (failure) {
+      if (_disposed) return;
+      fittingFailures = failure.subscribers;
+    } catch (_) {
+      if (_disposed) return;
+      generationError = 'Unable to generate or save the PDF. Please try again.';
+    }
+    generating = false;
     notifyListeners();
   }
 
