@@ -7,6 +7,7 @@ import '../ui/subscribers/subscribers_page.dart';
 import '../ui/subscribers/subscriber_details_page.dart';
 import '../ui/archived/archived_subscriptions_page.dart';
 import '../ui/archived/archived_subscription_details_page.dart';
+import '../ui/mailing_list/mailing_list_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
@@ -16,6 +17,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (context, state, child) => AppShell(
           selectedIndex: state.uri.path.startsWith('/settings')
+              ? 4
+              : state.uri.path.startsWith('/mailing-list')
               ? 3
               : state.uri.path.startsWith('/archived')
               ? 2
@@ -27,6 +30,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: '/dashboard', builder: (_, _) => const DashboardPage()),
           GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
+          GoRoute(
+            path: '/mailing-list',
+            builder: (_, _) => const MailingListPage(),
+          ),
           GoRoute(
             path: '/archived',
             builder: (_, _) => const ArchivedSubscriptionsPage(),

@@ -27,6 +27,11 @@ class AppNavigationRail extends StatelessWidget {
       selectedIcon: Icons.archive,
     ),
     _AppDestination(
+      label: 'Mailing list',
+      icon: Icons.local_post_office_outlined,
+      selectedIcon: Icons.local_post_office,
+    ),
+    _AppDestination(
       label: 'Settings',
       icon: Icons.settings_outlined,
       selectedIcon: Icons.settings,

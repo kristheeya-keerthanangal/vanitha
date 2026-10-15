@@ -31,7 +31,7 @@ void main() {
     expect(find.text('Import subscribers'), findsOneWidget);
     expect(
       tester.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
-      3,
+      4,
     );
 
     await tester.tap(find.text('Dashboard'));
@@ -63,7 +63,7 @@ void main() {
     expect(find.byType(SettingsPage), findsOneWidget);
     expect(
       tester.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
-      3,
+      4,
     );
   });
 
