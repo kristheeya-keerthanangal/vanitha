@@ -12,6 +12,25 @@ enum SubscriberSort { number, name }
 
 enum SubscriberFilter { all, active, expired }
 
+class MailingListEntry {
+  const MailingListEntry({
+    required this.subscriberId,
+    required this.name,
+    required this.postalAddress,
+    required this.postalCode,
+  });
+
+  final int subscriberId;
+  final String name;
+  final String? postalAddress;
+  final String? postalCode;
+
+  bool get isAddressMissing => postalAddress?.trim().isEmpty ?? true;
+  bool get isPostalCodeMissing => postalCode?.trim().isEmpty ?? true;
+  bool get hasIncompleteMailingDetails =>
+      isAddressMissing || isPostalCodeMissing;
+}
+
 class SubscriberPage {
   const SubscriberPage({
     required this.rows,
@@ -38,6 +57,38 @@ class SubscriberRepository {
 
   final AppDatabase _database;
   final SubscriptionExpiry _subscriptionExpiry;
+
+  // Missing PIN codes come last; each group is ordered by name, then ID.
+  Future<List<MailingListEntry>> getMailingList() async {
+    final table = _database.subscribers;
+    final query = _database.selectOnly(table)
+      ..addColumns([
+        table.id,
+        table.name,
+        table.postalAddress,
+        table.postalCode,
+      ])
+      ..where(table.archivedAt.isNull())
+      ..orderBy([
+        OrderingTerm.asc(table.name.collate(Collate.noCase)),
+        OrderingTerm.asc(table.id),
+      ]);
+    final rows = await query.get();
+    final withPostalCode = <MailingListEntry>[];
+    final withoutPostalCode = <MailingListEntry>[];
+    for (final row in rows) {
+      final entry = MailingListEntry(
+        subscriberId: row.read(table.id)!,
+        name: row.read(table.name)!,
+        postalAddress: row.read(table.postalAddress),
+        postalCode: row.read(table.postalCode),
+      );
+      (entry.isPostalCodeMissing ? withoutPostalCode : withPostalCode).add(
+        entry,
+      );
+    }
+    return [...withPostalCode, ...withoutPostalCode];
+  }
 
   Future<SubscriberPage> getSubscribersPage({
     int offset = 0,
