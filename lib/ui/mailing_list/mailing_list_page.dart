@@ -7,6 +7,7 @@ import '../shared/empty_state.dart';
 import '../shared/error_state.dart';
 import '../shared/loading_state.dart';
 import 'view_models/mailing_list_view_model.dart';
+import 'widgets/mailing_pdf_preview_pane.dart';
 
 class MailingListPage extends ConsumerWidget {
   const MailingListPage({super.key});
@@ -44,22 +45,58 @@ class MailingListPage extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _MailingSettings(model: model),
                   const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: FilledButton.icon(
-                      onPressed: model.canGenerate ? model.generatePdf : null,
-                      icon: model.generating
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.picture_as_pdf_outlined),
-                      label: Text(
-                        model.generating ? 'Generating PDF…' : 'Generate PDF',
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: model.canPreview ? model.previewPdf : null,
+                        icon: model.previewing
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.preview_outlined),
+                        label: Text(
+                          model.previewing
+                              ? 'Preparing preview…'
+                              : 'Preview PDF',
+                        ),
+                      ),
+                      FilledButton.icon(
+                        onPressed: model.canGenerate ? model.generatePdf : null,
+                        icon: model.generating
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.picture_as_pdf_outlined),
+                        label: Text(
+                          model.generating ? 'Generating PDF…' : 'Generate PDF',
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (model.previewing)
+                    Semantics(
+                      liveRegion: true,
+                      child: const Text(
+                        'Generating PDF preview from the selected settings and subscribers…',
                       ),
                     ),
-                  ),
+                  if (model.previewError != null) Text(model.previewError!),
+                  if (model.previewInvalidated &&
+                      !model.previewing &&
+                      model.previewError == null)
+                    const Text(
+                      'Preview cleared because settings or subscriber data changed. Select Preview PDF to regenerate.',
+                    ),
                   if (model.pdfSaved) const Text('PDF saved.'),
                   if (model.generationError != null)
                     Text(model.generationError!),
@@ -131,6 +168,16 @@ class MailingListPage extends ConsumerWidget {
               ),
             ),
           ),
+          if (model.preview != null)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              sliver: SliverToBoxAdapter(
+                child: MailingPdfPreviewPane(
+                  document: model.preview!,
+                  onRetry: model.previewPdf,
+                ),
+              ),
+            ),
           if (model.loading)
             const SliverFillRemaining(
               hasScrollBody: false,

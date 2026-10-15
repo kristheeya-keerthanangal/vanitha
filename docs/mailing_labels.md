@@ -28,3 +28,14 @@ generation can validate the revised layout.
 
 Use **Generate PDF** to create the document and choose where to save it. Print
 at actual size (100%) to preserve the label dimensions.
+
+Use **Preview PDF** to generate an embedded, scrollable preview of every page.
+Each preview captures an immutable copy of the loaded subscribers, their order,
+and the selected layout and cutting-guide settings. The viewer uses those PDF
+bytes directly and does not offer separate paper or orientation controls.
+
+Changing any setting or refreshing subscriber data immediately clears the
+preview and prompts regeneration. Results from earlier requests are ignored,
+including requests still running when the selection changes. Generation and
+page rendering show progress; errors offer retry guidance. Preview is disabled
+while loading, for an empty list, or until known fitting failures are corrected.

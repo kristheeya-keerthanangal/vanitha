@@ -5,6 +5,7 @@ import '../../../data/repositories/subscriber_repository.dart';
 import '../../../mailing/mailing_layout.dart';
 import '../../../mailing/mailing_pdf.dart';
 import '../../../mailing/mailing_pdf_file.dart';
+import '../../../mailing/mailing_pdf_preview.dart';
 import '../../../providers/database_provider.dart';
 
 export '../../../mailing/mailing_layout.dart';
@@ -56,19 +57,27 @@ class MailingListViewModel extends ChangeNotifier {
   bool generating = false;
   String? generationError;
   bool pdfSaved = false;
+  MailingPdfPreview? preview;
+  bool previewing = false;
+  bool previewInvalidated = false;
+  String? previewError;
   List<MailingListEntry> fittingFailures = const [];
   bool get canGenerate =>
       !loading &&
       error == null &&
       total > 0 &&
       !generating &&
+      !previewing &&
       fittingFailures.isEmpty;
+  bool get canPreview => canGenerate;
   int _request = 0;
+  int _previewRequest = 0;
   bool _disposed = false;
 
   void changeOrientation(MailingOrientation value) {
     if (generating) return;
     orientation = value;
+    _invalidatePreview();
     _clearGenerationResult();
     notifyListeners();
   }
@@ -76,6 +85,7 @@ class MailingListViewModel extends ChangeNotifier {
   void changeLabelSize(MailingLabelSize value) {
     if (generating) return;
     labelSize = value;
+    _invalidatePreview();
     _clearGenerationResult();
     notifyListeners();
   }
@@ -83,6 +93,7 @@ class MailingListViewModel extends ChangeNotifier {
   void changeOrdering(MailingOrdering value) {
     if (generating) return;
     ordering = value;
+    _invalidatePreview();
     _orderRows();
     notifyListeners();
   }
@@ -90,6 +101,7 @@ class MailingListViewModel extends ChangeNotifier {
   void changeCuttingGuides(bool value) {
     if (generating) return;
     cuttingGuides = value;
+    _invalidatePreview();
     notifyListeners();
   }
 
@@ -116,6 +128,7 @@ class MailingListViewModel extends ChangeNotifier {
     final request = ++_request;
     loading = true;
     error = null;
+    _invalidatePreview();
     _clearGenerationResult();
     notifyListeners();
     try {
@@ -137,6 +150,51 @@ class MailingListViewModel extends ChangeNotifier {
     pdfSaved = false;
   }
 
+  void _invalidatePreview() {
+    _previewRequest++;
+    previewInvalidated = previewInvalidated || preview != null || previewing;
+    preview = null;
+    previewing = false;
+    previewError = null;
+    pdfSaved = false;
+  }
+
+  Future<void> previewPdf() async {
+    if (!canPreview) return;
+    final snapshot = MailingPdfSnapshot(
+      subscribers: rows,
+      layout: MailingLayout(orientation: orientation, labelSize: labelSize),
+      ordering: ordering,
+      cuttingGuides: cuttingGuides,
+    );
+    final request = ++_previewRequest;
+    preview = null;
+    previewing = true;
+    previewError = null;
+    notifyListeners();
+    try {
+      final bytes = await _pdf.generate(
+        subscribers: snapshot.subscribers,
+        layout: snapshot.layout,
+        cuttingGuides: snapshot.cuttingGuides,
+      );
+      if (_disposed || request != _previewRequest) return;
+      preview = MailingPdfPreview(snapshot: snapshot, bytes: bytes);
+      previewInvalidated = false;
+    } on MailingTextFitFailure catch (failure) {
+      if (_disposed || request != _previewRequest) return;
+      fittingFailures = failure.subscribers;
+      previewError =
+          'Preview blocked. Correct the listed subscribers or choose a larger label.';
+    } catch (_) {
+      if (_disposed || request != _previewRequest) return;
+      previewError =
+          'Unable to generate the preview. Select Preview PDF to try again.';
+    }
+    previewing = false;
+    notifyListeners();
+  }
+
   Future<void> generatePdf() async {
     if (!canGenerate) return;
     generating = true;
@@ -154,6 +212,7 @@ class MailingListViewModel extends ChangeNotifier {
       pdfSaved = saved;
     } on MailingTextFitFailure catch (failure) {
       if (_disposed) return;
+      _invalidatePreview();
       fittingFailures = failure.subscribers;
     } catch (_) {
       if (_disposed) return;
@@ -167,6 +226,7 @@ class MailingListViewModel extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _request++;
+    _previewRequest++;
     super.dispose();
   }
 }

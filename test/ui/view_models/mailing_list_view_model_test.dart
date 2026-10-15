@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vanithabodhini/data/app_database.dart';
+import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
 import 'package:vanithabodhini/mailing/mailing_pdf.dart';
 import 'package:vanithabodhini/ui/mailing_list/view_models/mailing_list_view_model.dart';
 
@@ -33,6 +34,203 @@ void main() {
     repository.requests.last.complete(mailingEntries);
     await Future<void>.delayed(Duration.zero);
   }
+
+  test(
+    'preview captures ordered subscribers and selected settings without saving',
+    () async {
+      await load();
+      model.changeOrdering(MailingOrdering.postalCode);
+      model.changeOrientation(MailingOrientation.landscape);
+      model.changeLabelSize(MailingLabelSize.large);
+      model.changeCuttingGuides(false);
+      final pending = model.previewPdf();
+      expect(model.previewing, isTrue);
+      expect(model.canPreview, isFalse);
+      expect(model.canGenerate, isFalse);
+      await model.previewPdf();
+      expect(pdf.requests, hasLength(1));
+      final bytes = Uint8List.fromList([1, 2, 3]);
+      pdf.requests.last.result.complete(bytes);
+      await pending;
+      final preview = model.preview!;
+      expect(preview.snapshot.subscribers.map((row) => row.subscriberId), [
+        1,
+        2,
+        3,
+        4,
+        5,
+      ]);
+      expect(preview.snapshot.layout.orientation, MailingOrientation.landscape);
+      expect(preview.snapshot.layout.labelSize, MailingLabelSize.large);
+      expect(preview.snapshot.ordering, MailingOrdering.postalCode);
+      expect(preview.snapshot.cuttingGuides, isFalse);
+      expect(preview.snapshot.pageCount, 1);
+      expect(model.previewing, isFalse);
+      expect(model.previewInvalidated, isFalse);
+      expect(file.savedBytes, isEmpty);
+      bytes[0] = 99;
+      expect(preview.bytes, [1, 2, 3]);
+      expect(() => preview.bytes[0] = 8, throwsUnsupportedError);
+      expect(
+        () => preview.snapshot.subscribers.clear(),
+        throwsUnsupportedError,
+      );
+    },
+  );
+
+  final changes = <String, void Function(MailingListViewModel)>{
+    'orientation': (model) =>
+        model.changeOrientation(MailingOrientation.landscape),
+    'label size': (model) => model.changeLabelSize(MailingLabelSize.large),
+    'ordering': (model) => model.changeOrdering(MailingOrdering.postalCode),
+    'cutting guides': (model) => model.changeCuttingGuides(false),
+  };
+  for (final change in changes.entries) {
+    test(
+      'changing ${change.key} immediately removes the completed preview',
+      () async {
+        await load();
+        final pending = model.previewPdf();
+        pdf.requests.last.result.complete(Uint8List(1));
+        await pending;
+        expect(model.preview, isNotNull);
+        change.value(model);
+        expect(model.preview, isNull);
+        expect(model.previewInvalidated, isTrue);
+        expect(model.canPreview, isTrue);
+      },
+    );
+  }
+
+  test(
+    'refresh removes a preview before loading, including details changed with the same count',
+    () async {
+      await load();
+      final initial = model.previewPdf();
+      pdf.requests.last.result.complete(Uint8List(1));
+      await initial;
+      final refresh = model.refresh();
+      expect(model.preview, isNull);
+      expect(model.previewInvalidated, isTrue);
+      expect(model.canPreview, isFalse);
+      final updatedRows = [
+        MailingListEntry(
+          subscriberId: mailingEntries.first.subscriberId,
+          name: mailingEntries.first.name,
+          postalAddress: 'Corrected address',
+          postalCode: mailingEntries.first.postalCode,
+        ),
+        ...mailingEntries.skip(1),
+      ];
+      repository.requests.last.complete(updatedRows);
+      await refresh;
+      final updated = model.previewPdf();
+      expect(pdf.requests.last.subscribers, updatedRows);
+      pdf.requests.last.result.complete(Uint8List.fromList([2]));
+      await updated;
+      expect(model.preview!.bytes, [2]);
+      expect(model.previewInvalidated, isFalse);
+    },
+  );
+
+  test(
+    'ignores stale fitting failures when settings change during preview generation',
+    () async {
+      await load();
+      final stale = model.previewPdf();
+      final old = pdf.requests.last;
+      model.changeLabelSize(MailingLabelSize.large);
+      expect(model.previewing, isFalse);
+      expect(model.previewInvalidated, isTrue);
+      final current = model.previewPdf();
+      pdf.requests.last.result.complete(Uint8List.fromList([2]));
+      await current;
+      old.result.completeError(MailingTextFitFailure(mailingEntries));
+      await stale;
+      expect(old.layout.labelSize, MailingLabelSize.small);
+      expect(model.preview!.snapshot.layout.labelSize, MailingLabelSize.large);
+      expect(model.preview!.bytes, [2]);
+      expect(model.fittingFailures, isEmpty);
+      expect(model.previewError, isNull);
+    },
+  );
+
+  test(
+    'ignores old success after subscribers refresh during generation',
+    () async {
+      await load();
+      final stale = model.previewPdf();
+      final old = pdf.requests.last;
+      final refresh = model.refresh();
+      repository.requests.last.complete(mailingEntries.take(2).toList());
+      await refresh;
+      old.result.complete(Uint8List.fromList([1]));
+      await stale;
+      expect(old.subscribers, hasLength(5));
+      expect(model.total, 2);
+      expect(model.preview, isNull);
+      expect(model.previewing, isFalse);
+      expect(model.canPreview, isTrue);
+    },
+  );
+
+  test(
+    'preview errors can be retried, while fitting failures require a correction',
+    () async {
+      await load();
+      final failed = model.previewPdf();
+      pdf.requests.last.result.completeError(StateError('failure'));
+      await failed;
+      expect(model.previewError, contains('Select Preview PDF to try again'));
+      expect(model.canPreview, isTrue);
+      final fitFailed = model.previewPdf();
+      pdf.requests.last.result.completeError(
+        MailingTextFitFailure([mailingEntries.first]),
+      );
+      await fitFailed;
+      expect(model.preview, isNull);
+      expect(model.previewing, isFalse);
+      expect(model.canPreview, isFalse);
+      expect(model.fittingFailures, [mailingEntries.first]);
+      model.changeOrdering(MailingOrdering.postalCode);
+      model.changeCuttingGuides(false);
+      expect(model.canPreview, isFalse);
+      model.changeLabelSize(MailingLabelSize.large);
+      expect(model.canPreview, isTrue);
+      final corrected = model.previewPdf();
+      pdf.requests.last.result.complete(Uint8List(1));
+      await corrected;
+      expect(model.previewError, isNull);
+      expect(model.preview, isNotNull);
+      expect(file.savedBytes, isEmpty);
+    },
+  );
+
+  test('empty list and loading errors disable preview', () async {
+    expect(model.canPreview, isFalse);
+    repository.requests.last.completeError(StateError('failed'));
+    await Future<void>.delayed(Duration.zero);
+    expect(model.canPreview, isFalse);
+    await model.previewPdf();
+    expect(pdf.requests, isEmpty);
+    final refresh = model.refresh();
+    repository.requests.last.complete([]);
+    await refresh;
+    expect(model.canPreview, isFalse);
+    await model.previewPdf();
+    expect(pdf.requests, isEmpty);
+  });
+
+  test('ignores preview completion after disposal', () async {
+    final disposed = MailingListViewModel(repository, pdf: pdf, file: file);
+    repository.requests.last.complete(mailingEntries);
+    await Future<void>.delayed(Duration.zero);
+    final pending = disposed.previewPdf();
+    disposed.dispose();
+    pdf.requests.last.result.complete(Uint8List(1));
+    await pending;
+    expect(disposed.preview, isNull);
+  });
 
   test(
     'generates the complete ordered list using selected layout and guides',
