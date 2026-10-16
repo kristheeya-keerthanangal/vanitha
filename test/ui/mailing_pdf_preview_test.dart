@@ -1,8 +1,12 @@
+// ignore_for_file: implementation_imports, invalid_use_of_internal_member
+
 import 'dart:async';
 
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/src/foundation/_features.dart' show isWindowingEnabled;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pdf/pdf.dart';
@@ -14,9 +18,11 @@ import 'package:vanithabodhini/mailing/mailing_pdf.dart';
 import 'package:vanithabodhini/providers/database_provider.dart';
 import 'package:vanithabodhini/ui/mailing_list/mailing_list_page.dart';
 import 'package:vanithabodhini/ui/mailing_list/view_models/mailing_list_view_model.dart';
+import 'package:vanithabodhini/windowing/desktop_windowing.dart';
 
 import '../support/controlled_mailing_list_repository.dart';
 import '../support/controlled_mailing_pdf.dart';
+import '../support/fake_preview_window.dart';
 
 const channel = MethodChannel('net.nfet.printing');
 const codec = StandardMethodCodec();
@@ -133,6 +139,74 @@ void main() {
     await tester.pump();
     await finishRaster(tester, pages: pages);
   }
+
+  testWidgets('Generate list opens a native view with save and print', (
+    tester,
+  ) async {
+    final originalEnabled = isWindowingEnabled;
+    final originalPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+    enableDesktopWindowing();
+    expect(isWindowingEnabled, isTrue);
+    final originalOwner = tester.binding.windowingOwner;
+    final owner = FakePreviewWindowOwner(tester);
+    tester.binding.windowingOwner = owner;
+    addTearDown(() {
+      tester.binding.windowingOwner = originalOwner;
+      isWindowingEnabled = originalEnabled;
+      debugDefaultTargetPlatformOverride = originalPlatform;
+    });
+
+    await pumpPage(tester);
+    expect(owner.windows, isEmpty);
+    expect(find.text('Save PDF'), findsNothing);
+    expect(find.text('Print PDF'), findsNothing);
+    await tester.tap(find.text('Generate list'));
+    await tester.pump();
+    expect(owner.windows, isEmpty);
+    await finishPreview(tester);
+    final window = owner.windows.single;
+    expect(window.title, 'Mailing list · PDF preview');
+    expect(
+      View.of(tester.element(find.text('Save PDF'))).viewId,
+      window.rootView.viewId,
+    );
+    expect(
+      View.of(tester.element(find.text('Generate list'))).viewId,
+      tester.view.viewId,
+    );
+    await tester.tap(find.text('Save PDF'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Print PDF'));
+    await tester.pumpAndSettle();
+    expect(file.savedBytes.single, printer.documents.single.bytes);
+    expect(owner.windows, hasLength(1));
+
+    // Simulate the native title bar close button, then generate again.
+    window.delegate.onWindowCloseRequested(window);
+    await tester.pumpAndSettle();
+    expect(window.destroyed, isTrue);
+    expect(window.disposed, isTrue);
+    expect(find.text('Save PDF'), findsNothing);
+    expect(find.text('Generate list'), findsOneWidget);
+    await tester.tap(find.text('Generate list'));
+    await finishPreview(tester);
+    expect(owner.windows, hasLength(2));
+    final reopened = owner.windows.last;
+    container.read(mailingListViewModelProvider).changeCuttingGuides(false);
+    await tester.pumpAndSettle();
+    expect(reopened.destroyed, isTrue);
+    expect(reopened.disposed, isTrue);
+    expect(find.text('Save PDF'), findsNothing);
+
+    await tester.tap(find.text('Generate list'));
+    await finishPreview(tester);
+    final lastWindow = owner.windows.last;
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    expect(lastWindow.destroyed, isTrue);
+    expect(lastWindow.disposed, isTrue);
+  });
 
   testWidgets(
     'navigation through preview, save, and print keeps Settings last',
