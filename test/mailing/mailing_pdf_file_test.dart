@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pdf/widgets.dart' as pw;
+import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
+import 'package:vanithabodhini/mailing/mailing_layout.dart';
+import 'package:vanithabodhini/mailing/mailing_pdf.dart';
 import 'package:vanithabodhini/mailing/mailing_pdf_file.dart';
 
 const channel = MethodChannel('plugins.flutter.io/file_selector');
@@ -31,9 +33,18 @@ void main() {
   });
 
   test('uses a PDF save dialog and writes the exact document bytes', () async {
-    final pdf = pw.Document()
-      ..addPage(pw.Page(build: (_) => pw.Text('Mailing label')));
-    final bytes = await pdf.save();
+    final bytes = await MailingPdf().generate(
+      subscribers: const [
+        MailingListEntry(
+          subscriberId: 1,
+          name: 'Reader',
+          postalAddress: 'Street',
+          postalCode: '682001',
+        ),
+      ],
+      layout: const MailingLayout(),
+      cuttingGuides: true,
+    );
     expect(await MailingPdfFile().save(bytes), isTrue);
     expect(await File(location!).readAsBytes(), bytes);
     expect(calls.single.method, 'getSavePath');

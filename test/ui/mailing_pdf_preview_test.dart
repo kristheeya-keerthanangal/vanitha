@@ -147,65 +147,67 @@ void main() {
     final originalPlatform = debugDefaultTargetPlatformOverride;
     debugDefaultTargetPlatformOverride = TargetPlatform.linux;
     enableDesktopWindowing();
-    expect(isWindowingEnabled, isTrue);
     final originalOwner = tester.binding.windowingOwner;
     final owner = FakePreviewWindowOwner(tester);
-    tester.binding.windowingOwner = owner;
-    addTearDown(() {
+    try {
+      expect(isWindowingEnabled, isTrue);
+      tester.binding.windowingOwner = owner;
+
+      await pumpPage(tester);
+      expect(owner.windows, isEmpty);
+      expect(find.text('Save PDF'), findsNothing);
+      expect(find.text('Print PDF'), findsNothing);
+      await tester.tap(find.text('Generate list'));
+      await tester.pump();
+      expect(owner.windows, isEmpty);
+      await finishPreview(tester);
+      final window = owner.windows.single;
+      expect(window.title, 'Mailing list · PDF preview');
+      expect(
+        View.of(tester.element(find.text('Save PDF'))).viewId,
+        window.rootView.viewId,
+      );
+      expect(
+        View.of(tester.element(find.text('Generate list'))).viewId,
+        tester.view.viewId,
+      );
+      await tester.tap(find.text('Save PDF'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Print PDF'));
+      await tester.pumpAndSettle();
+      expect(file.savedBytes.single, printer.documents.single.bytes);
+      expect(owner.windows, hasLength(1));
+
+      // Simulate the native title bar close button, then generate again.
+      window.delegate.onWindowCloseRequested(window);
+      await tester.pumpAndSettle();
+      expect(window.destroyed, isTrue);
+      expect(window.disposed, isTrue);
+      expect(find.text('Save PDF'), findsNothing);
+      expect(find.text('Generate list'), findsOneWidget);
+      await tester.tap(find.text('Generate list'));
+      await finishPreview(tester);
+      expect(owner.windows, hasLength(2));
+      final reopened = owner.windows.last;
+      container.read(mailingListViewModelProvider).changeCuttingGuides(false);
+      await tester.pumpAndSettle();
+      expect(reopened.destroyed, isTrue);
+      expect(reopened.disposed, isTrue);
+      expect(find.text('Save PDF'), findsNothing);
+
+      await tester.tap(find.text('Generate list'));
+      await finishPreview(tester);
+      final lastWindow = owner.windows.last;
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      expect(lastWindow.destroyed, isTrue);
+      expect(lastWindow.disposed, isTrue);
+    } finally {
+      // Flutter checks debug variables before addTearDown callbacks run.
       tester.binding.windowingOwner = originalOwner;
       isWindowingEnabled = originalEnabled;
       debugDefaultTargetPlatformOverride = originalPlatform;
-    });
-
-    await pumpPage(tester);
-    expect(owner.windows, isEmpty);
-    expect(find.text('Save PDF'), findsNothing);
-    expect(find.text('Print PDF'), findsNothing);
-    await tester.tap(find.text('Generate list'));
-    await tester.pump();
-    expect(owner.windows, isEmpty);
-    await finishPreview(tester);
-    final window = owner.windows.single;
-    expect(window.title, 'Mailing list · PDF preview');
-    expect(
-      View.of(tester.element(find.text('Save PDF'))).viewId,
-      window.rootView.viewId,
-    );
-    expect(
-      View.of(tester.element(find.text('Generate list'))).viewId,
-      tester.view.viewId,
-    );
-    await tester.tap(find.text('Save PDF'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Print PDF'));
-    await tester.pumpAndSettle();
-    expect(file.savedBytes.single, printer.documents.single.bytes);
-    expect(owner.windows, hasLength(1));
-
-    // Simulate the native title bar close button, then generate again.
-    window.delegate.onWindowCloseRequested(window);
-    await tester.pumpAndSettle();
-    expect(window.destroyed, isTrue);
-    expect(window.disposed, isTrue);
-    expect(find.text('Save PDF'), findsNothing);
-    expect(find.text('Generate list'), findsOneWidget);
-    await tester.tap(find.text('Generate list'));
-    await finishPreview(tester);
-    expect(owner.windows, hasLength(2));
-    final reopened = owner.windows.last;
-    container.read(mailingListViewModelProvider).changeCuttingGuides(false);
-    await tester.pumpAndSettle();
-    expect(reopened.destroyed, isTrue);
-    expect(reopened.disposed, isTrue);
-    expect(find.text('Save PDF'), findsNothing);
-
-    await tester.tap(find.text('Generate list'));
-    await finishPreview(tester);
-    final lastWindow = owner.windows.last;
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-    expect(lastWindow.destroyed, isTrue);
-    expect(lastWindow.disposed, isTrue);
+    }
   });
 
   testWidgets(

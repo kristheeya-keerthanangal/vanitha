@@ -80,8 +80,8 @@ class _PreviewView extends TestFlutterView {
   _PreviewView(TestFlutterView view, this.viewId)
     : super(
         view: view,
-        platformDispatcher: view.platformDispatcher as TestPlatformDispatcher,
-        display: view.display as TestDisplay,
+        platformDispatcher: view.platformDispatcher,
+        display: view.display,
       );
 
   @override

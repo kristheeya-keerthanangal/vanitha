@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
 import 'package:vanithabodhini/mailing/mailing_layout.dart';
+import 'package:vanithabodhini/mailing/mailing_pdf.dart';
 import 'package:vanithabodhini/mailing/mailing_pdf_preview.dart';
 import 'package:vanithabodhini/mailing/mailing_pdf_printer.dart';
 
@@ -51,31 +51,26 @@ void main() {
 
   Future<MailingPdfPreview> document(MailingOrientation orientation) async {
     final layout = MailingLayout(orientation: orientation);
-    final pdf = pw.Document()
-      ..addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat(
-            layout.pageWidthMm * PdfPageFormat.mm,
-            layout.pageHeightMm * PdfPageFormat.mm,
-          ),
-          build: (_) => pw.Text('Mailing label'),
+    final snapshot = MailingPdfSnapshot(
+      subscribers: const [
+        MailingListEntry(
+          subscriberId: 1,
+          name: 'Reader',
+          postalAddress: 'Street',
+          postalCode: '682001',
         ),
-      );
+      ],
+      layout: layout,
+      ordering: MailingOrdering.name,
+      cuttingGuides: true,
+    );
     return MailingPdfPreview(
-      snapshot: MailingPdfSnapshot(
-        subscribers: const [
-          MailingListEntry(
-            subscriberId: 1,
-            name: 'Reader',
-            postalAddress: 'Street',
-            postalCode: '682001',
-          ),
-        ],
-        layout: layout,
-        ordering: MailingOrdering.name,
-        cuttingGuides: true,
+      snapshot: snapshot,
+      bytes: await MailingPdf().generate(
+        subscribers: snapshot.subscribers,
+        layout: snapshot.layout,
+        cuttingGuides: snapshot.cuttingGuides,
       ),
-      bytes: await pdf.save(),
     );
   }
 
