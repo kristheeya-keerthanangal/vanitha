@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../data/repositories/subscriber_registration_repository.dart';
 import 'widgets/subscriber_details_section.dart';

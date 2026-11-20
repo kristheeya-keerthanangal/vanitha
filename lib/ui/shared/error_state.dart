@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class ErrorState extends StatelessWidget {
   const ErrorState({super.key, required this.message, required this.onRetry});

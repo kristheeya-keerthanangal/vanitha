@@ -2,7 +2,7 @@
 // Keep these imports isolated until Flutter exposes a public API.
 // ignore_for_file: implementation_imports, invalid_use_of_internal_member
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/src/foundation/_features.dart' show isWindowingEnabled;
 import 'package:flutter/src/widgets/_window.dart';
 
