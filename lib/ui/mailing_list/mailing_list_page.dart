@@ -322,24 +322,19 @@ class _MailingSettings extends StatelessWidget {
     ValueChanged<T>? onChanged,
   }) => SizedBox(
     width: 220,
-    child: InputDecorator(
+    child: DropdownButtonFormField<T>(
+      initialValue: value,
+      isExpanded: true,
       decoration: InputDecoration(labelText: label),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: value,
-          isDense: true,
-          isExpanded: true,
-          items: [
-            for (final option in options.entries)
-              DropdownMenuItem(value: option.key, child: Text(option.value)),
-          ],
-          onChanged: onChanged == null
-              ? null
-              : (value) {
-                  if (value != null) onChanged(value);
-                },
-        ),
-      ),
+      items: [
+        for (final option in options.entries)
+          DropdownMenuItem(value: option.key, child: Text(option.value)),
+      ],
+      onChanged: onChanged == null
+          ? null
+          : (value) {
+              if (value != null) onChanged(value);
+            },
     ),
   );
 }
