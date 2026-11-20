@@ -2332,10 +2332,11 @@ class $$SubscribersTableTableManager
                   getPrefetchedDataCallback: (items) async {
                     return [
                       if (auditLogsRefs)
-                        await $_getPrefetchedData<
+                        await $_getPrefetchedDataByColumns<
                           Subscriber,
                           $SubscribersTable,
-                          AuditLog
+                          AuditLog,
+                          $AuditLogsTable
                         >(
                           currentTable: table,
                           referencedTable: $$SubscribersTableReferences
@@ -2346,17 +2347,16 @@ class $$SubscribersTableTableManager
                                 table,
                                 p0,
                               ).auditLogsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.subscriberId == item.id,
-                              ),
+                          currentColumn: 'id',
+                          referencedColumn: 'subscriber_id',
                           typedResults: items,
                         ),
                       if (subscriptionsRefs)
-                        await $_getPrefetchedData<
+                        await $_getPrefetchedDataByColumns<
                           Subscriber,
                           $SubscribersTable,
-                          Subscription
+                          Subscription,
+                          $SubscriptionsTable
                         >(
                           currentTable: table,
                           referencedTable: $$SubscribersTableReferences
@@ -2367,10 +2367,8 @@ class $$SubscribersTableTableManager
                                 table,
                                 p0,
                               ).subscriptionsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.subscriberId == item.id,
-                              ),
+                          currentColumn: 'id',
+                          referencedColumn: 'subscriber_id',
                           typedResults: items,
                         ),
                     ];
