@@ -33,7 +33,9 @@ List<SubscriberImportEntry> parseSubscriberImport(String contents) {
     );
   }
 
-  const fields = {'subscriber_name', 'address', 'pincode'};
+  // Exports include IDs, contact details, timestamps, and archive state. The
+  // importer deliberately uses only the subscriber fields it supports.
+  const fields = {'name', 'postalAddress', 'postalCode'};
   final entries = <SubscriberImportEntry>[];
   for (var index = 0; index < decoded.length; index++) {
     final row = decoded[index];
@@ -50,15 +52,11 @@ List<SubscriberImportEntry> parseSubscriberImport(String contents) {
         throw FormatException('$label: "$field" must be a nonempty string.');
       }
     }
-    final extra = row.keys.toSet().difference(fields);
-    if (extra.isNotEmpty) {
-      throw FormatException('$label: unexpected field "${extra.first}".');
-    }
     entries.add(
       SubscriberImportEntry(
-        name: row['subscriber_name'] as String,
-        address: row['address'] as String,
-        pincode: row['pincode'] as String,
+        name: row['name'] as String,
+        address: row['postalAddress'] as String,
+        pincode: row['postalCode'] as String,
       ),
     );
   }

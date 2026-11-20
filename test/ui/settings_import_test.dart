@@ -19,9 +19,9 @@ void main() {
   late SubscriberRepository repository;
   late ProviderContainer container;
   final sample = {
-    'subscriber_name': 'SALLY BABU',
-    'address': 'Main Street',
-    'pincode': '691526',
+    'name': 'SALLY BABU',
+    'postalAddress': 'Main Street',
+    'postalCode': '691526',
   };
 
   setUp(() {
@@ -85,12 +85,12 @@ void main() {
         tester,
         () async => file([
           sample,
-          {...sample, 'pincode': 691526},
+          {...sample, 'postalCode': 691526},
         ]),
       );
       await selectFile(tester);
       expect(
-        find.text('Entry 2: "pincode" must be a nonempty string.'),
+        find.text('Entry 2: "postalCode" must be a nonempty string.'),
         findsOneWidget,
       );
       expect(find.byType(AlertDialog), findsNothing);

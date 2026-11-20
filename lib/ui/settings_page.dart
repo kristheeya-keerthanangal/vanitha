@@ -22,8 +22,8 @@ class SettingsPage extends ConsumerWidget {
             Text('Subscribers', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             const Text(
-              'Import a JSON array with subscriber_name, address, and pincode. '
-              'All three fields must be nonempty strings. '
+              'Import a subscriber export JSON file. Only name, postal address, '
+              'and postal code are imported, and all three must be nonempty strings. '
               'Exact duplicates are skipped. Existing records are kept.',
             ),
             const SizedBox(height: 16),
@@ -84,8 +84,7 @@ class _SubscriberExportSection extends ConsumerWidget {
         children: [
           const Text(
             'Export all subscribers, including archived records, as JSON. '
-            'Includes all subscriber fields, IDs, and timestamps. '
-            'This complete export cannot be loaded by the three-field importer above.',
+            'Only name, postal address, and postal code are used when importing.',
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
