@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vanithabodhini/data/app_database.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
+import 'package:vanithabodhini/data/repositories/subscription_repository.dart';
 import 'package:vanithabodhini/providers/database_provider.dart';
 import 'package:vanithabodhini/ui/settings/view_models/subscriber_export_view_model.dart';
 import 'package:vanithabodhini/ui/settings_page.dart';
@@ -50,6 +51,14 @@ void main() {
     await tester.pump();
   }
 
+  Future<void> completeExport(WidgetTester tester) async {
+    await tester.tap(find.text('Complete export'));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pump();
+  }
+
   testWidgets('exports all subscriber fields and reports success', (
     tester,
   ) async {
@@ -78,6 +87,38 @@ void main() {
     await export(tester);
     expect(find.text('Subscribers exported.'), findsOneWidget);
     expect(calls, 2);
+  });
+
+  testWidgets('complete export includes subscriptions and reports success', (
+    tester,
+  ) async {
+    final subscriberRepository = SubscriberRepository(database);
+    final subscriber = await subscriberRepository.createSubscriber(
+      name: 'Reader',
+    );
+    final subscriptionRepository = SubscriptionRepository(database);
+    final subscription = await subscriptionRepository.createSubscription(
+      subscriberId: subscriber.id,
+      edition: 'online',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: DateTime(2026, 1, 1),
+    );
+    String? saved;
+    await mount(tester, (contents) async {
+      saved = contents;
+      return true;
+    });
+
+    await completeExport(tester);
+
+    expect(jsonDecode(saved!), [
+      {
+        ...subscriber.toJson(),
+        'subscriptions': [subscription.toJson()],
+      },
+    ]);
+    expect(find.text('Complete export saved.'), findsOneWidget);
   });
 
   testWidgets('save failure is shown and export can be retried', (
@@ -111,8 +152,10 @@ void main() {
       await export(tester);
       expect(find.text('Exporting subscribers…'), findsOneWidget);
       expect(
-        tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
-        isNull,
+        tester
+            .widgetList<OutlinedButton>(find.byType(OutlinedButton))
+            .every((button) => button.onPressed == null),
+        isTrue,
       );
       final model = container.read(subscriberExportViewModelProvider);
       await model.export();

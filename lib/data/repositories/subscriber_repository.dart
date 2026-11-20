@@ -67,6 +67,41 @@ class SubscriberRepository {
     ).convert([for (final subscriber in subscribers) subscriber.toJson()]);
   }
 
+  /// Exports every subscriber together with all of their subscriptions.
+  ///
+  /// The regular subscriber export remains import-compatible. This complete
+  /// export is intended as a full backup, so it includes archived subscribers
+  /// and archived subscriptions too.
+  Future<String> exportCompleteSubscribers() async {
+    final subscriberQuery = _database.select(_database.subscribers)
+      ..orderBy([(row) => OrderingTerm.asc(row.id)]);
+    final subscriptionQuery = _database.select(_database.subscriptions)
+      ..orderBy([
+        (row) => OrderingTerm.asc(row.subscriberId),
+        (row) => OrderingTerm.asc(row.id),
+      ]);
+    final subscribers = await subscriberQuery.get();
+    final subscriptions = await subscriptionQuery.get();
+    final subscriptionsBySubscriber = <int, List<Subscription>>{};
+    for (final subscription in subscriptions) {
+      subscriptionsBySubscriber
+          .putIfAbsent(subscription.subscriberId, () => [])
+          .add(subscription);
+    }
+
+    return const JsonEncoder.withIndent('  ').convert([
+      for (final subscriber in subscribers)
+        {
+          ...subscriber.toJson(),
+          'subscriptions': [
+            for (final subscription
+                in subscriptionsBySubscriber[subscriber.id] ?? const [])
+              subscription.toJson(),
+          ],
+        },
+    ]);
+  }
+
   // Missing PIN codes come last; each group is ordered by name, then ID.
   Future<List<MailingListEntry>> getMailingList() async {
     final table = _database.subscribers;

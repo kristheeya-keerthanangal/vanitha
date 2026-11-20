@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../ui/app_shell.dart';
@@ -15,45 +16,65 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/', redirect: (_, _) => '/dashboard'),
       ShellRoute(
-        builder: (context, state, child) => AppShell(
-          selectedIndex: state.uri.path.startsWith('/settings')
-              ? 4
-              : state.uri.path.startsWith('/mailing-list')
-              ? 3
-              : state.uri.path.startsWith('/archived')
-              ? 2
-              : state.uri.path.startsWith('/subscribers')
-              ? 1
-              : 0,
-          child: child,
+        pageBuilder: (context, state, child) => _noTransitionPage(
+          state,
+          AppShell(
+            selectedIndex: state.uri.path.startsWith('/settings')
+                ? 4
+                : state.uri.path.startsWith('/mailing-list')
+                ? 3
+                : state.uri.path.startsWith('/archived')
+                ? 2
+                : state.uri.path.startsWith('/subscribers')
+                ? 1
+                : 0,
+            child: child,
+          ),
         ),
         routes: [
-          GoRoute(path: '/dashboard', builder: (_, _) => const DashboardPage()),
-          GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
+          GoRoute(
+            path: '/dashboard',
+            pageBuilder: (_, state) =>
+                _noTransitionPage(state, const DashboardPage()),
+          ),
+          GoRoute(
+            path: '/settings',
+            pageBuilder: (_, state) =>
+                _noTransitionPage(state, const SettingsPage()),
+          ),
           GoRoute(
             path: '/mailing-list',
-            builder: (_, _) => const MailingListPage(),
+            pageBuilder: (_, state) =>
+                _noTransitionPage(state, const MailingListPage()),
           ),
           GoRoute(
             path: '/archived',
-            builder: (_, _) => const ArchivedSubscriptionsPage(),
+            pageBuilder: (_, state) =>
+                _noTransitionPage(state, const ArchivedSubscriptionsPage()),
             routes: [
               GoRoute(
                 path: ':id',
-                builder: (_, state) => ArchivedSubscriptionDetailsPage(
-                  id: int.tryParse(state.pathParameters['id'] ?? '') ?? -1,
+                pageBuilder: (_, state) => _noTransitionPage(
+                  state,
+                  ArchivedSubscriptionDetailsPage(
+                    id: int.tryParse(state.pathParameters['id'] ?? '') ?? -1,
+                  ),
                 ),
               ),
             ],
           ),
           GoRoute(
             path: '/subscribers',
-            builder: (_, _) => const SubscribersPage(),
+            pageBuilder: (_, state) =>
+                _noTransitionPage(state, const SubscribersPage()),
             routes: [
               GoRoute(
                 path: ':id',
-                builder: (_, state) => SubscriberDetailsPage(
-                  id: int.tryParse(state.pathParameters['id'] ?? '') ?? -1,
+                pageBuilder: (_, state) => _noTransitionPage(
+                  state,
+                  SubscriberDetailsPage(
+                    id: int.tryParse(state.pathParameters['id'] ?? '') ?? -1,
+                  ),
                 ),
               ),
             ],
@@ -65,3 +86,6 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(router.dispose);
   return router;
 });
+
+NoTransitionPage<void> _noTransitionPage(GoRouterState state, Widget child) =>
+    NoTransitionPage<void>(key: state.pageKey, child: child);

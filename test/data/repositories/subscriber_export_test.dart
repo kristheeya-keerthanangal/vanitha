@@ -4,14 +4,17 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vanithabodhini/data/app_database.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
+import 'package:vanithabodhini/data/repositories/subscription_repository.dart';
 
 void main() {
   late AppDatabase database;
   late SubscriberRepository repository;
+  late SubscriptionRepository subscriptionRepository;
 
   setUp(() {
     database = AppDatabase(NativeDatabase.memory());
     repository = SubscriberRepository(database);
+    subscriptionRepository = SubscriptionRepository(database);
   });
   tearDown(() => database.close());
 
@@ -46,6 +49,46 @@ void main() {
       expect(decoded.last['postalAddress'], isNull);
       expect(await database.select(database.subscribers).get(), before);
       expect(await database.select(database.auditLogs).get(), audits);
+    },
+  );
+
+  test(
+    'complete export includes every subscriber and subscription record',
+    () async {
+      final first = await repository.createSubscriber(name: 'First reader');
+      final second = await repository.createSubscriber(name: 'Second reader');
+      final firstSubscription = await subscriptionRepository.createSubscription(
+        subscriberId: first.id,
+        edition: 'online',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime(2025, 1, 1),
+      );
+      final secondSubscription = await subscriptionRepository
+          .createSubscription(
+            subscriberId: second.id,
+            edition: 'offline',
+            planType: 'multi_year',
+            durationYears: 2,
+            startDate: DateTime(2026, 1, 1),
+          );
+      final archivedSubscription = await subscriptionRepository
+          .archiveSubscription(firstSubscription.id);
+      final archivedSubscriber = await repository.archiveSubscriber(second.id);
+
+      final decoded =
+          jsonDecode(await repository.exportCompleteSubscribers()) as List;
+
+      expect(decoded, [
+        {
+          ...first.toJson(),
+          'subscriptions': [archivedSubscription.toJson()],
+        },
+        {
+          ...archivedSubscriber.toJson(),
+          'subscriptions': [secondSubscription.toJson()],
+        },
+      ]);
     },
   );
 }

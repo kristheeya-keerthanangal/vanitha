@@ -99,6 +99,23 @@ class _SubscriberExportSection extends ConsumerWidget {
               model.isBusy ? 'Exporting subscribers…' : 'Export subscribers',
             ),
           ),
+          const SizedBox(height: 16),
+          const Text(
+            'Complete export includes every subscriber field and their full '
+            'subscription history, including archived records. It is not '
+            'import-compatible.',
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: model.isBusy ? null : model.completeExport,
+            icon: model.isBusy
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.file_download_outlined),
+            label: const Text('Complete export'),
+          ),
           if (model.message != null) ...[
             const SizedBox(height: 16),
             Text(model.message!),

@@ -29,21 +29,45 @@ class SubscriberExportViewModel extends ChangeNotifier {
   String? error;
 
   Future<void> export() async {
+    await _export(
+      _repository.exportSubscribers,
+      successMessage: 'Subscribers exported.',
+      cancellationMessage: 'Export canceled.',
+      errorMessage:
+          'Unable to export subscribers. Try again or choose a writable location.',
+    );
+  }
+
+  Future<void> completeExport() async {
+    await _export(
+      _repository.exportCompleteSubscribers,
+      successMessage: 'Complete export saved.',
+      cancellationMessage: 'Complete export canceled.',
+      errorMessage:
+          'Unable to complete the export. Try again or choose a writable location.',
+    );
+  }
+
+  Future<void> _export(
+    Future<String> Function() createContents, {
+    required String successMessage,
+    required String cancellationMessage,
+    required String errorMessage,
+  }) async {
     if (isBusy || _disposed) return;
     isBusy = true;
     message = null;
     error = null;
     notifyListeners();
     try {
-      final contents = await _repository.exportSubscribers();
+      final contents = await createContents();
       if (_disposed) return;
       final saved = await _saveFile(contents);
       if (_disposed) return;
-      message = saved ? 'Subscribers exported.' : 'Export canceled.';
+      message = saved ? successMessage : cancellationMessage;
     } catch (_) {
       if (!_disposed) {
-        error =
-            'Unable to export subscribers. Try again or choose a writable location.';
+        error = errorMessage;
       }
     } finally {
       if (!_disposed) {

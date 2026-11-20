@@ -7,6 +7,7 @@ import 'package:vanithabodhini/providers/database_provider.dart';
 import 'package:vanithabodhini/main.dart';
 import 'package:vanithabodhini/providers/router_provider.dart';
 import 'package:vanithabodhini/ui/settings_page.dart';
+import 'package:vanithabodhini/ui/subscribers/subscribers_page.dart';
 
 void main() {
   testWidgets('opens settings from the last navigation destination', (
@@ -67,7 +68,9 @@ void main() {
     );
   });
 
-  testWidgets('switches between dashboard and subscribers', (tester) async {
+  testWidgets('switches between dashboard and subscribers without animation', (
+    tester,
+  ) async {
     final database = AppDatabase(NativeDatabase.memory());
     addTearDown(database.close);
     await tester.pumpWidget(
@@ -82,12 +85,12 @@ void main() {
     expect(find.byIcon(Icons.dashboard), findsNWidgets(2));
 
     await tester.tap(find.text('Subscribers'));
-    await tester.runAsync(() async {
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-    });
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(find.text('Subscribers'), findsNWidgets(2));
     expect(find.byIcon(Icons.people), findsOneWidget);
+    final route = ModalRoute.of(tester.element(find.byType(SubscribersPage)));
+    expect(route?.transitionDuration, Duration.zero);
+    expect(route?.reverseTransitionDuration, Duration.zero);
   });
 }
