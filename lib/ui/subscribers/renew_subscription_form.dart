@@ -42,67 +42,66 @@ class _RenewSubscriptionFormState extends State<RenewSubscriptionForm> {
     builder: (context, _) => PopScope(
       canPop: !model.isSaving,
       child: AlertDialog(
+        scrollable: true,
         title: const Text('Renew subscription'),
         content: SizedBox(
           width: 420,
-          child: SingleChildScrollView(
-            child: Form(
-              key: _formKey,
-              child: AbsorbPointer(
-                absorbing: model.isSaving,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AppDropdownFormField(
-                      label: 'Edition',
-                      value: model.edition,
-                      values: const {'online': 'Online', 'offline': 'Offline'},
-                      onChanged: (value) => model.edition = value!,
-                      validator: (_) => null,
-                    ),
+          child: Form(
+            key: _formKey,
+            child: AbsorbPointer(
+              absorbing: model.isSaving,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppDropdownFormField(
+                    label: 'Edition',
+                    value: model.edition,
+                    values: const {'online': 'Online', 'offline': 'Offline'},
+                    onChanged: (value) => model.edition = value!,
+                    validator: (_) => null,
+                  ),
+                  const SizedBox(height: 12),
+                  AppDropdownFormField(
+                    label: 'Plan type',
+                    value: model.planType,
+                    values: const {
+                      'annual': 'Annual',
+                      'multi_year': 'Multi-year',
+                      'lifetime': 'Lifetime',
+                    },
+                    onChanged: (value) => model.setPlan(value!),
+                    validator: (_) => null,
+                  ),
+                  if (model.planType == 'multi_year') ...[
                     const SizedBox(height: 12),
-                    AppDropdownFormField(
-                      label: 'Plan type',
-                      value: model.planType,
-                      values: const {
-                        'annual': 'Annual',
-                        'multi_year': 'Multi-year',
-                        'lifetime': 'Lifetime',
-                      },
-                      onChanged: (value) => model.setPlan(value!),
-                      validator: (_) => null,
-                    ),
-                    if (model.planType == 'multi_year') ...[
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        initialValue: model.duration,
-                        decoration: const InputDecoration(
-                          labelText: 'Duration (years)',
-                        ),
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) => model.duration = value,
-                        validator: model.validateDuration,
+                    TextFormField(
+                      initialValue: model.duration,
+                      decoration: const InputDecoration(
+                        labelText: 'Duration (years)',
                       ),
-                    ],
-                    const SizedBox(height: 12),
-                    StartDateFormField(
-                      value: model.startDate,
-                      firstDate: model.rules.firstDate,
-                      lastDate: model.rules.lastDate,
-                      locked: model.rules.locked,
-                      onChanged: (value) =>
-                          setState(() => model.startDate = value),
-                      validator: (_) => model.rules.allows(model.startDate)
-                          ? null
-                          : 'Invalid start date',
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) => model.duration = value,
+                      validator: model.validateDuration,
                     ),
-                    if (model.rules.locked)
-                      const Text(
-                        'Starts the day after the current subscription expires.',
-                      ),
-                    if (model.error != null) Text(model.error!),
                   ],
-                ),
+                  const SizedBox(height: 12),
+                  StartDateFormField(
+                    value: model.startDate,
+                    firstDate: model.rules.firstDate,
+                    lastDate: model.rules.lastDate,
+                    locked: model.rules.locked,
+                    onChanged: (value) =>
+                        setState(() => model.startDate = value),
+                    validator: (_) => model.rules.allows(model.startDate)
+                        ? null
+                        : 'Invalid start date',
+                  ),
+                  if (model.rules.locked)
+                    const Text(
+                      'Starts the day after the current subscription expires.',
+                    ),
+                  if (model.error != null) Text(model.error!),
+                ],
               ),
             ),
           ),
