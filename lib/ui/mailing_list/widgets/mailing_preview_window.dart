@@ -27,7 +27,7 @@ class MailingPreviewWindow extends StatefulWidget {
 }
 
 class _MailingPreviewWindowState extends State<MailingPreviewWindow> {
-  RegularWindowController? _controller;
+  WindowController? _controller;
   MailingPdfPreview? _document;
   bool _dismissed = false;
   bool _disposing = false;
@@ -54,7 +54,7 @@ class _MailingPreviewWindowState extends State<MailingPreviewWindow> {
     if (document == null) {
       _destroyWindow();
     } else if (_useNativeWindow) {
-      _controller ??= RegularWindowController(
+      _controller ??= WindowController(
         title: 'Mailing list · PDF preview',
         size: const Size(1000, 800),
         constraints: const BoxConstraints(minWidth: 400, minHeight: 400),
@@ -113,7 +113,7 @@ class _MailingPreviewWindowState extends State<MailingPreviewWindow> {
     return ViewAnchor(
       view: _controller == null || preview == null
           ? null
-          : RegularWindow(
+          : Window(
               controller: _controller!,
               child: MaterialApp(
                 debugShowCheckedModeBanner: false,
@@ -128,7 +128,7 @@ class _MailingPreviewWindowState extends State<MailingPreviewWindow> {
   }
 }
 
-class _PreviewWindowDelegate extends RegularWindowControllerDelegate {
+class _PreviewWindowDelegate extends WindowControllerDelegate {
   _PreviewWindowDelegate(this.onDestroyed);
 
   final VoidCallback onDestroyed;

@@ -13,8 +13,8 @@ class FakePreviewWindowOwner implements WindowingOwner {
   final windows = <FakePreviewWindowController>[];
 
   @override
-  RegularWindowController createRegularWindowController({
-    required RegularWindowControllerDelegate delegate,
+  WindowController createWindowController({
+    required WindowControllerDelegate delegate,
     Size? size,
     BoxConstraints? constraints,
     required bool resizable,
@@ -33,15 +33,18 @@ class FakePreviewWindowOwner implements WindowingOwner {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class FakePreviewWindowController extends RegularWindowController {
+class FakePreviewWindowController extends WindowController {
   FakePreviewWindowController(FlutterView view, this.delegate, this.title)
     : super.empty() {
     rootView = view;
   }
 
-  final RegularWindowControllerDelegate delegate;
+  final WindowControllerDelegate delegate;
   bool destroyed = false;
   bool disposed = false;
+
+  @override
+  bool get isDestroyed => destroyed;
 
   @override
   final String title;
