@@ -58,6 +58,15 @@ class SubscriberRepository {
   final AppDatabase _database;
   final SubscriptionExpiry _subscriptionExpiry;
 
+  Future<String> exportSubscribers() async {
+    final query = _database.select(_database.subscribers)
+      ..orderBy([(row) => OrderingTerm.asc(row.id)]);
+    final subscribers = await query.get();
+    return const JsonEncoder.withIndent(
+      '  ',
+    ).convert([for (final subscriber in subscribers) subscriber.toJson()]);
+  }
+
   // Missing PIN codes come last; each group is ordered by name, then ID.
   Future<List<MailingListEntry>> getMailingList() async {
     final table = _database.subscribers;

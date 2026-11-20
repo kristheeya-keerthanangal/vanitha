@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'settings/view_models/subscriber_import_view_model.dart';
+import 'settings/view_models/subscriber_export_view_model.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -61,8 +62,56 @@ class SettingsPage extends ConsumerWidget {
                 '${result.skipped} ${result.skipped == 1 ? 'duplicate' : 'duplicates'} skipped.',
               ),
             ],
+            const SizedBox(height: 24),
+            const _SubscriberExportSection(),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SubscriberExportSection extends ConsumerWidget {
+  const _SubscriberExportSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final model = ref.watch(subscriberExportViewModelProvider);
+    return ListenableBuilder(
+      listenable: model,
+      builder: (context, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Export all subscribers, including archived records, as JSON. '
+            'Includes all subscriber fields, IDs, and timestamps. '
+            'This complete export cannot be loaded by the three-field importer above.',
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: model.isBusy ? null : model.export,
+            icon: model.isBusy
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.file_download_outlined),
+            label: Text(
+              model.isBusy ? 'Exporting subscribers…' : 'Export subscribers',
+            ),
+          ),
+          if (model.message != null) ...[
+            const SizedBox(height: 16),
+            Text(model.message!),
+          ],
+          if (model.error != null) ...[
+            const SizedBox(height: 16),
+            Text(
+              model.error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+        ],
       ),
     );
   }
