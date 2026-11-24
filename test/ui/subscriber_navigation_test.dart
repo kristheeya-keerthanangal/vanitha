@@ -39,7 +39,7 @@ void main() {
     await tester.runAsync(container.read(subscribersViewModelProvider).refresh);
     await tester.pumpAndSettle();
     expect(find.text('Search subscribers'), findsOneWidget);
-    expect(find.text('Enter Name, email or phone'), findsOneWidget);
+    expect(find.text('Enter name, email, phone, or exact pincode'), findsOneWidget);
     expect(find.byIcon(Icons.search), findsOneWidget);
     expect(find.byType(PaginatedDataTable), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -82,7 +82,8 @@ void main() {
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime(2026, 1, 1),
+        startYear: 2026,
+        startMonth: 1,
       );
     });
     container.read(routerProvider).go('/subscribers');
@@ -109,7 +110,7 @@ void main() {
     expect(find.text('Reader 025'), findsOneWidget);
     await tester.drag(find.byType(ListView), const Offset(0, -500));
     await tester.pumpAndSettle();
-    expect(find.text('2027-01-01'), findsOneWidget);
+    expect(find.text('2026-12'), findsOneWidget);
     await tester.tap(find.byTooltip('Back to subscribers'));
     await tester.pumpAndSettle();
     expect(model.offset, 25);
@@ -172,7 +173,6 @@ void main() {
     late int mixedId;
     await tester.runAsync(() async {
       final today = DateTime.now();
-      final dateOnly = DateTime(today.year, today.month, today.day);
       final active = await subscribers.createSubscriber(
         name: 'Active Filter Reader',
       );
@@ -193,47 +193,57 @@ void main() {
       expiredId = expired.id;
       activeId = active.id;
       mixedId = mixed.id;
+      final expiresThisMonthTotal =
+          today.year * 12 + (today.month - 1) - 11;
+      final expiresThisMonthYear = expiresThisMonthTotal ~/ 12;
+      final expiresThisMonthMonth = (expiresThisMonthTotal % 12) + 1;
       await subscriptions.createSubscription(
         subscriberId: active.id,
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: today.add(const Duration(days: 30)),
+        startYear: today.year,
+        startMonth: today.month,
       );
       await subscriptions.createSubscription(
         subscriberId: expiresToday.id,
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime(dateOnly.year - 1, dateOnly.month, dateOnly.day),
+        startYear: expiresThisMonthYear,
+        startMonth: expiresThisMonthMonth,
       );
       await subscriptions.createSubscription(
         subscriberId: expired.id,
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime(today.year - 3, today.month, today.day),
+        startYear: today.year - 3,
+        startMonth: today.month,
       );
       await subscriptions.createSubscription(
         subscriberId: mixed.id,
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime(today.year - 3, today.month, today.day),
+        startYear: today.year - 3,
+        startMonth: today.month,
       );
       await subscriptions.createSubscription(
         subscriberId: mixed.id,
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: today.add(const Duration(days: 30)),
+        startYear: today.year,
+        startMonth: today.month,
       );
       final archived = await subscriptions.createSubscription(
         subscriberId: archivedOnly.id,
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime(today.year - 3, today.month, today.day),
+        startYear: today.year - 3,
+        startMonth: today.month,
       );
       await subscriptions.archiveSubscription(archived.id);
     });

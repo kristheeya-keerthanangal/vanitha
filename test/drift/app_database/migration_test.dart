@@ -13,6 +13,7 @@ import 'generated/schema_v7.dart' as v7;
 import 'generated/schema_v8.dart' as v8;
 import 'generated/schema_v9.dart' as v9;
 import 'generated/schema_v10.dart' as v10;
+import 'generated/schema_v11.dart' as v11;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -450,6 +451,99 @@ void main() {
         expect(lifetime.id, 32);
         expect(lifetime.durationYears, 15);
         expect(lifetime.expiryDate, '2041-01-01');
+
+        expect(
+          await db.customSelect('PRAGMA foreign_key_check').get(),
+          isEmpty,
+        );
+      },
+    );
+  });
+
+  test('v10 to v11 normalizes dates to YYYY-MM and recalculates expiry_date', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 10,
+      newVersion: 11,
+      createOld: v10.DatabaseAtV10.new,
+      createNew: v11.DatabaseAtV11.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch.insertAll(oldDb.subscribers, [
+          const v10.SubscribersData(
+            id: 17,
+            name: 'Reader One',
+            createdAt: '2026-01-01',
+            updatedAt: '2026-01-01',
+          ),
+        ]);
+        batch.insertAll(oldDb.subscriptions, [
+          const v10.SubscriptionsData(
+            id: 31,
+            subscriberId: 17,
+            edition: 'online',
+            planType: 'annual',
+            durationYears: 1,
+            startDate: '2026-01-15',
+            expiryDate: '2027-01-15',
+            createdAt: '2026-01-01',
+            updatedAt: '2026-01-01',
+          ),
+          const v10.SubscriptionsData(
+            id: 32,
+            subscriberId: 17,
+            edition: 'offline',
+            planType: 'annual',
+            durationYears: 1,
+            startDate: '2026-03-01',
+            expiryDate: '2027-03-01',
+            createdAt: '2026-01-01',
+            updatedAt: '2026-01-01',
+          ),
+          const v10.SubscriptionsData(
+            id: 33,
+            subscriberId: 17,
+            edition: 'online',
+            planType: 'multi_year',
+            durationYears: 3,
+            startDate: '2026-12-10',
+            expiryDate: '2029-12-10',
+            createdAt: '2026-01-01',
+            updatedAt: '2026-01-01',
+          ),
+          const v10.SubscriptionsData(
+            id: 34,
+            subscriberId: 17,
+            edition: 'offline',
+            planType: 'lifetime',
+            durationYears: 15,
+            startDate: '2026-01-01',
+            expiryDate: '2041-01-01',
+            createdAt: '2026-01-01',
+            updatedAt: '2026-01-01',
+          ),
+        ]);
+      },
+      validateItems: (db) async {
+        final subscriptions = await (db.select(
+          db.subscriptions,
+        )..orderBy([(row) => OrderingTerm.asc(row.id)])).get();
+        expect(subscriptions, hasLength(4));
+
+        expect(subscriptions[0].id, 31);
+        expect(subscriptions[0].startDate, '2026-01');
+        expect(subscriptions[0].expiryDate, '2026-12');
+
+        expect(subscriptions[1].id, 32);
+        expect(subscriptions[1].startDate, '2026-03');
+        expect(subscriptions[1].expiryDate, '2027-02');
+
+        expect(subscriptions[2].id, 33);
+        expect(subscriptions[2].startDate, '2026-12');
+        expect(subscriptions[2].expiryDate, '2029-11');
+
+        expect(subscriptions[3].id, 34);
+        expect(subscriptions[3].startDate, '2026-01');
+        expect(subscriptions[3].expiryDate, '2040-12');
 
         expect(
           await db.customSelect('PRAGMA foreign_key_check').get(),

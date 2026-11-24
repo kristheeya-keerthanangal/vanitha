@@ -734,11 +734,104 @@ i1.GeneratedColumn<int> _column_26(
   $customConstraints:
       'NOT NULL CHECK ((plan_type = \'annual\' AND duration_years = 1)OR(plan_type = \'multi_year\' AND duration_years > 1 AND duration_years <= 50)OR(plan_type = \'lifetime\' AND duration_years = 15))',
 );
+
+final class Schema11 extends i0.VersionedSchema {
+  Schema11({required super.database}) : super(version: 11);
+  @override
+  late final List<i1.DatabaseSchemaEntity> entities = [
+    subscribers,
+    auditLogs,
+    subscriptions,
+    migrationSnapshots,
+    idxSubscribersName,
+    idxSubscriptionsSubscriber,
+    idxSubscriptionsExpiryDate,
+  ];
+  late final Shape5 subscribers = Shape5(
+    source: i0.VersionedTable(
+      entityName: 'subscribers',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [
+        _column_0,
+        _column_1,
+        _column_2,
+        _column_3,
+        _column_4,
+        _column_7,
+        _column_9,
+        _column_10,
+        _column_11,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape1 auditLogs = Shape1(
+    source: i0.VersionedTable(
+      entityName: 'audit_logs',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [_column_0, _column_12, _column_13, _column_14, _column_15],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape4 subscriptions = Shape4(
+    source: i0.VersionedTable(
+      entityName: 'subscriptions',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [
+        _column_0,
+        _column_12,
+        _column_16,
+        _column_17,
+        _column_26,
+        _column_19,
+        _column_20,
+        _column_9,
+        _column_10,
+        _column_11,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape3 migrationSnapshots = Shape3(
+    source: i0.VersionedTable(
+      entityName: 'migration_snapshots',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(source_table, row_id, source_version)'],
+      columns: [_column_22, _column_23, _column_24, _column_25],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  final i1.Index idxSubscribersName = i1.Index(
+    'idx_subscribers_name',
+    'CREATE INDEX idx_subscribers_name ON subscribers (name COLLATE NOCASE)',
+  );
+  final i1.Index idxSubscriptionsSubscriber = i1.Index(
+    'idx_subscriptions_subscriber',
+    'CREATE INDEX idx_subscriptions_subscriber ON subscriptions (subscriber_id)',
+  );
+  final i1.Index idxSubscriptionsExpiryDate = i1.Index(
+    'idx_subscriptions_expiry_date',
+    'CREATE INDEX idx_subscriptions_expiry_date ON subscriptions (expiry_date)',
+  );
+}
+
 i0.MigrationStepWithVersion migrationSteps({
   required Future<void> Function(i1.Migrator m, Schema7 schema) from6To7,
   required Future<void> Function(i1.Migrator m, Schema8 schema) from7To8,
   required Future<void> Function(i1.Migrator m, Schema9 schema) from8To9,
   required Future<void> Function(i1.Migrator m, Schema10 schema) from9To10,
+  required Future<void> Function(i1.Migrator m, Schema11 schema) from10To11,
 }) {
   return (currentVersion, database) async {
     switch (currentVersion) {
@@ -762,6 +855,11 @@ i0.MigrationStepWithVersion migrationSteps({
         final migrator = i1.Migrator(database, schema);
         await from9To10(migrator, schema);
         return 10;
+      case 10:
+        final schema = Schema11(database: database);
+        final migrator = i1.Migrator(database, schema);
+        await from10To11(migrator, schema);
+        return 11;
       default:
         throw ArgumentError.value('Unknown migration from $currentVersion');
     }
@@ -773,11 +871,13 @@ i1.OnUpgrade stepByStep({
   required Future<void> Function(i1.Migrator m, Schema8 schema) from7To8,
   required Future<void> Function(i1.Migrator m, Schema9 schema) from8To9,
   required Future<void> Function(i1.Migrator m, Schema10 schema) from9To10,
+  required Future<void> Function(i1.Migrator m, Schema11 schema) from10To11,
 }) => i0.VersionedSchema.stepByStepHelper(
   step: migrationSteps(
     from6To7: from6To7,
     from7To8: from7To8,
     from8To9: from8To9,
     from9To10: from9To10,
+    from10To11: from10To11,
   ),
 );

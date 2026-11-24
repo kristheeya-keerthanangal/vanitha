@@ -94,7 +94,7 @@ class _RenewSubscriptionFormState extends State<RenewSubscriptionForm> {
                         setState(() => model.startDate = value),
                     validator: (_) => model.rules.allows(model.startDate)
                         ? null
-                        : 'Invalid start date',
+                        : 'Invalid start month',
                   ),
                   if (model.rules.locked)
                     const Text(

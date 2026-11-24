@@ -42,7 +42,7 @@ void main() {
     expect(find.text('Enter a name'), findsOneWidget);
     expect(find.text('select edition'), findsOneWidget);
     expect(find.text('select plan type'), findsOneWidget);
-    expect(find.text('Select a start date'), findsOneWidget);
+    expect(find.text('Select a start month'), findsOneWidget);
   });
 
   testWidgets('validates email and phone formats', (tester) async {
@@ -171,12 +171,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Annual').last);
     await tester.pumpAndSettle();
-    final startDateField = find.widgetWithText(TextFormField, 'Start date');
+    final startDateField = find.widgetWithText(TextFormField, 'Start month');
     await tester.ensureVisible(startDateField);
     await tester.tap(startDateField);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('15').last);
-    await tester.tap(find.text('OK'));
+    await tester.tap(find.text('Jan').last);
     await tester.pumpAndSettle();
     await tester.drag(
       find.byType(SingleChildScrollView).last,
@@ -227,7 +226,8 @@ class DelayedSubscriberRegistrationRepository
     required String edition,
     required String planType,
     required int durationYears,
-    required DateTime startDate,
+    required int startYear,
+    required int startMonth,
   }) async {
     calls++;
     await gate.future;
@@ -240,7 +240,8 @@ class DelayedSubscriberRegistrationRepository
       edition: edition,
       planType: planType,
       durationYears: durationYears,
-      startDate: startDate,
+      startYear: startYear,
+      startMonth: startMonth,
     );
   }
 }

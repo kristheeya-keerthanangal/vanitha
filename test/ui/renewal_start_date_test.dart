@@ -7,8 +7,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: StartDateFormField(
-            value: DateTime(2026, 10, 15),
+          body: StartMonthFormField(
+            value: DateTime(2026, 10),
             locked: true,
             onChanged: (_) => fail('Locked date changed'),
             validator: (_) => null,
@@ -16,10 +16,10 @@ void main() {
         ),
       ),
     );
-    expect(find.text('2026-10-15'), findsOneWidget);
+    expect(find.text('2026-10'), findsOneWidget);
     await tester.tap(find.byType(TextFormField));
     await tester.pumpAndSettle();
-    expect(find.byType(DatePickerDialog), findsNothing);
+    expect(find.byType(MonthPickerDialog), findsNothing);
   });
 
   testWidgets('renewal picker enforces the supplied inclusive date range', (
@@ -28,10 +28,10 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: StartDateFormField(
-            value: DateTime(2026, 10, 14),
-            firstDate: DateTime(2026, 10, 2),
-            lastDate: DateTime(2026, 10, 14),
+          body: StartMonthFormField(
+            value: DateTime(2026, 10),
+            firstDate: DateTime(2026, 8),
+            lastDate: DateTime(2026, 10),
             onChanged: (_) {},
             validator: (_) => null,
           ),
@@ -40,11 +40,11 @@ void main() {
     );
     await tester.tap(find.byType(TextFormField));
     await tester.pumpAndSettle();
-    final picker = tester.widget<DatePickerDialog>(
-      find.byType(DatePickerDialog),
+    final picker = tester.widget<MonthPickerDialog>(
+      find.byType(MonthPickerDialog),
     );
-    expect(picker.firstDate, DateTime(2026, 10, 2));
-    expect(picker.lastDate, DateTime(2026, 10, 14));
-    expect(picker.initialDate, DateTime(2026, 10, 14));
+    expect(picker.firstDate, DateTime(2026, 8));
+    expect(picker.lastDate, DateTime(2026, 10));
+    expect(picker.initialDate, DateTime(2026, 10));
   });
 }

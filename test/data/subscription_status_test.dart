@@ -22,8 +22,8 @@ void main() {
   test(
     'latest expiry determines status regardless of start date or row order',
     () {
-      final future = subscription('2026-12-01', '2027-11-30');
-      final expired = subscription('2026-01-01', '2026-09-30');
+      final future = subscription('2026-12', '2027-11');
+      final expired = subscription('2026-01', '2026-09');
 
       for (final subscriptions in [
         [future],
@@ -41,9 +41,9 @@ void main() {
 
   test('active date boundaries are inclusive', () {
     for (final subscription in [
-      subscription('2026-01-01', '2026-12-31'),
-      subscription('2026-10-13', '2027-10-13'),
-      subscription('2025-10-13', '2026-10-13'),
+      subscription('2026-01', '2026-12'),
+      subscription('2026-10', '2027-10'),
+      subscription('2025-10', '2026-10'),
     ]) {
       expect(
         SubscriptionStatusResolver.resolve([subscription], today: today),
@@ -57,15 +57,15 @@ void main() {
     () {
       expect(
         SubscriptionStatusResolver.resolve([
-          subscription('2026-01-01', '2026-09-30'),
+          subscription('2026-01', '2026-09'),
         ], today: today),
         SubscriptionStatus.expired,
       );
       expect(
         SubscriptionStatusResolver.resolve([
           subscription(
-            '2026-01-01',
-            '2026-12-31',
+            '2026-01',
+            '2026-12',
           ).copyWith(archivedAt: const Value('2026-10-12T00:00:00Z')),
         ], today: today),
         SubscriptionStatus.notSubscribed,

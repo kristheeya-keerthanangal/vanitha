@@ -7,7 +7,7 @@ import 'package:vanithabodhini/data/app_database.dart';
 
 void main() {
   for (final fromVersion in [2, 3, 4, 5, 6]) {
-    test('preserves data when upgrading from schema $fromVersion to 10', () async {
+    test('preserves data when upgrading from schema $fromVersion to 11', () async {
       final executor = NativeDatabase.memory(
         setup: (db) {
           final hasSubscriberType = fromVersion < 5;
@@ -152,6 +152,8 @@ void main() {
       if (fromVersion >= 3) {
         expect(subscriptions, hasLength(1));
         expect(subscriptions.single.subscriberId, 7);
+        expect(subscriptions.single.startDate, '2026-01');
+        expect(subscriptions.single.expiryDate, '2026-12');
         expect(subscriptions.single.archivedAt, isNull);
       } else {
         expect(subscriptions, isEmpty);
@@ -168,7 +170,7 @@ void main() {
       expect(
         (await database.customSelect('PRAGMA user_version').getSingle())
             .read<int>('user_version'),
-        10,
+        11,
       );
       final indexes = await database
           .customSelect("SELECT name FROM sqlite_master WHERE type = 'index'")

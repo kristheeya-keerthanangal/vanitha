@@ -26,7 +26,8 @@ class SubscriberRegistrationRepository {
     required String edition,
     required String planType,
     required int durationYears,
-    required DateTime startDate,
+    required int startYear,
+    required int startMonth,
   }) async {
     return _database.transaction(() async {
       final subscriber = await _subscriberRepository.createSubscriber(
@@ -41,7 +42,8 @@ class SubscriberRegistrationRepository {
         edition: edition,
         planType: planType,
         durationYears: durationYears,
-        startDate: startDate,
+        startYear: startYear,
+        startMonth: startMonth,
       );
 
       return (subscriber: subscriber, subscription: subscription);

@@ -116,8 +116,8 @@ void main() {
             edition: 'offline',
             planType: 'annual',
             durationYears: 1,
-            startDate: '2026-01-01',
-            expiryDate: '2099-12-31',
+            startDate: '2026-01',
+            expiryDate: '2099-12',
           ),
       ]),
     );

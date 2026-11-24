@@ -68,10 +68,10 @@ class SubscriptionExpiry {
 
   Expression<bool> _hasSubscriptionMatching(
     Expression<int> subscriberId,
-    Expression<bool> Function(Subscriptions row, String todayDate) predicate, {
+    Expression<bool> Function(Subscriptions row, String currentMonth) predicate, {
     String? edition,
   }) {
-    final todayDate = today();
+    final thisMonth = currentMonth();
     final subscriptions = _database.select(_database.subscriptions)
       ..where(
         (row) =>
@@ -80,7 +80,7 @@ class SubscriptionExpiry {
             (edition == null
                 ? const Constant(true)
                 : row.edition.equals(edition)) &
-            predicate(row, todayDate),
+            predicate(row, thisMonth),
       );
     return existsQuery(subscriptions);
   }
@@ -97,7 +97,7 @@ class SubscriptionExpiry {
     );
     final hasActiveSubscription = _hasSubscriptionMatching(
       subscriberId,
-      (row, todayDate) => row.expiryDate.isSmallerThanValue(todayDate).not(),
+      (row, thisMonth) => row.expiryDate.isSmallerThanValue(thisMonth).not(),
       edition: edition,
     );
 
@@ -109,24 +109,31 @@ class SubscriptionExpiry {
     };
   }
 
-  /// Expiry dates are inclusive, so a subscription expiring today has not
-  /// expired yet.
+  /// Expiry months are inclusive, so a subscription expiring in the current month
+  /// has not expired yet.
   static bool isExpiryDateExpired(String expiryDate, {DateTime? todayDate}) {
-    return expiryDate.compareTo(formatDate(todayDate ?? DateTime.now())) < 0;
+    final thisMonth = formatMonth(todayDate ?? DateTime.now());
+    final expiryMonth =
+        expiryDate.length >= 7 ? expiryDate.substring(0, 7) : expiryDate;
+    return expiryMonth.compareTo(thisMonth) < 0;
   }
 
   /// Returns the database predicate used for one subscription expiry date.
   static Expression<bool> isSubscriptionExpired(
     Expression<String> expiryDate,
-    String todayDate,
-  ) => expiryDate.isSmallerThanValue(todayDate);
+    String thisMonth,
+  ) => expiryDate.isSmallerThanValue(thisMonth);
 
-  static String today() => formatDate(DateTime.now());
+  static String currentMonth([DateTime? date]) =>
+      formatMonth(date ?? DateTime.now());
 
-  static String formatDate(DateTime date) =>
+  static String today() => currentMonth();
+
+  static String formatMonth(DateTime date) =>
       '${date.year.toString().padLeft(4, '0')}-'
-      '${date.month.toString().padLeft(2, '0')}-'
-      '${date.day.toString().padLeft(2, '0')}';
+      '${date.month.toString().padLeft(2, '0')}';
+
+  static String formatDate(DateTime date) => formatMonth(date);
 }
 
 /// Backwards-compatible shorthand for the shared SQL expiry predicate.

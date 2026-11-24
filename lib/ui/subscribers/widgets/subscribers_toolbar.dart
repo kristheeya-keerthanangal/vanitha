@@ -41,7 +41,7 @@ class SubscribersToolbar extends StatelessWidget {
         onChanged: onSearch,
         decoration: InputDecoration(
           labelText: 'Search subscribers',
-          hint: Text('Enter Name, email or phone'),
+          hint: Text('Enter name, email, phone, or exact pincode'),
           prefixIcon: Icon(Icons.search),
         ),
       ),

@@ -24,12 +24,13 @@ void main() {
       edition: 'online',
       planType: 'annual',
       durationYears: 1,
-      startDate: DateTime(2026, 3, 15),
+      startYear: 2026,
+      startMonth: 3,
     );
 
     expect(result.subscriber.name, 'Anita Rao');
     expect(result.subscription.subscriberId, result.subscriber.id);
-    expect(result.subscription.expiryDate, '2027-03-15');
+    expect(result.subscription.expiryDate, '2027-02');
     expect(await database.select(database.auditLogs).get(), hasLength(1));
   });
 
@@ -40,7 +41,8 @@ void main() {
         edition: 'invalid',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime(2026, 3, 15),
+        startYear: 2026,
+        startMonth: 3,
       ),
       throwsA(isA<Exception>()),
     );

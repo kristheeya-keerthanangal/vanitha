@@ -36,7 +36,8 @@ void main() {
             edition: 'offline',
             planType: 'annual',
             durationYears: 1,
-            startDate: DateTime(2026, 1, 1),
+            startYear: 2026,
+            startMonth: 1,
           );
       final beforeLogs = await database.select(database.auditLogs).get();
       final preview = await repository.previewImport([

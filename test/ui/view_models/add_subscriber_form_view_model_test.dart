@@ -41,7 +41,7 @@ void main() {
         .select(database.subscriptions)
         .getSingle();
     expect(subscription.durationYears, 3);
-    expect(subscription.expiryDate, '2029-01-01');
+    expect(subscription.expiryDate, '2028-12');
   });
 
   test('rejects multi-year durations over 50 years', () async {
@@ -67,6 +67,6 @@ void main() {
         .getSingle();
     expect(subscription.planType, 'lifetime');
     expect(subscription.durationYears, 15);
-    expect(subscription.expiryDate, '2041-01-01');
+    expect(subscription.expiryDate, '2040-12');
   });
 }

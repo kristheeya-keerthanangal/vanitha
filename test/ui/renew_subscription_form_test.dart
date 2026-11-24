@@ -51,9 +51,9 @@ void main() {
     );
     expect(find.text('Edition'), findsOneWidget);
     expect(find.text('Plan type'), findsOneWidget);
-    expect(find.widgetWithText(TextFormField, 'Start date'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Start month'), findsOneWidget);
     expect(
-      tester.getRect(find.widgetWithText(TextFormField, 'Start date')).height,
+      tester.getRect(find.widgetWithText(TextFormField, 'Start month')).height,
       greaterThan(0),
     );
   });

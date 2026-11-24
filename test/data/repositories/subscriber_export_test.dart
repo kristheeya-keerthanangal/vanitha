@@ -62,7 +62,8 @@ void main() {
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime(2025, 1, 1),
+        startYear: 2025,
+        startMonth: 1,
       );
       final secondSubscription = await subscriptionRepository
           .createSubscription(
@@ -70,7 +71,8 @@ void main() {
             edition: 'offline',
             planType: 'multi_year',
             durationYears: 2,
-            startDate: DateTime(2026, 1, 1),
+            startYear: 2026,
+            startMonth: 1,
           );
       final archivedSubscription = await subscriptionRepository
           .archiveSubscription(firstSubscription.id);

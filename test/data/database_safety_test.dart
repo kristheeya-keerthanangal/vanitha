@@ -29,7 +29,8 @@ void main() {
             .select(database.subscriptions)
             .get();
         expect(subscriptions.single.durationYears, 15);
-        expect(subscriptions.single.expiryDate, '2041-01-01');
+        expect(subscriptions.single.startDate, '2026-01');
+        expect(subscriptions.single.expiryDate, '2040-12');
         final existing =
             (await database.select(database.subscribers).get()).single;
         expect(existing.email, 'existing@example.com');
@@ -168,7 +169,7 @@ void main() {
   test(
     'rejects newer databases without changing their version or data',
     () async {
-      final database = AppDatabase(_version3Database(file, version: 11));
+      final database = AppDatabase(_version3Database(file, version: 12));
       try {
         await expectLater(
           database.customSelect('SELECT 1').get(),
@@ -177,12 +178,12 @@ void main() {
       } finally {
         await database.close();
       }
-      final original = _OriginalDatabase(NativeDatabase(file), 11);
+      final original = _OriginalDatabase(NativeDatabase(file), 12);
       try {
         expect(
           (await original.customSelect('PRAGMA user_version').getSingle())
               .read<int>('user_version'),
-          11,
+          12,
         );
         expect(
           (await original
@@ -241,7 +242,7 @@ void main() {
         await database.customStatement('''
         INSERT INTO subscriptions (subscriber_id, edition, plan_type,
           duration_years, start_date, expiry_date)
-        VALUES (1, 'online', 'annual', 1, '2026-01-01', '2027-01-01')
+        VALUES (1, 'online', 'annual', 1, '2026-01', '2026-12')
       ''');
       } finally {
         await database.close();

@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'vanithabodhini'));
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -181,6 +181,24 @@ class AppDatabase extends _$AppDatabase {
           ),
           schema.subscriptions.expiryDate: const CustomExpression<String>(
             "CASE WHEN plan_type = 'lifetime' THEN date(start_date, '+15 years') ELSE expiry_date END",
+          ),
+        },
+      );
+    },
+    from10To11: (m, schema) async {
+      await _rebuildTable(
+        m,
+        schema.subscriptions,
+        columnTransformer: {
+          schema.subscriptions.startDate: const CustomExpression<String>(
+            "substr(start_date, 1, 7)",
+          ),
+          schema.subscriptions.expiryDate: const CustomExpression<String>(
+            "printf('%04d-%02d',"
+            " CAST(substr(start_date, 1, 4) AS INTEGER) + duration_years"
+            " - CASE WHEN CAST(substr(start_date, 6, 2) AS INTEGER) = 1 THEN 1 ELSE 0 END,"
+            " CASE WHEN CAST(substr(start_date, 6, 2) AS INTEGER) = 1 THEN 12"
+            " ELSE CAST(substr(start_date, 6, 2) AS INTEGER) - 1 END)",
           ),
         },
       );

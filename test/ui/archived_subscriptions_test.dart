@@ -39,7 +39,8 @@ void main() {
           edition: 'online',
           planType: 'annual',
           durationYears: 1,
-          startDate: DateTime(2026),
+          startYear: 2026,
+          startMonth: 1,
         );
         archived = await repository.archiveSubscription(subscription.id);
         active = await repository.createSubscription(
@@ -47,7 +48,8 @@ void main() {
           edition: 'offline',
           planType: 'annual',
           durationYears: 1,
-          startDate: DateTime(2027),
+          startYear: 2027,
+          startMonth: 1,
         );
         await SubscriberRepository(database).archiveSubscriber(subscriber.id);
       });

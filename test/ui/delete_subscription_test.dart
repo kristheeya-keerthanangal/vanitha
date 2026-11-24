@@ -36,7 +36,8 @@ void main() {
               edition: 'online',
               planType: 'annual',
               durationYears: 1,
-              startDate: DateTime(year),
+              startYear: year,
+              startMonth: 1,
             ),
           );
         }
@@ -130,7 +131,8 @@ void main() {
           edition: 'online',
           planType: 'annual',
           durationYears: 1,
-          startDate: DateTime(2026, 1, 1),
+          startYear: 2026,
+          startMonth: 1,
         );
       });
       await tester.pumpWidget(

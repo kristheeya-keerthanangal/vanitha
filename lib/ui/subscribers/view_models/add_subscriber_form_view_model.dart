@@ -26,8 +26,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
     final date = startDate;
     if (date == null) return '';
     return '${date.year.toString().padLeft(4, '0')}-'
-        '${date.month.toString().padLeft(2, '0')}-'
-        '${date.day.toString().padLeft(2, '0')}';
+        '${date.month.toString().padLeft(2, '0')}';
   }
 
   void setName(String value) => _set(() => name = value);
@@ -128,7 +127,8 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
         edition: edition!,
         planType: selectedPlan,
         durationYears: effectiveDuration,
-        startDate: selectedStartDate,
+        startYear: selectedStartDate.year,
+        startMonth: selectedStartDate.month,
       );
       if (_disposed) return true;
       isSaving = false;

@@ -40,8 +40,8 @@ void main() {
             edition: 'offline',
             planType: 'annual',
             durationYears: 1,
-            startDate: '2026-01-01',
-            expiryDate: '2099-12-31',
+            startDate: '2026-01',
+            expiryDate: '2099-12',
           ),
       ]),
     );
@@ -51,7 +51,8 @@ void main() {
       edition: 'offline',
       planType: 'annual',
       durationYears: 1,
-      startDate: DateTime.now(),
+      startYear: DateTime.now().year,
+      startMonth: DateTime.now().month,
     );
     await repository.archiveSubscriber(archived.id);
 
@@ -83,7 +84,8 @@ void main() {
           edition: 'offline',
           planType: 'annual',
           durationYears: 1,
-          startDate: DateTime.now(),
+          startYear: DateTime.now().year,
+          startMonth: DateTime.now().month,
         );
         return subscriber;
       }
@@ -131,7 +133,8 @@ void main() {
           edition: edition,
           planType: 'annual',
           durationYears: 1,
-          startDate: DateTime.now(),
+          startYear: DateTime.now().year,
+          startMonth: DateTime.now().month,
         );
       }
       await subscriptions.createSubscription(
@@ -139,7 +142,8 @@ void main() {
         edition: 'offline',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime.now(),
+        startYear: DateTime.now().year,
+        startMonth: DateTime.now().month,
       );
 
       final rows = await repository.getMailingList();
@@ -175,8 +179,8 @@ void main() {
               edition: 'offline',
               planType: 'annual',
               durationYears: 1,
-              startDate: '2026-01-01',
-              expiryDate: '2099-12-31',
+              startDate: '2026-01',
+              expiryDate: '2099-12',
             ),
           );
           expected[id] = (
@@ -227,7 +231,8 @@ void main() {
       edition: 'offline',
       planType: 'annual',
       durationYears: 1,
-      startDate: today,
+      startYear: today.year,
+      startMonth: today.month,
     );
 
     // 2. Expired offline subscriber
@@ -239,7 +244,8 @@ void main() {
       edition: 'offline',
       planType: 'annual',
       durationYears: 1,
-      startDate: DateTime(today.year - 3, today.month, today.day),
+      startYear: today.year - 3,
+      startMonth: today.month,
     );
 
     // 3. Online-only active subscriber
@@ -251,7 +257,8 @@ void main() {
       edition: 'online',
       planType: 'annual',
       durationYears: 1,
-      startDate: today,
+      startYear: today.year,
+      startMonth: today.month,
     );
 
     // 4. Online-only expired subscriber
@@ -263,7 +270,8 @@ void main() {
       edition: 'online',
       planType: 'annual',
       durationYears: 1,
-      startDate: DateTime(today.year - 3, today.month, today.day),
+      startYear: today.year - 3,
+      startMonth: today.month,
     );
 
     // 5. Never subscribed subscriber
@@ -280,14 +288,16 @@ void main() {
       edition: 'offline',
       planType: 'annual',
       durationYears: 1,
-      startDate: DateTime(today.year - 3, today.month, today.day),
+      startYear: today.year - 3,
+      startMonth: today.month,
     );
     await subscriptions.createSubscription(
       subscriberId: mixedOffline.id,
       edition: 'offline',
       planType: 'annual',
       durationYears: 1,
-      startDate: today,
+      startYear: today.year,
+      startMonth: today.month,
     );
 
     // Test Active filter (default)
@@ -333,14 +343,16 @@ void main() {
       edition: 'offline',
       planType: 'annual',
       durationYears: 1,
-      startDate: today,
+      startYear: today.year,
+      startMonth: today.month,
     );
     final expiredSub = await subscriptions.createSubscription(
       subscriberId: subscriber.id,
       edition: 'offline',
       planType: 'annual',
       durationYears: 1,
-      startDate: DateTime(today.year - 3, today.month, today.day),
+      startYear: today.year - 3,
+      startMonth: today.month,
     );
 
     // Initially active

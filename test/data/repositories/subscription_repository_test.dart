@@ -28,23 +28,24 @@ void main() {
     'renewal appends atomically and rejects a second upcoming row',
     () async {
       final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
       final original = await repository.createSubscription(
         subscriberId: subscriberId,
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: today,
+        startYear: now.year,
+        startMonth: now.month,
       );
-      final expiry = DateTime.parse(original.expiryDate);
-      final next = DateTime(expiry.year, expiry.month, expiry.day + 1);
+      final nextYear = now.year + 1;
+      final nextMonth = now.month;
       await expectLater(
         repository.renewSubscription(
           subscriberId: subscriberId,
           edition: 'online',
           planType: 'annual',
           durationYears: 1,
-          startDate: today,
+          startYear: now.year,
+          startMonth: now.month,
         ),
         throwsStateError,
       );
@@ -53,7 +54,8 @@ void main() {
         edition: 'offline',
         planType: 'annual',
         durationYears: 1,
-        startDate: next,
+        startYear: nextYear,
+        startMonth: nextMonth,
       );
       expect(renewed.id, isNot(original.id));
       expect(await repository.getSubscription(original.id), original);
@@ -63,7 +65,8 @@ void main() {
           edition: 'online',
           planType: 'annual',
           durationYears: 1,
-          startDate: next,
+          startYear: nextYear,
+          startMonth: nextMonth,
         ),
         throwsStateError,
       );
@@ -82,7 +85,8 @@ void main() {
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime(now.year, now.month, now.day + 1),
+        startYear: now.year + 1,
+        startMonth: now.month,
       ),
       throwsStateError,
     );
@@ -98,13 +102,14 @@ void main() {
       edition: 'online',
       planType: 'annual',
       durationYears: 1,
-      startDate: DateTime(2026, 2, 10, 15, 30),
+      startYear: 2026,
+      startMonth: 2,
     );
 
     expect(created.id, 1);
     expect(created.subscriberId, subscriberId);
-    expect(created.startDate, '2026-02-10');
-    expect(created.expiryDate, '2027-02-10');
+    expect(created.startDate, '2026-02');
+    expect(created.expiryDate, '2027-01');
     expect(await repository.getSubscription(created.id), created);
   });
 
@@ -114,20 +119,22 @@ void main() {
       edition: 'online',
       planType: 'annual',
       durationYears: 99,
-      startDate: DateTime(2026, 2, 10),
+      startYear: 2026,
+      startMonth: 2,
     );
     final lifetime = await repository.createSubscription(
       subscriberId: subscriberId,
       edition: 'online',
       planType: 'lifetime',
       durationYears: 1,
-      startDate: DateTime(2026, 2, 10),
+      startYear: 2026,
+      startMonth: 2,
     );
 
     expect(annual.durationYears, 1);
-    expect(annual.expiryDate, '2027-02-10');
+    expect(annual.expiryDate, '2027-01');
     expect(lifetime.durationYears, 15);
-    expect(lifetime.expiryDate, '2041-02-10');
+    expect(lifetime.expiryDate, '2041-01');
   });
 
   test('rejects multi-year durations over 50 years', () async {
@@ -137,7 +144,8 @@ void main() {
         edition: 'online',
         planType: 'multi_year',
         durationYears: 51,
-        startDate: DateTime(2026, 2, 10),
+        startYear: 2026,
+        startMonth: 2,
       ),
       throwsA(isA<ArgumentError>()),
     );
@@ -151,7 +159,8 @@ void main() {
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime(2020, 1, 1),
+        startYear: 2020,
+        startMonth: 1,
       );
 
       final annual = await repository.createSubscription(
@@ -159,32 +168,35 @@ void main() {
         edition: 'offline',
         planType: 'annual',
         durationYears: 50,
-        startDate: DateTime(2022, 2, 3),
+        startYear: 2022,
+        startMonth: 2,
       );
       final multiYear = await repository.createSubscription(
         subscriberId: subscriberId,
         edition: 'online',
         planType: 'multi_year',
         durationYears: 4,
-        startDate: DateTime(2024, 2, 3),
+        startYear: 2024,
+        startMonth: 2,
       );
       final lifetime = await repository.createSubscription(
         subscriberId: subscriberId,
         edition: 'offline',
         planType: 'lifetime',
         durationYears: 1,
-        startDate: DateTime(2029, 2, 3),
+        startYear: 2029,
+        startMonth: 2,
       );
 
       expect(annual.edition, 'offline');
       expect(annual.durationYears, 1);
-      expect(annual.expiryDate, '2023-02-03');
+      expect(annual.expiryDate, '2023-01');
       expect(multiYear.edition, 'online');
       expect(multiYear.durationYears, 4);
-      expect(multiYear.expiryDate, '2028-02-03');
+      expect(multiYear.expiryDate, '2028-01');
       expect(lifetime.edition, 'offline');
       expect(lifetime.durationYears, 15);
-      expect(lifetime.expiryDate, '2044-02-03');
+      expect(lifetime.expiryDate, '2044-01');
     },
   );
 
@@ -194,22 +206,24 @@ void main() {
       edition: 'online',
       planType: 'annual',
       durationYears: 1,
-      startDate: DateTime(2026, 1, 1),
+      startYear: 2026,
+      startMonth: 1,
     );
 
     final created = <Subscription>[];
-    for (final startDate in [
-      DateTime(2028, 1, 1),
-      DateTime(2027, 1, 1),
-      DateTime(2026, 6, 1),
-      DateTime(2025, 6, 1),
+    for (final (year, month) in [
+      (2028, 1),
+      (2027, 1),
+      (2026, 6),
+      (2025, 6),
     ]) {
       final subscription = await repository.createSubscription(
         subscriberId: subscriberId,
         edition: 'offline',
         planType: 'annual',
         durationYears: 1,
-        startDate: startDate,
+        startYear: year,
+        startMonth: month,
       );
       expect(await repository.getSubscription(subscription.id), subscription);
       created.add(subscription);
@@ -231,7 +245,8 @@ void main() {
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime(2026, 1, 1),
+        startYear: 2026,
+        startMonth: 1,
       ),
       throwsStateError,
     );
@@ -245,7 +260,8 @@ void main() {
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime(2026, 1, 1),
+        startYear: 2026,
+        startMonth: 1,
       );
       await subscriberRepository.archiveSubscriber(subscriberId);
 
@@ -255,7 +271,8 @@ void main() {
           edition: 'offline',
           planType: 'annual',
           durationYears: 1,
-          startDate: DateTime(2027, 1, 2),
+          startYear: 2027,
+          startMonth: 1,
         ),
         throwsStateError,
       );
@@ -268,22 +285,24 @@ void main() {
       edition: 'offline',
       planType: 'multi_year',
       durationYears: 3,
-      startDate: DateTime(2027, 1, 1),
+      startYear: 2027,
+      startMonth: 1,
     );
     await repository.createSubscription(
       subscriberId: subscriberId,
       edition: 'online',
       planType: 'lifetime',
       durationYears: 15,
-      startDate: DateTime(2026, 1, 1),
+      startYear: 2026,
+      startMonth: 1,
     );
 
     final subscriptions = await repository.getSubscriptionsForSubscriber(
       subscriberId,
     );
     expect(subscriptions.map((item) => item.startDate), [
-      '2027-01-01',
-      '2026-01-01',
+      '2027-01',
+      '2026-01',
     ]);
   });
 
@@ -293,14 +312,15 @@ void main() {
       edition: 'online',
       planType: 'multi_year',
       durationYears: 2,
-      startDate: DateTime(2026, 2, 10),
+      startYear: 2026,
+      startMonth: 2,
     );
 
     final updated = await repository.updateSubscription(
-      created.copyWith(durationYears: 3, startDate: '2026-03-15'),
+      created.copyWith(durationYears: 3, startDate: '2026-03'),
     );
 
-    expect(updated.expiryDate, '2029-03-15');
+    expect(updated.expiryDate, '2029-02');
     expect(updated.updatedAt, isNot(created.updatedAt));
   });
 
@@ -310,15 +330,16 @@ void main() {
       edition: 'online',
       planType: 'annual',
       durationYears: 1,
-      startDate: DateTime(2026, 2, 10),
+      startYear: 2026,
+      startMonth: 2,
     );
 
     final updated = await repository.updateSubscription(
       created.copyWith(startDate: '2026-03-15T12:00:00Z'),
     );
 
-    expect(updated.startDate, '2026-03-15');
-    expect(updated.expiryDate, '2027-03-15');
+    expect(updated.startDate, '2026-03');
+    expect(updated.expiryDate, '2027-02');
   });
 
   test('rejects invalid calendar dates when updating', () async {
@@ -327,11 +348,12 @@ void main() {
       edition: 'online',
       planType: 'annual',
       durationYears: 1,
-      startDate: DateTime(2026, 2, 10),
+      startYear: 2026,
+      startMonth: 2,
     );
 
     expect(
-      repository.updateSubscription(created.copyWith(startDate: '2026-02-30')),
+      repository.updateSubscription(created.copyWith(startDate: '2026-13')),
       throwsA(isA<FormatException>()),
     );
   });
@@ -343,7 +365,8 @@ void main() {
         edition: 'print',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime(2026),
+        startYear: 2026,
+        startMonth: 1,
       ),
       throwsA(isA<Exception>()),
     );
@@ -356,7 +379,8 @@ void main() {
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime(2026, 1, 1),
+        startYear: 2026,
+        startMonth: 1,
       ),
       throwsStateError,
     );
@@ -367,7 +391,8 @@ void main() {
     edition: 'online',
     planType: 'annual',
     durationYears: 1,
-    startDate: DateTime(2026, 1, 1),
+    startYear: 2026,
+    startMonth: 1,
   );
 
   test(
@@ -389,7 +414,8 @@ void main() {
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime(2026),
+        startYear: 2026,
+        startMonth: 1,
       );
       final rows = await repository.watchArchivedSubscriptions().first;
       expect(rows, [(subscription: archived, subscriber: subscriber)]);
@@ -421,7 +447,8 @@ void main() {
           edition: 'online',
           planType: years == 1 ? 'annual' : 'multi_year',
           durationYears: years,
-          startDate: DateTime(year),
+          startYear: year,
+          startMonth: 1,
         );
     // Insert out of order: the latest start and highest ID are not the tail.
     final tail = await add(2025, 5);
@@ -456,7 +483,8 @@ void main() {
         edition: 'online',
         planType: 'annual',
         durationYears: 1,
-        startDate: DateTime(2040),
+        startYear: 2040,
+        startMonth: 1,
       );
       await expectLater(
         repository.archiveSubscription(first.id),
@@ -596,7 +624,8 @@ void main() {
           edition: 'offline',
           planType: 'annual',
           durationYears: 1,
-          startDate: DateTime(2028, 1, 1),
+          startYear: 2028,
+          startMonth: 1,
         ),
         throwsStateError,
       );

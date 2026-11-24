@@ -1,7 +1,7 @@
 # Database migrations
 
 The database uses Drift guided migrations from schema version 6 onward. The
-version 6, 7, 8, 9, and 10 schema exports are in `drift_schemas/app_database/`, and Drift
+version 6, 7, 8, 9, 10, and 11 schema exports are in `drift_schemas/app_database/`, and Drift
 generates the versioned schema helpers and migration verification database in
 `lib/data/app_database.steps.dart` and `test/drift/app_database/generated/`.
 
@@ -55,3 +55,19 @@ constraint on `subscriptions.duration_years` is updated to require
 existing lifetime subscriptions to `duration_years = 15` and recalculates
 `expiry_date` to `start_date` + 15 years before rebuilding the table with the
 new constraint.
+
+## Version 11: Month-precision subscription dates
+
+Subscription dates use month-only precision (`YYYY-MM`). Start and expiry dates
+no longer store or request days. An annual subscription starting in month M covers
+12 monthly issues through month M - 1 of the following year (e.g. `2026-01` to
+`2026-12`).
+
+The 10-to-11 migration normalizes all existing `start_date` values by truncating
+to `substr(start_date, 1, 7)` (`YYYY-MM`) and recalculates `expiry_date` using SQLite
+month arithmetic:
+`expiryYear = startYear + durationYears - (startMonth == 1 ? 1 : 0)`
+`expiryMonth = (startMonth == 1 ? 12 : startMonth - 1)`
+The subscriptions table is rebuilt using Drift's `_rebuildTable` and column
+transformers, preserving subscriber references, archive status, indexes, and
+audit history.

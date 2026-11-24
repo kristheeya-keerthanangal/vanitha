@@ -10,31 +10,24 @@ class SubscriptionStatusResolver {
     Iterable<Subscription> subscriptions, {
     DateTime? today,
   }) {
-    final date = _dateOnly(today ?? DateTime.now());
-    DateTime? latestExpiry;
+    final now = today ?? DateTime.now();
+    final currentMonth =
+        '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}';
+    String? latestExpiry;
 
     for (final subscription in subscriptions) {
       if (subscription.archivedAt != null) continue;
-      final expiryDate = _dateOnly(_parseDate(subscription.expiryDate));
-      if (latestExpiry == null || expiryDate.isAfter(latestExpiry)) {
-        latestExpiry = expiryDate;
+      final expiryMonth = subscription.expiryDate.length >= 7
+          ? subscription.expiryDate.substring(0, 7)
+          : subscription.expiryDate;
+      if (latestExpiry == null || expiryMonth.compareTo(latestExpiry) > 0) {
+        latestExpiry = expiryMonth;
       }
     }
 
     if (latestExpiry == null) return SubscriptionStatus.notSubscribed;
-    return date.isAfter(latestExpiry)
+    return currentMonth.compareTo(latestExpiry) > 0
         ? SubscriptionStatus.expired
         : SubscriptionStatus.active;
   }
-
-  static DateTime _parseDate(String value) {
-    final parsed = DateTime.tryParse(value);
-    if (parsed == null) {
-      throw FormatException('Invalid subscription date: $value');
-    }
-    return parsed;
-  }
-
-  static DateTime _dateOnly(DateTime date) =>
-      DateTime.utc(date.year, date.month, date.day);
 }

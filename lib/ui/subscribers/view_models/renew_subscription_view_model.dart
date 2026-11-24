@@ -33,7 +33,7 @@ class RenewSubscriptionViewModel extends ChangeNotifier {
     if (isSaving) return false;
     if (!rules.allows(startDate) ||
         (planType == 'multi_year' && validateDuration(duration) != null)) {
-      error = 'Check the start date and duration.';
+      error = 'Check the start month and duration.';
       notifyListeners();
       return false;
     }
@@ -48,7 +48,8 @@ class RenewSubscriptionViewModel extends ChangeNotifier {
         durationYears: planType == 'multi_year'
             ? int.parse(duration)
             : (planType == 'lifetime' ? 15 : 1),
-        startDate: startDate,
+        startYear: startDate.year,
+        startMonth: startDate.month,
       );
       return true;
     } catch (_) {

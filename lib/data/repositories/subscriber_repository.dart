@@ -163,12 +163,7 @@ class SubscriberRepository {
     if (offset < 0 || ![10, 25, 50].contains(limit)) {
       throw ArgumentError('Invalid pagination parameters');
     }
-    final literal = search
-        .trim()
-        .replaceAll('\\', '\\\\')
-        .replaceAll('%', '\\%')
-        .replaceAll('_', '\\_');
-    final filter = _subscribersFilter(literal) & _statusFilter(filterBy);
+    final filter = _subscribersFilter(search) & _statusFilter(filterBy);
     return _database.transaction(() async {
       final count = _database.subscribers.id.count();
       final countQuery = _database.selectOnly(_database.subscribers)
@@ -236,15 +231,21 @@ class SubscriberRepository {
     );
   }
 
-  Expression<bool> _subscribersFilter(String literal) {
+  Expression<bool> _subscribersFilter(String search) {
     final table = _database.subscribers;
     final active = table.archivedAt.isNull();
-    if (literal.isEmpty) return active;
+    final query = search.trim();
+    if (query.isEmpty) return active;
+    final literal = query
+        .replaceAll('\\', '\\\\')
+        .replaceAll('%', '\\%')
+        .replaceAll('_', '\\_');
     final pattern = '%$literal%';
     return active &
         (table.name.like(pattern, escapeChar: '\\') |
             table.email.like(pattern, escapeChar: '\\') |
-            table.phone.like(pattern, escapeChar: '\\'));
+            table.phone.like(pattern, escapeChar: '\\') |
+            table.postalCode.equals(query));
   }
 
   Expression<bool> _statusFilter(SubscriberFilter filter) {

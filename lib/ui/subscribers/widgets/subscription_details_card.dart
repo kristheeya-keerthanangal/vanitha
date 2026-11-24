@@ -25,8 +25,8 @@ class SubscriptionDetailsCard extends StatelessWidget {
         _ => 'Lifetime',
       },
       'Duration': '${subscription.durationYears} years',
-      'Start date': subscription.startDate,
-      'Expiry date': subscription.expiryDate,
+      'Start month': subscription.startDate,
+      'Expiry month': subscription.expiryDate,
     },
   );
 }

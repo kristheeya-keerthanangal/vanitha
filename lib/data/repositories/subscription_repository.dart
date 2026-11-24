@@ -54,12 +54,19 @@ class SubscriptionRepository {
     required String edition,
     required String planType,
     required int durationYears,
-    required DateTime startDate,
+    required int startYear,
+    required int startMonth,
   }) async {
     final now = _now();
-    final normalizedStartDate = _dateOnly(startDate);
+    if (startMonth < 1 || startMonth > 12) {
+      throw ArgumentError('Month must be between 1 and 12: $startMonth');
+    }
     final effectiveDuration = _durationForPlan(planType, durationYears);
-    final expiryDate = _addYears(normalizedStartDate, effectiveDuration);
+    final (expiryYear, expiryMonth) = _expiryMonth(
+      startYear,
+      startMonth,
+      effectiveDuration,
+    );
 
     return _database.transaction(() async {
       await _ensureActiveSubscriber(subscriberId);
@@ -71,8 +78,8 @@ class SubscriptionRepository {
               edition: edition,
               planType: planType,
               durationYears: effectiveDuration,
-              startDate: _formatDate(normalizedStartDate),
-              expiryDate: _formatDate(expiryDate),
+              startDate: _formatMonth(startYear, startMonth),
+              expiryDate: _formatMonth(expiryYear, expiryMonth),
               createdAt: Value(now),
               updatedAt: Value(now),
             ),
@@ -90,12 +97,13 @@ class SubscriptionRepository {
     required String edition,
     required String planType,
     required int durationYears,
-    required DateTime startDate,
+    required int startYear,
+    required int startMonth,
   }) => _database.transaction(() async {
     final rules = SubscriptionRenewal(
       await getSubscriptionsForSubscriber(subscriberId),
     );
-    if (!rules.allows(startDate)) {
+    if (!rules.allowsYearMonth(startYear, startMonth)) {
       throw StateError(
         'Subscription dates have changed or renewal is not allowed. Reopen the form.',
       );
@@ -105,7 +113,8 @@ class SubscriptionRepository {
       edition: edition,
       planType: planType,
       durationYears: durationYears,
-      startDate: startDate,
+      startYear: startYear,
+      startMonth: startMonth,
     );
   });
 
@@ -161,15 +170,20 @@ class SubscriptionRepository {
       if (subscription.archivedAt != previous.archivedAt) {
         throw StateError('Use archiveSubscription or restoreSubscription');
       }
-      final startDate = _parseDate(subscription.startDate);
+      final (:year, :month) = _parseMonth(subscription.startDate);
       final effectiveDuration = _durationForPlan(
         subscription.planType,
         subscription.durationYears,
       );
+      final (expiryYear, expiryMonth) = _expiryMonth(
+        year,
+        month,
+        effectiveDuration,
+      );
       final updated = subscription.copyWith(
         durationYears: effectiveDuration,
-        startDate: _formatDate(startDate),
-        expiryDate: _formatDate(_addYears(startDate, effectiveDuration)),
+        startDate: _formatMonth(year, month),
+        expiryDate: _formatMonth(expiryYear, expiryMonth),
         createdAt: previous.createdAt,
         updatedAt: nextUpdateTimestamp(previous.updatedAt),
       );
@@ -233,11 +247,15 @@ class SubscriptionRepository {
 
   String _now() => DateTime.now().toUtc().toIso8601String();
 
-  DateTime _dateOnly(DateTime date) =>
-      DateTime.utc(date.year, date.month, date.day);
-
-  DateTime _addYears(DateTime date, int years) =>
-      DateTime.utc(date.year + years, date.month, date.day);
+  (int year, int month) _expiryMonth(
+    int startYear,
+    int startMonth,
+    int durationYears,
+  ) {
+    final totalMonths =
+        startYear * 12 + (startMonth - 1) + (durationYears * 12 - 1);
+    return (totalMonths ~/ 12, totalMonths % 12 + 1);
+  }
 
   int _durationForPlan(String planType, int requestedDuration) {
     switch (planType) {
@@ -258,27 +276,19 @@ class SubscriptionRepository {
     }
   }
 
-  DateTime _parseDate(String value) {
-    final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})(?:$|T)').firstMatch(value);
-    final parsed = DateTime.tryParse(value);
-    if (match == null || parsed == null) {
-      throw FormatException('Invalid subscription start date: $value');
+  ({int year, int month}) _parseMonth(String value) {
+    final match = RegExp(r'^(\d{4})-(\d{2})').firstMatch(value);
+    if (match == null) {
+      throw FormatException('Invalid subscription month: $value');
     }
-
     final year = int.parse(match.group(1)!);
     final month = int.parse(match.group(2)!);
-    final day = int.parse(match.group(3)!);
-    final normalized = DateTime.utc(year, month, day);
-    if (normalized.year != year ||
-        normalized.month != month ||
-        normalized.day != day) {
-      throw FormatException('Invalid subscription start date: $value');
+    if (month < 1 || month > 12) {
+      throw FormatException('Invalid subscription month: $value');
     }
-    return normalized;
+    return (year: year, month: month);
   }
 
-  String _formatDate(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-'
-      '${date.month.toString().padLeft(2, '0')}-'
-      '${date.day.toString().padLeft(2, '0')}';
+  String _formatMonth(int year, int month) =>
+      '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}';
 }

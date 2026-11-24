@@ -68,7 +68,7 @@ class SubscriptionDetailsSection extends StatelessWidget {
                 value: viewModel.startDate,
                 onChanged: viewModel.setStartDate,
                 validator: (_) =>
-                    viewModel.startDate == null ? 'Select a start date' : null,
+                    viewModel.startDate == null ? 'Select a start month' : null,
               ),
             ),
           ],
