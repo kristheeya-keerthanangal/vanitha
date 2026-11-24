@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
 import 'app_database.steps.dart';
+import 'database_locator.dart';
 import 'tables/migration_snapshots.dart';
 import 'tables/subscribers.dart';
 import 'tables/subscriptions.dart';
@@ -16,7 +17,15 @@ part 'app_database.g.dart';
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
-    : super(executor ?? driftDatabase(name: 'vanithabodhini'));
+    : super(
+        executor ??
+            driftDatabase(
+              name: 'vanithabodhini',
+              native: DatabaseLocator.nativeOptions(
+                databaseName: 'vanithabodhini',
+              ),
+            ),
+      );
 
   @override
   int get schemaVersion => 12;
