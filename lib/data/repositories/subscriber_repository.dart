@@ -12,6 +12,8 @@ enum SubscriberSort { number, name }
 
 enum SubscriberFilter { all, active, expired }
 
+enum SubscriberOriginFilter { all, domestic, foreign }
+
 enum MailingListFilter { active, expired, all }
 
 class MailingListEntry {
@@ -158,12 +160,15 @@ class SubscriberRepository {
     String search = '',
     SubscriberSort sortBy = SubscriberSort.name,
     SubscriberFilter filterBy = SubscriberFilter.all,
+    SubscriberOriginFilter originFilter = SubscriberOriginFilter.all,
     bool ascending = true,
   }) {
     if (offset < 0 || ![10, 25, 50].contains(limit)) {
       throw ArgumentError('Invalid pagination parameters');
     }
-    final filter = _subscribersFilter(search) & _statusFilter(filterBy);
+    final filter = _subscribersFilter(search) &
+        _statusFilter(filterBy) &
+        _originFilter(originFilter);
     return _database.transaction(() async {
       final count = _database.subscribers.id.count();
       final countQuery = _database.selectOnly(_database.subscribers)
@@ -260,12 +265,21 @@ class SubscriberRepository {
     );
   }
 
+  Expression<bool> _originFilter(SubscriberOriginFilter filter) {
+    return switch (filter) {
+      SubscriberOriginFilter.all => const Constant(true),
+      SubscriberOriginFilter.domestic => _database.subscribers.isForeign.not(),
+      SubscriberOriginFilter.foreign => _database.subscribers.isForeign,
+    };
+  }
+
   Future<Subscriber> createSubscriber({
     required String name,
     String? email,
     String? phone,
     String? postalAddress,
     String? postalCode,
+    bool isForeign = false,
   }) async {
     final now = _now();
 
@@ -279,6 +293,7 @@ class SubscriberRepository {
               phone: Value(_optional(phone)),
               postalAddress: Value(_optional(postalAddress)),
               postalCode: Value(_optional(postalCode)),
+              isForeign: Value(isForeign),
               createdAt: Value(now),
               updatedAt: Value(now),
             ),

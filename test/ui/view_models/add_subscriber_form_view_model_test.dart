@@ -69,4 +69,17 @@ void main() {
     expect(subscription.durationYears, 15);
     expect(subscription.expiryDate, '2040-12');
   });
+
+  test('supports setting isForeign and saves it', () async {
+    expect(viewModel.isForeign, isFalse);
+    viewModel.setIsForeign(true);
+    expect(viewModel.isForeign, isTrue);
+    viewModel.setDurationYears('2');
+    expect(await viewModel.save(), isTrue);
+
+    final subscriber = await database
+        .select(database.subscribers)
+        .getSingle();
+    expect(subscriber.isForeign, isTrue);
+  });
 }

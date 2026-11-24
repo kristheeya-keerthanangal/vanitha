@@ -11,6 +11,7 @@ class ControlledRepository extends SubscriberRepository {
   final offsets = <int>[];
   final searches = <String>[];
   final filters = <SubscriberFilter>[];
+  final originFilters = <SubscriberOriginFilter>[];
   @override
   Future<SubscriberPage> getSubscribersPage({
     int offset = 0,
@@ -18,11 +19,13 @@ class ControlledRepository extends SubscriberRepository {
     String search = '',
     SubscriberSort sortBy = SubscriberSort.name,
     SubscriberFilter filterBy = SubscriberFilter.all,
+    SubscriberOriginFilter originFilter = SubscriberOriginFilter.all,
     bool ascending = true,
   }) {
     offsets.add(offset);
     searches.add(search);
     filters.add(filterBy);
+    originFilters.add(originFilter);
     final request = Completer<SubscriberPage>();
     requests.add(request);
     return request.future;
@@ -77,6 +80,31 @@ void main() {
       repository.requests[2].complete(const SubscriberPage(rows: [], total: 3));
       await tick();
       expect(model.total, 3);
+    },
+  );
+
+  test(
+    'origin filter resets paging and is included in repository requests',
+    () async {
+      repository.requests[0].complete(
+        const SubscriberPage(rows: [], total: 550),
+      );
+      await tick();
+      model.changePage(25);
+      repository.requests[1].complete(
+        const SubscriberPage(rows: [], total: 550),
+      );
+      await tick();
+
+      model.originFilterChanged(SubscriberOriginFilter.foreign);
+
+      expect(model.selectedOriginFilter, SubscriberOriginFilter.foreign);
+      expect(model.offset, 0);
+      expect(repository.offsets.last, 0);
+      expect(repository.originFilters.last, SubscriberOriginFilter.foreign);
+      repository.requests[2].complete(const SubscriberPage(rows: [], total: 5));
+      await tick();
+      expect(model.total, 5);
     },
   );
 

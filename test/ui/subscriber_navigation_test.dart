@@ -297,4 +297,80 @@ void main() {
     );
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets(
+    'origin segments filter domestic and foreign subscribers and render foreign badge',
+    (tester) async {
+      final database = AppDatabase(NativeDatabase.memory());
+      final container = ProviderContainer(
+        overrides: [databaseProvider.overrideWithValue(database)],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await database.close();
+      });
+      final repository = SubscriberRepository(database);
+      late int domesticId;
+      late int foreignId;
+      await tester.runAsync(() async {
+        final domestic = await repository.createSubscriber(
+          name: 'Domestic Reader',
+          isForeign: false,
+        );
+        final foreign = await repository.createSubscriber(
+          name: 'Foreign Reader',
+          isForeign: true,
+        );
+        domesticId = domestic.id;
+        foreignId = foreign.id;
+      });
+
+      container.read(routerProvider).go('/subscribers');
+      await tester.pumpWidget(
+        UncontrolledProviderScope(container: container, child: const MainApp()),
+      );
+      final model = container.read(subscribersViewModelProvider);
+      await tester.runAsync(model.refresh);
+      await tester.pumpAndSettle();
+
+      expect(model.total, 2);
+      expect(find.text('Domestic Reader'), findsOneWidget);
+      expect(find.text('Foreign Reader'), findsOneWidget);
+      expect(find.text('Foreign'), findsWidgets);
+
+      // Filter by Foreign
+      await tester.tap(
+        find.descendant(
+          of: find.byType(SegmentedButton<SubscriberOriginFilter>),
+          matching: find.text('Foreign'),
+        ),
+      );
+      await tester.runAsync(model.refresh);
+      await tester.pumpAndSettle();
+
+      expect(model.selectedOriginFilter, SubscriberOriginFilter.foreign);
+      expect(model.total, 1);
+      expect(model.rows.map((s) => s.id).toSet(), {foreignId});
+      expect(find.text('Foreign Reader'), findsOneWidget);
+      expect(find.text('Domestic Reader'), findsNothing);
+
+      // Filter by Domestic
+      await tester.tap(
+        find.descendant(
+          of: find.byType(SegmentedButton<SubscriberOriginFilter>),
+          matching: find.text('Domestic'),
+        ),
+      );
+      await tester.runAsync(model.refresh);
+      await tester.pumpAndSettle();
+
+      expect(model.selectedOriginFilter, SubscriberOriginFilter.domestic);
+      expect(model.total, 1);
+      expect(model.rows.map((s) => s.id).toSet(), {domesticId});
+      expect(find.text('Domestic Reader'), findsOneWidget);
+      expect(find.text('Foreign Reader'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 }

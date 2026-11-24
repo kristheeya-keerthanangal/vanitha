@@ -15,6 +15,9 @@ class Subscribers extends Table {
   TextColumn get postalAddress => text().nullable()();
   TextColumn get postalCode => text().nullable()();
 
+  BoolColumn get isForeign =>
+      boolean().withDefault(const Constant(false))();
+
   TextColumn get createdAt =>
       text().customConstraint('NOT NULL DEFAULT CURRENT_TIMESTAMP')();
 

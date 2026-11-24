@@ -30,6 +30,7 @@ class SubscribersViewModel extends ChangeNotifier {
   int _request = 0;
   bool _disposed = false;
   SubscriberFilter selectedFilter = SubscriberFilter.all;
+  SubscriberOriginFilter selectedOriginFilter = SubscriberOriginFilter.all;
 
   void searchChanged(String value) {
     search = value;
@@ -66,6 +67,12 @@ class SubscribersViewModel extends ChangeNotifier {
     refresh();
   }
 
+  void originFilterChanged(SubscriberOriginFilter filter) {
+    selectedOriginFilter = filter;
+    offset = 0;
+    refresh();
+  }
+
   Future<void> refresh() async {
     _debounce?.cancel();
     final request = ++_request;
@@ -79,6 +86,7 @@ class SubscribersViewModel extends ChangeNotifier {
         search: search,
         sortBy: sort,
         filterBy: selectedFilter,
+        originFilter: selectedOriginFilter,
         ascending: ascending,
       );
       if (_disposed || request != _request) return;
@@ -92,6 +100,7 @@ class SubscribersViewModel extends ChangeNotifier {
           search: search,
           sortBy: sort,
           filterBy: selectedFilter,
+          originFilter: selectedOriginFilter,
           ascending: ascending,
         );
       }

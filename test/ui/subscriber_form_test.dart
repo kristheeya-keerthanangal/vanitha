@@ -201,11 +201,43 @@ void main() {
     final subscriber = await database.select(database.subscribers).getSingle();
     expect(subscriber.postalAddress, '10 Main Street, Kochi, Kerala, India');
     expect(subscriber.postalCode, '0682001');
+    expect(subscriber.isForeign, isFalse);
     expect(await database.select(database.subscriptions).get(), hasLength(1));
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.text('Subscribers: 1'), findsOneWidget);
     expect(find.text('Subscriber added successfully'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('selects foreign location and dynamically adapts pincode label', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: AddSubscriberForm(
+          repository: SubscriberRegistrationRepository(database),
+        ),
+      ),
+    );
+
+    expect(find.widgetWithText(TextFormField, 'Pincode'), findsOneWidget);
+    expect(find.text('Domestic'), findsOneWidget);
+    expect(find.text('Foreign'), findsOneWidget);
+
+    await tester.tap(find.text('Foreign'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.widgetWithText(TextFormField, 'Postal / ZIP code'),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(TextFormField, 'Pincode'), findsNothing);
+
+    await tester.tap(find.text('Domestic'));
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(TextFormField, 'Pincode'), findsOneWidget);
   });
 }
 
@@ -223,6 +255,7 @@ class DelayedSubscriberRegistrationRepository
     String? phone,
     String? postalAddress,
     String? postalCode,
+    bool isForeign = false,
     required String edition,
     required String planType,
     required int durationYears,
@@ -237,6 +270,7 @@ class DelayedSubscriberRegistrationRepository
       phone: phone,
       postalAddress: postalAddress,
       postalCode: postalCode,
+      isForeign: isForeign,
       edition: edition,
       planType: planType,
       durationYears: durationYears,

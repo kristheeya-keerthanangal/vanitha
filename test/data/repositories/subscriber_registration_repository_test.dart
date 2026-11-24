@@ -29,9 +29,26 @@ void main() {
     );
 
     expect(result.subscriber.name, 'Anita Rao');
+    expect(result.subscriber.isForeign, isFalse);
     expect(result.subscription.subscriberId, result.subscriber.id);
     expect(result.subscription.expiryDate, '2027-02');
     expect(await database.select(database.auditLogs).get(), hasLength(1));
+  });
+
+  test('creates a foreign subscriber when isForeign is true', () async {
+    final result = await repository.registerSubscriber(
+      name: 'John Doe',
+      email: 'john@example.com',
+      isForeign: true,
+      edition: 'online',
+      planType: 'annual',
+      durationYears: 1,
+      startYear: 2026,
+      startMonth: 3,
+    );
+
+    expect(result.subscriber.name, 'John Doe');
+    expect(result.subscriber.isForeign, isTrue);
   });
 
   test('rolls back the subscriber when subscription creation fails', () async {

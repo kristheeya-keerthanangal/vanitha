@@ -23,6 +23,7 @@ class SubscriberRegistrationRepository {
     String? phone,
     String? postalAddress,
     String? postalCode,
+    bool isForeign = false,
     required String edition,
     required String planType,
     required int durationYears,
@@ -36,6 +37,7 @@ class SubscriberRegistrationRepository {
         phone: phone,
         postalAddress: postalAddress,
         postalCode: postalCode,
+        isForeign: isForeign,
       );
       final subscription = await _subscriptionRepository.createSubscription(
         subscriberId: subscriber.id,

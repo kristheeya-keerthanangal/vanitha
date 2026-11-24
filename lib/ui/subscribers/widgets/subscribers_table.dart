@@ -62,6 +62,7 @@ class _SubscribersTableState extends State<SubscribersTable> {
         model.pageSize,
         model.search,
         model.selectedFilter,
+        model.selectedOriginFilter,
         model.sort,
         model.ascending,
       )),

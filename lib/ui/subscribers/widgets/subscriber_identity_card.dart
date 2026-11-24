@@ -12,6 +12,7 @@ class SubscriberIdentityCard extends StatelessWidget {
     fields: {
       'Subscriber number': subscriber.displayNumber,
       'Name': subscriber.name,
+      'Region': subscriber.isForeign ? 'Foreign' : 'Domestic',
       'Created': formatIstDateTime(subscriber.createdAt),
       'Updated': formatIstDateTime(subscriber.updatedAt),
     },

@@ -72,6 +72,21 @@ class $SubscribersTable extends Subscribers
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isForeignMeta = const VerificationMeta(
+    'isForeign',
+  );
+  @override
+  late final GeneratedColumn<bool> isForeign = GeneratedColumn<bool>(
+    'is_foreign',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_foreign" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -117,6 +132,7 @@ class $SubscribersTable extends Subscribers
     phone,
     postalAddress,
     postalCode,
+    isForeign,
     createdAt,
     updatedAt,
     archivedAt,
@@ -171,6 +187,12 @@ class $SubscribersTable extends Subscribers
         postalCode.isAcceptableOrUnknown(data['postal_code']!, _postalCodeMeta),
       );
     }
+    if (data.containsKey('is_foreign')) {
+      context.handle(
+        _isForeignMeta,
+        isForeign.isAcceptableOrUnknown(data['is_foreign']!, _isForeignMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -222,6 +244,10 @@ class $SubscribersTable extends Subscribers
         DriftSqlType.string,
         data['${effectivePrefix}postal_code'],
       ),
+      isForeign: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_foreign'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at'],
@@ -250,6 +276,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
   final String? phone;
   final String? postalAddress;
   final String? postalCode;
+  final bool isForeign;
   final String createdAt;
   final String updatedAt;
   final String? archivedAt;
@@ -260,6 +287,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
     this.phone,
     this.postalAddress,
     this.postalCode,
+    required this.isForeign,
     required this.createdAt,
     required this.updatedAt,
     this.archivedAt,
@@ -281,6 +309,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
     if (!nullToAbsent || postalCode != null) {
       map['postal_code'] = Variable<String>(postalCode);
     }
+    map['is_foreign'] = Variable<bool>(isForeign);
     map['created_at'] = Variable<String>(createdAt);
     map['updated_at'] = Variable<String>(updatedAt);
     if (!nullToAbsent || archivedAt != null) {
@@ -305,6 +334,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
       postalCode: postalCode == null && nullToAbsent
           ? const Value.absent()
           : Value(postalCode),
+      isForeign: Value(isForeign),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       archivedAt: archivedAt == null && nullToAbsent
@@ -325,6 +355,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
       phone: serializer.fromJson<String?>(json['phone']),
       postalAddress: serializer.fromJson<String?>(json['postalAddress']),
       postalCode: serializer.fromJson<String?>(json['postalCode']),
+      isForeign: serializer.fromJson<bool>(json['isForeign']),
       createdAt: serializer.fromJson<String>(json['createdAt']),
       updatedAt: serializer.fromJson<String>(json['updatedAt']),
       archivedAt: serializer.fromJson<String?>(json['archivedAt']),
@@ -340,6 +371,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
       'phone': serializer.toJson<String?>(phone),
       'postalAddress': serializer.toJson<String?>(postalAddress),
       'postalCode': serializer.toJson<String?>(postalCode),
+      'isForeign': serializer.toJson<bool>(isForeign),
       'createdAt': serializer.toJson<String>(createdAt),
       'updatedAt': serializer.toJson<String>(updatedAt),
       'archivedAt': serializer.toJson<String?>(archivedAt),
@@ -353,6 +385,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
     Value<String?> phone = const Value.absent(),
     Value<String?> postalAddress = const Value.absent(),
     Value<String?> postalCode = const Value.absent(),
+    bool? isForeign,
     String? createdAt,
     String? updatedAt,
     Value<String?> archivedAt = const Value.absent(),
@@ -365,6 +398,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
         ? postalAddress.value
         : this.postalAddress,
     postalCode: postalCode.present ? postalCode.value : this.postalCode,
+    isForeign: isForeign ?? this.isForeign,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
@@ -381,6 +415,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
       postalCode: data.postalCode.present
           ? data.postalCode.value
           : this.postalCode,
+      isForeign: data.isForeign.present ? data.isForeign.value : this.isForeign,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       archivedAt: data.archivedAt.present
@@ -398,6 +433,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
           ..write('phone: $phone, ')
           ..write('postalAddress: $postalAddress, ')
           ..write('postalCode: $postalCode, ')
+          ..write('isForeign: $isForeign, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('archivedAt: $archivedAt')
@@ -413,6 +449,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
     phone,
     postalAddress,
     postalCode,
+    isForeign,
     createdAt,
     updatedAt,
     archivedAt,
@@ -427,6 +464,7 @@ class Subscriber extends DataClass implements Insertable<Subscriber> {
           other.phone == this.phone &&
           other.postalAddress == this.postalAddress &&
           other.postalCode == this.postalCode &&
+          other.isForeign == this.isForeign &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.archivedAt == this.archivedAt);
@@ -439,6 +477,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
   final Value<String?> phone;
   final Value<String?> postalAddress;
   final Value<String?> postalCode;
+  final Value<bool> isForeign;
   final Value<String> createdAt;
   final Value<String> updatedAt;
   final Value<String?> archivedAt;
@@ -449,6 +488,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
     this.phone = const Value.absent(),
     this.postalAddress = const Value.absent(),
     this.postalCode = const Value.absent(),
+    this.isForeign = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -460,6 +500,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
     this.phone = const Value.absent(),
     this.postalAddress = const Value.absent(),
     this.postalCode = const Value.absent(),
+    this.isForeign = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -471,6 +512,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
     Expression<String>? phone,
     Expression<String>? postalAddress,
     Expression<String>? postalCode,
+    Expression<bool>? isForeign,
     Expression<String>? createdAt,
     Expression<String>? updatedAt,
     Expression<String>? archivedAt,
@@ -482,6 +524,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
       if (phone != null) 'phone': phone,
       if (postalAddress != null) 'postal_address': postalAddress,
       if (postalCode != null) 'postal_code': postalCode,
+      if (isForeign != null) 'is_foreign': isForeign,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (archivedAt != null) 'archived_at': archivedAt,
@@ -495,6 +538,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
     Value<String?>? phone,
     Value<String?>? postalAddress,
     Value<String?>? postalCode,
+    Value<bool>? isForeign,
     Value<String>? createdAt,
     Value<String>? updatedAt,
     Value<String?>? archivedAt,
@@ -506,6 +550,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
       phone: phone ?? this.phone,
       postalAddress: postalAddress ?? this.postalAddress,
       postalCode: postalCode ?? this.postalCode,
+      isForeign: isForeign ?? this.isForeign,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       archivedAt: archivedAt ?? this.archivedAt,
@@ -533,6 +578,9 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
     if (postalCode.present) {
       map['postal_code'] = Variable<String>(postalCode.value);
     }
+    if (isForeign.present) {
+      map['is_foreign'] = Variable<bool>(isForeign.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<String>(createdAt.value);
     }
@@ -554,6 +602,7 @@ class SubscribersCompanion extends UpdateCompanion<Subscriber> {
           ..write('phone: $phone, ')
           ..write('postalAddress: $postalAddress, ')
           ..write('postalCode: $postalCode, ')
+          ..write('isForeign: $isForeign, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('archivedAt: $archivedAt')
@@ -1931,6 +1980,7 @@ typedef $$SubscribersTableCreateCompanionBuilder =
       Value<String?> phone,
       Value<String?> postalAddress,
       Value<String?> postalCode,
+      Value<bool> isForeign,
       Value<String> createdAt,
       Value<String> updatedAt,
       Value<String?> archivedAt,
@@ -1943,6 +1993,7 @@ typedef $$SubscribersTableUpdateCompanionBuilder =
       Value<String?> phone,
       Value<String?> postalAddress,
       Value<String?> postalCode,
+      Value<bool> isForeign,
       Value<String> createdAt,
       Value<String> updatedAt,
       Value<String?> archivedAt,
@@ -2025,6 +2076,11 @@ class $$SubscribersTableFilterComposer
 
   ColumnFilters<String> get postalCode => $composableBuilder(
     column: $table.postalCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isForeign => $composableBuilder(
+    column: $table.isForeign,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2133,6 +2189,11 @@ class $$SubscribersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isForeign => $composableBuilder(
+    column: $table.isForeign,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -2179,6 +2240,9 @@ class $$SubscribersTableAnnotationComposer
     column: $table.postalCode,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get isForeign =>
+      $composableBuilder(column: $table.isForeign, builder: (column) => column);
 
   GeneratedColumn<String> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -2276,6 +2340,7 @@ class $$SubscribersTableTableManager
                 Value<String?> phone = const Value.absent(),
                 Value<String?> postalAddress = const Value.absent(),
                 Value<String?> postalCode = const Value.absent(),
+                Value<bool> isForeign = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
                 Value<String?> archivedAt = const Value.absent(),
@@ -2286,6 +2351,7 @@ class $$SubscribersTableTableManager
                 phone: phone,
                 postalAddress: postalAddress,
                 postalCode: postalCode,
+                isForeign: isForeign,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 archivedAt: archivedAt,
@@ -2298,6 +2364,7 @@ class $$SubscribersTableTableManager
                 Value<String?> phone = const Value.absent(),
                 Value<String?> postalAddress = const Value.absent(),
                 Value<String?> postalCode = const Value.absent(),
+                Value<bool> isForeign = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
                 Value<String?> archivedAt = const Value.absent(),
@@ -2308,6 +2375,7 @@ class $$SubscribersTableTableManager
                 phone: phone,
                 postalAddress: postalAddress,
                 postalCode: postalCode,
+                isForeign: isForeign,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 archivedAt: archivedAt,

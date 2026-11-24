@@ -14,6 +14,7 @@ import 'generated/schema_v8.dart' as v8;
 import 'generated/schema_v9.dart' as v9;
 import 'generated/schema_v10.dart' as v10;
 import 'generated/schema_v11.dart' as v11;
+import 'generated/schema_v12.dart' as v12;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -544,6 +545,40 @@ void main() {
         expect(subscriptions[3].id, 34);
         expect(subscriptions[3].startDate, '2026-01');
         expect(subscriptions[3].expiryDate, '2040-12');
+
+        expect(
+          await db.customSelect('PRAGMA foreign_key_check').get(),
+          isEmpty,
+        );
+      },
+    );
+  });
+
+  test('v11 to v12 adds is_foreign with default false and preserves data', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 11,
+      newVersion: 12,
+      createOld: v11.DatabaseAtV11.new,
+      createNew: v12.DatabaseAtV12.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch.insertAll(oldDb.subscribers, [
+          const v11.SubscribersData(
+            id: 17,
+            name: 'Existing Subscriber',
+            email: 'reader@example.com',
+            createdAt: '2026-01-01',
+            updatedAt: '2026-01-01',
+          ),
+        ]);
+      },
+      validateItems: (db) async {
+        final subscribers = await db.select(db.subscribers).get();
+        expect(subscribers, hasLength(1));
+        final subscriber = subscribers.single;
+        expect(subscriber.id, 17);
+        expect(subscriber.name, 'Existing Subscriber');
+        expect(subscriber.isForeign, 0);
 
         expect(
           await db.customSelect('PRAGMA foreign_key_check').get(),

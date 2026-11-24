@@ -12,6 +12,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
   String phone = '';
   String postalAddress = '';
   String postalCode = '';
+  bool isForeign = false;
   String? edition;
   String? planType;
   String durationYears = '';
@@ -38,6 +39,8 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
   void setPostalAddress(String value) => _set(() => postalAddress = value);
 
   void setPostalCode(String value) => _set(() => postalCode = value);
+
+  void setIsForeign(bool value) => _set(() => isForeign = value);
 
   void setEdition(String? value) {
     edition = value;
@@ -124,6 +127,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
         phone: phone,
         postalAddress: postalAddress,
         postalCode: postalCode,
+        isForeign: isForeign,
         edition: edition!,
         planType: selectedPlan,
         durationYears: effectiveDuration,

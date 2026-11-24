@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'vanithabodhini'));
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -202,6 +202,9 @@ class AppDatabase extends _$AppDatabase {
           ),
         },
       );
+    },
+    from11To12: (m, schema) async {
+      await m.addColumn(schema.subscribers, schema.subscribers.isForeign);
     },
     from7To8: (m, schema) async {
       // Payment status is no longer part of the subscription model. Rebuild

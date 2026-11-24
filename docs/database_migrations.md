@@ -1,7 +1,7 @@
 # Database migrations
 
 The database uses Drift guided migrations from schema version 6 onward. The
-version 6, 7, 8, 9, 10, and 11 schema exports are in `drift_schemas/app_database/`, and Drift
+version 6, 7, 8, 9, 10, 11, and 12 schema exports are in `drift_schemas/app_database/`, and Drift
 generates the versioned schema helpers and migration verification database in
 `lib/data/app_database.steps.dart` and `test/drift/app_database/generated/`.
 
@@ -71,3 +71,10 @@ month arithmetic:
 The subscriptions table is rebuilt using Drift's `_rebuildTable` and column
 transformers, preserving subscriber references, archive status, indexes, and
 audit history.
+
+## Version 12: Foreign subscriber tracking
+
+Subscribers include an `is_foreign` boolean column (default `0`, Domestic).
+The 11-to-12 migration adds the column using SQLite's native `ALTER TABLE
+subscribers ADD COLUMN is_foreign INTEGER NOT NULL DEFAULT 0`, preserving all
+existing subscriber records without requiring a table rebuild.
