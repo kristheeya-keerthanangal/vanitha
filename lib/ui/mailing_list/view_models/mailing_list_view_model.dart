@@ -10,6 +10,8 @@ import '../../../mailing/mailing_pdf_printer.dart';
 import '../../../providers/database_provider.dart';
 
 export '../../../mailing/mailing_layout.dart';
+export '../../../data/repositories/subscriber_repository.dart'
+    show MailingListFilter;
 
 final mailingPdfProvider = Provider<MailingPdf>((ref) => MailingPdf());
 final mailingPdfFileProvider = Provider<MailingPdfFile>(
@@ -61,6 +63,7 @@ class MailingListViewModel extends ChangeNotifier {
   MailingOrientation orientation = MailingOrientation.portrait;
   MailingLabelSize labelSize = MailingLabelSize.small;
   MailingOrdering ordering = MailingOrdering.name;
+  MailingListFilter filter = MailingListFilter.active;
   bool cuttingGuides = true;
   bool loading = true;
   String? error;
@@ -117,6 +120,12 @@ class MailingListViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void changeFilter(MailingListFilter value) {
+    if (outputBusy || filter == value) return;
+    filter = value;
+    refresh();
+  }
+
   void _orderRows() {
     final sorted = [..._entries];
     if (ordering == MailingOrdering.postalCode) {
@@ -144,7 +153,7 @@ class MailingListViewModel extends ChangeNotifier {
     fittingFailures = const [];
     notifyListeners();
     try {
-      final entries = await _repository.getMailingList();
+      final entries = await _repository.getMailingList(filter: filter);
       if (_disposed || request != _request) return;
       _entries = entries;
       _orderRows();

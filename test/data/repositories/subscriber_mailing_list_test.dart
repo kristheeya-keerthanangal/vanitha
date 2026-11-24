@@ -21,6 +21,7 @@ void main() {
   });
 
   test('returns all non-archived subscribers without a page limit', () async {
+    final subscriptions = SubscriptionRepository(database);
     await database.batch(
       (batch) => batch.insertAll(database.subscribers, [
         for (var i = 0; i < 125; i++)
@@ -31,7 +32,27 @@ void main() {
           ),
       ]),
     );
+    await database.batch(
+      (batch) => batch.insertAll(database.subscriptions, [
+        for (var i = 1; i <= 125; i++)
+          SubscriptionsCompanion.insert(
+            subscriberId: i,
+            edition: 'offline',
+            planType: 'annual',
+            durationYears: 1,
+            startDate: '2026-01-01',
+            expiryDate: '2099-12-31',
+          ),
+      ]),
+    );
     final archived = await repository.createSubscriber(name: 'Archived');
+    await subscriptions.createSubscription(
+      subscriberId: archived.id,
+      edition: 'offline',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: DateTime.now(),
+    );
     await repository.archiveSubscriber(archived.id);
 
     final rows = await repository.getMailingList();
@@ -53,8 +74,19 @@ void main() {
   test(
     'orders names case-insensitively, breaks ties by ID, and puts missing PINs last',
     () async {
-      Future<Subscriber> add(String name, String? pin) =>
-          repository.createSubscriber(name: name, postalCode: pin);
+      final subscriptions = SubscriptionRepository(database);
+      Future<Subscriber> add(String name, String? pin) async {
+        final subscriber =
+            await repository.createSubscriber(name: name, postalCode: pin);
+        await subscriptions.createSubscription(
+          subscriberId: subscriber.id,
+          edition: 'offline',
+          planType: 'annual',
+          durationYears: 1,
+          startDate: DateTime.now(),
+        );
+        return subscriber;
+      }
 
       final missingZ = await add('Zara', null);
       final zara = await add('Zara', '100001');
@@ -99,9 +131,16 @@ void main() {
           edition: edition,
           planType: 'annual',
           durationYears: 1,
-          startDate: DateTime(2020),
+          startDate: DateTime.now(),
         );
       }
+      await subscriptions.createSubscription(
+        subscriberId: second.id,
+        edition: 'offline',
+        planType: 'annual',
+        durationYears: 1,
+        startDate: DateTime.now(),
+      );
 
       final rows = await repository.getMailingList();
       expect(rows.map((row) => row.subscriberId), [first.id, second.id]);
@@ -130,6 +169,16 @@ void main() {
                   postalCode: Value(pin),
                 ),
               );
+          await database.into(database.subscriptions).insert(
+            SubscriptionsCompanion.insert(
+              subscriberId: id,
+              edition: 'offline',
+              planType: 'annual',
+              durationYears: 1,
+              startDate: '2026-01-01',
+              expiryDate: '2099-12-31',
+            ),
+          );
           expected[id] = (
             address,
             pin,
@@ -164,4 +213,162 @@ void main() {
       ]);
     },
   );
+
+  test('filters mailing list by active, expired, and all for offline edition', () async {
+    final subscriptions = SubscriptionRepository(database);
+    final today = DateTime.now();
+
+    // 1. Active offline subscriber
+    final activeOffline = await repository.createSubscriber(
+      name: 'Active Offline',
+    );
+    await subscriptions.createSubscription(
+      subscriberId: activeOffline.id,
+      edition: 'offline',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: today,
+    );
+
+    // 2. Expired offline subscriber
+    final expiredOffline = await repository.createSubscriber(
+      name: 'Expired Offline',
+    );
+    await subscriptions.createSubscription(
+      subscriberId: expiredOffline.id,
+      edition: 'offline',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: DateTime(today.year - 3, today.month, today.day),
+    );
+
+    // 3. Online-only active subscriber
+    final activeOnline = await repository.createSubscriber(
+      name: 'Active Online',
+    );
+    await subscriptions.createSubscription(
+      subscriberId: activeOnline.id,
+      edition: 'online',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: today,
+    );
+
+    // 4. Online-only expired subscriber
+    final expiredOnline = await repository.createSubscriber(
+      name: 'Expired Online',
+    );
+    await subscriptions.createSubscription(
+      subscriberId: expiredOnline.id,
+      edition: 'online',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: DateTime(today.year - 3, today.month, today.day),
+    );
+
+    // 5. Never subscribed subscriber
+    final neverSubscribed = await repository.createSubscriber(
+      name: 'Never Subscribed',
+    );
+
+    // 6. Mixed subscriber (active offline and expired offline)
+    final mixedOffline = await repository.createSubscriber(
+      name: 'Mixed Offline',
+    );
+    await subscriptions.createSubscription(
+      subscriberId: mixedOffline.id,
+      edition: 'offline',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: DateTime(today.year - 3, today.month, today.day),
+    );
+    await subscriptions.createSubscription(
+      subscriberId: mixedOffline.id,
+      edition: 'offline',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: today,
+    );
+
+    // Test Active filter (default)
+    final activeList = await repository.getMailingList();
+    expect(
+      activeList.map((e) => e.subscriberId).toSet(),
+      {activeOffline.id, mixedOffline.id},
+    );
+
+    // Test Expired filter
+    final expiredList = await repository.getMailingList(
+      filter: MailingListFilter.expired,
+    );
+    expect(
+      expiredList.map((e) => e.subscriberId).toSet(),
+      {expiredOffline.id},
+    );
+
+    // Test All filter: includes active, expired, online, and never-subscribed users
+    final allList = await repository.getMailingList(
+      filter: MailingListFilter.all,
+    );
+    expect(
+      allList.map((e) => e.subscriberId).toSet(),
+      {
+        activeOffline.id,
+        expiredOffline.id,
+        activeOnline.id,
+        expiredOnline.id,
+        neverSubscribed.id,
+        mixedOffline.id,
+      },
+    );
+  });
+
+  test('ignores archived subscriptions when determining offline mailing status', () async {
+    final subscriptions = SubscriptionRepository(database);
+    final today = DateTime.now();
+
+    final subscriber = await repository.createSubscriber(name: 'Archived Sub');
+    final activeSub = await subscriptions.createSubscription(
+      subscriberId: subscriber.id,
+      edition: 'offline',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: today,
+    );
+    final expiredSub = await subscriptions.createSubscription(
+      subscriberId: subscriber.id,
+      edition: 'offline',
+      planType: 'annual',
+      durationYears: 1,
+      startDate: DateTime(today.year - 3, today.month, today.day),
+    );
+
+    // Initially active
+    expect(
+      (await repository.getMailingList()).map((e) => e.subscriberId),
+      [subscriber.id],
+    );
+
+    // Archive the active subscription -> should now be expired
+    await subscriptions.archiveSubscription(activeSub.id);
+    expect(await repository.getMailingList(), isEmpty);
+    expect(
+      (await repository.getMailingList(filter: MailingListFilter.expired))
+          .map((e) => e.subscriberId),
+      [subscriber.id],
+    );
+
+    // Archive the expired subscription -> should now be notSubscribed (not in active or expired, but in all)
+    await subscriptions.archiveSubscription(expiredSub.id);
+    expect(await repository.getMailingList(), isEmpty);
+    expect(
+      await repository.getMailingList(filter: MailingListFilter.expired),
+      isEmpty,
+    );
+    expect(
+      (await repository.getMailingList(filter: MailingListFilter.all))
+          .map((e) => e.subscriberId),
+      [subscriber.id],
+    );
+  });
 }

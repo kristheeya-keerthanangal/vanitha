@@ -43,29 +43,43 @@ class SubscriptionExpiry {
   }
 
   /// Returns the SQL predicate for an active subscriber having a subscription.
-  Expression<bool> hasSubscriptionForSubscriber(Expression<int> subscriberId) {
-    return _hasSubscriptionForSubscriber(subscriberId);
+  Expression<bool> hasSubscriptionForSubscriber(
+    Expression<int> subscriberId, {
+    String? edition,
+  }) {
+    return _hasSubscriptionForSubscriber(subscriberId, edition: edition);
   }
 
-  Expression<bool> _hasSubscriptionForSubscriber(Expression<int> subscriberId) {
+  Expression<bool> _hasSubscriptionForSubscriber(
+    Expression<int> subscriberId, {
+    String? edition,
+  }) {
     final subscriptions = _database.select(_database.subscriptions)
       ..where(
         (row) =>
-            row.subscriberId.equalsExp(subscriberId) & row.archivedAt.isNull(),
+            row.subscriberId.equalsExp(subscriberId) &
+            row.archivedAt.isNull() &
+            (edition == null
+                ? const Constant(true)
+                : row.edition.equals(edition)),
       );
     return existsQuery(subscriptions);
   }
 
   Expression<bool> _hasSubscriptionMatching(
     Expression<int> subscriberId,
-    Expression<bool> Function(Subscriptions row, String todayDate) predicate,
-  ) {
+    Expression<bool> Function(Subscriptions row, String todayDate) predicate, {
+    String? edition,
+  }) {
     final todayDate = today();
     final subscriptions = _database.select(_database.subscriptions)
       ..where(
         (row) =>
             row.subscriberId.equalsExp(subscriberId) &
             row.archivedAt.isNull() &
+            (edition == null
+                ? const Constant(true)
+                : row.edition.equals(edition)) &
             predicate(row, todayDate),
       );
     return existsQuery(subscriptions);
@@ -74,12 +88,17 @@ class SubscriptionExpiry {
   /// Returns the SQL predicate matching the shared subscriber status rules.
   Expression<bool> statusForSubscriber(
     SubscriptionStatus status,
-    Expression<int> subscriberId,
-  ) {
-    final hasSubscription = _hasSubscriptionForSubscriber(subscriberId);
+    Expression<int> subscriberId, {
+    String? edition,
+  }) {
+    final hasSubscription = _hasSubscriptionForSubscriber(
+      subscriberId,
+      edition: edition,
+    );
     final hasActiveSubscription = _hasSubscriptionMatching(
       subscriberId,
       (row, todayDate) => row.expiryDate.isSmallerThanValue(todayDate).not(),
+      edition: edition,
     );
 
     return switch (status) {

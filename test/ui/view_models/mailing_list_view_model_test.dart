@@ -296,6 +296,8 @@ void main() {
       expect(model.canPreview, isFalse);
       model.changeOrientation(MailingOrientation.landscape);
       expect(model.orientation, MailingOrientation.portrait);
+      model.changeFilter(MailingListFilter.expired);
+      expect(model.filter, MailingListFilter.active);
       await model.refresh();
       await model.savePdf();
       await model.printPdf();
@@ -359,7 +361,30 @@ void main() {
     expect(model.labelSize.heightMm, 30);
     expect(model.ordering, MailingOrdering.name);
     expect(model.cuttingGuides, isTrue);
+    expect(model.filter, MailingListFilter.active);
   });
+
+  test(
+    'changing filter updates setting, invalidates preview, and requests new data',
+    () async {
+      await load();
+      expect(repository.filters.last, MailingListFilter.active);
+      await preparePreview();
+      expect(model.preview, isNotNull);
+
+      model.changeFilter(MailingListFilter.expired);
+      expect(model.filter, MailingListFilter.expired);
+      expect(model.preview, isNull);
+      expect(model.previewInvalidated, isTrue);
+      expect(repository.filters.last, MailingListFilter.expired);
+
+      final expiredEntries = [mailingEntries.first];
+      repository.requests.last.complete(expiredEntries);
+      await Future<void>.delayed(Duration.zero);
+      expect(model.rows, expiredEntries);
+      expect(model.total, 1);
+    },
+  );
 
   test(
     'loads full counts and counts each incomplete subscriber once',

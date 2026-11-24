@@ -301,6 +301,16 @@ class _MailingSettings extends StatelessWidget {
         },
         onChanged: model.outputBusy ? null : model.changeOrdering,
       ),
+      _setting<MailingListFilter>(
+        label: 'Subscription status',
+        value: model.filter,
+        options: const {
+          MailingListFilter.active: 'Active',
+          MailingListFilter.expired: 'Expired',
+          MailingListFilter.all: 'All',
+        },
+        onChanged: model.outputBusy ? null : model.changeFilter,
+      ),
       _setting<String>(
         label: 'Font size',
         value: 'Automatic',

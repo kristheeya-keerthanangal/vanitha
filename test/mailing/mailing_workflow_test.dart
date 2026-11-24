@@ -108,6 +108,19 @@ void main() {
           ),
       ]),
     );
+    await database.batch(
+      (batch) => batch.insertAll(database.subscriptions, [
+        for (var i = 1; i <= 32; i++)
+          SubscriptionsCompanion.insert(
+            subscriberId: i,
+            edition: 'offline',
+            planType: 'annual',
+            durationYears: 1,
+            startDate: '2026-01-01',
+            expiryDate: '2099-12-31',
+          ),
+      ]),
+    );
     await model.refresh();
   }
 
@@ -217,6 +230,16 @@ void main() {
         name: 'Long address',
         postalAddress: List.filled(8, 'Address line').join('\n'),
         postalCode: '682001',
+      );
+      await database.into(database.subscriptions).insert(
+        SubscriptionsCompanion.insert(
+          subscriberId: subscriber.id,
+          edition: 'offline',
+          planType: 'annual',
+          durationYears: 1,
+          startDate: '2026-01-01',
+          expiryDate: '2099-12-31',
+        ),
       );
       await model.refresh();
       await model.previewPdf();

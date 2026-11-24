@@ -227,8 +227,14 @@ void main() {
       );
       expect(find.text('View affected subscribers'), findsOneWidget);
       expect(find.byType(SegmentedButton), findsNothing);
-      expect(find.text('Active'), findsNothing);
-      expect(find.text('Expired'), findsNothing);
+      expect(
+        tester
+            .widget<DropdownButton<MailingListFilter>>(
+              find.byType(DropdownButton<MailingListFilter>),
+            )
+            .value,
+        MailingListFilter.active,
+      );
       for (final entry in mailingEntries) {
         await tester.ensureVisible(find.byKey(ValueKey(entry.subscriberId)));
         expect(find.text(entry.name), findsOneWidget);
@@ -369,5 +375,29 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('allows filtering by subscription status', (tester) async {
+    await pumpPage(tester);
+    await load(tester);
+    expect(repository.filters.last, MailingListFilter.active);
+
+    final dropdown = find.byType(DropdownButton<MailingListFilter>);
+    await tester.ensureVisible(dropdown);
+    await tester.tap(dropdown);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Expired').last);
+    await tester.pump();
+    expect(repository.filters.last, MailingListFilter.expired);
+    repository.requests.last.complete([]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(dropdown);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All').last);
+    await tester.pump();
+    expect(repository.filters.last, MailingListFilter.all);
+    repository.requests.last.complete(mailingEntries);
+    await tester.pumpAndSettle();
   });
 }

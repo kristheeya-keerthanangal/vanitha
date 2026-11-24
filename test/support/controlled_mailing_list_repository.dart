@@ -6,9 +6,13 @@ class ControlledMailingListRepository extends SubscriberRepository {
   ControlledMailingListRepository(super.database);
 
   final requests = <Completer<List<MailingListEntry>>>[];
+  final filters = <MailingListFilter>[];
 
   @override
-  Future<List<MailingListEntry>> getMailingList() {
+  Future<List<MailingListEntry>> getMailingList({
+    MailingListFilter filter = MailingListFilter.active,
+  }) {
+    filters.add(filter);
     final request = Completer<List<MailingListEntry>>();
     requests.add(request);
     return request.future;

@@ -12,6 +12,8 @@ enum SubscriberSort { number, name }
 
 enum SubscriberFilter { all, active, expired }
 
+enum MailingListFilter { active, expired, all }
+
 class MailingListEntry {
   const MailingListEntry({
     required this.subscriberId,
@@ -103,8 +105,24 @@ class SubscriberRepository {
   }
 
   // Missing PIN codes come last; each group is ordered by name, then ID.
-  Future<List<MailingListEntry>> getMailingList() async {
+  Future<List<MailingListEntry>> getMailingList({
+    MailingListFilter filter = MailingListFilter.active,
+  }) async {
     final table = _database.subscribers;
+    final statusPredicate = switch (filter) {
+      MailingListFilter.active => _subscriptionExpiry.statusForSubscriber(
+        SubscriptionStatus.active,
+        table.id,
+        edition: 'offline',
+      ),
+      MailingListFilter.expired => _subscriptionExpiry.statusForSubscriber(
+        SubscriptionStatus.expired,
+        table.id,
+        edition: 'offline',
+      ),
+      MailingListFilter.all => const Constant(true),
+    };
+
     final query = _database.selectOnly(table)
       ..addColumns([
         table.id,
@@ -112,7 +130,7 @@ class SubscriberRepository {
         table.postalAddress,
         table.postalCode,
       ])
-      ..where(table.archivedAt.isNull())
+      ..where(table.archivedAt.isNull() & statusPredicate)
       ..orderBy([
         OrderingTerm.asc(table.name.collate(Collate.noCase)),
         OrderingTerm.asc(table.id),

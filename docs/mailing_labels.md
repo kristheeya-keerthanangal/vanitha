@@ -1,9 +1,12 @@
 # Mailing-label PDFs
 
-The mailing list includes every non-archived subscriber, irrespective of edition
-or subscription status. The current Name or PIN code ordering is used for the PDF.
-Incomplete details are flagged in the page, but subscribers remain included and
-warning text is never added to labels.
+The mailing list includes non-archived subscribers filtered by subscription
+status (Active by default, Expired, or All subscribers). By default, only
+subscribers with an active offline edition subscription are shown. The All
+option includes not-subscribed users as well. Online-only subscriptions do not
+qualify for the Active or Expired mailing lists. The current Name or PIN code
+ordering is used for the PDF. Incomplete details are flagged in the page, but
+subscribers remain included and warning text is never added to labels.
 
 The agreed layout uses A4 paper in portrait or landscape, 10 mm margins on every
 side, no gaps between labels, and 2 mm padding inside each label. Labels retain
