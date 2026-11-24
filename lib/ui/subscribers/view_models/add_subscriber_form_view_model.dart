@@ -1,25 +1,17 @@
-import 'package:flutter/foundation.dart';
-
 import '../../../data/repositories/subscriber_registration_repository.dart';
+import 'subscriber_form_view_model.dart';
 
-class AddSubscriberFormViewModel extends ChangeNotifier {
+class AddSubscriberFormViewModel extends SubscriberFormViewModel {
   AddSubscriberFormViewModel(this._repository);
 
   final SubscriberRegistrationRepository _repository;
 
-  String name = '';
-  String email = '';
-  String phone = '';
-  String postalAddress = '';
-  String postalCode = '';
-  bool isForeign = false;
   String? edition;
   String? planType;
   String durationYears = '';
   DateTime? startDate;
   String? submitError;
   bool isSaving = false;
-  bool _disposed = false;
 
   bool get showsDuration => planType == 'multi_year';
 
@@ -29,18 +21,6 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
     return '${date.year.toString().padLeft(4, '0')}-'
         '${date.month.toString().padLeft(2, '0')}';
   }
-
-  void setName(String value) => _set(() => name = value);
-
-  void setEmail(String value) => _set(() => email = value);
-
-  void setPhone(String value) => _set(() => phone = value);
-
-  void setPostalAddress(String value) => _set(() => postalAddress = value);
-
-  void setPostalCode(String value) => _set(() => postalCode = value);
-
-  void setIsForeign(bool value) => _set(() => isForeign = value);
 
   void setEdition(String? value) {
     edition = value;
@@ -57,30 +37,14 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setDurationYears(String value) => _set(() => durationYears = value);
+  void setDurationYears(String value) {
+    durationYears = value;
+    if (!isDisposed) notifyListeners();
+  }
 
   void setStartDate(DateTime value) {
     startDate = value;
     notifyListeners();
-  }
-
-  String? validateRequired(String? value, String message) {
-    return value == null || value.trim().isEmpty ? message : null;
-  }
-
-  String? validateEmail(String? value) {
-    if (value == null || value.trim().isEmpty) return null;
-    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value.trim())
-        ? null
-        : 'Enter a valid email address';
-  }
-
-  String? validatePhone(String? value) {
-    if (value == null || value.trim().isEmpty) return null;
-    final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
-    return digits.length >= 7 && digits.length <= 15
-        ? null
-        : 'Enter a valid phone number';
   }
 
   String? validateDuration(String? value) {
@@ -96,7 +60,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
   }
 
   Future<bool> save() async {
-    if (_disposed || isSaving) return false;
+    if (isDisposed || isSaving) return false;
 
     final selectedPlan = planType;
     final selectedStartDate = startDate;
@@ -105,20 +69,20 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
         selectedPlan == null ||
         selectedStartDate == null) {
       submitError = 'Please complete all required fields.';
-      if (!_disposed) notifyListeners();
+      if (!isDisposed) notifyListeners();
       return false;
     }
 
     final effectiveDuration = _durationForPlan(selectedPlan);
     if (effectiveDuration == null) {
       submitError = validateDuration(durationYears);
-      if (!_disposed) notifyListeners();
+      if (!isDisposed) notifyListeners();
       return false;
     }
 
     isSaving = true;
     submitError = null;
-    if (_disposed) return false;
+    if (isDisposed) return false;
     notifyListeners();
     try {
       await _repository.registerSubscriber(
@@ -134,12 +98,12 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
         startYear: selectedStartDate.year,
         startMonth: selectedStartDate.month,
       );
-      if (_disposed) return true;
+      if (isDisposed) return true;
       isSaving = false;
       notifyListeners();
       return true;
     } catch (_) {
-      if (_disposed) return false;
+      if (isDisposed) return false;
       isSaving = false;
       submitError = 'Unable to add subscriber. Please check the details.';
       notifyListeners();
@@ -157,16 +121,5 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
             : null,
       _ => null,
     };
-  }
-
-  void _set(VoidCallback setter) {
-    setter();
-    if (!_disposed) notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
   }
 }

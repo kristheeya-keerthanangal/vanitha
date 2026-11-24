@@ -1,8 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../data/app_database.dart';
 import '../../data/subscription_renewal.dart';
 import '../../providers/database_provider.dart';
+import 'edit_subscriber_form.dart';
 import 'renew_subscription_form.dart';
 import 'view_models/subscribers_view_model.dart';
 import '../shared/loading_state.dart';
@@ -21,6 +23,7 @@ class SubscriberDetailsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final provider = subscriberDetailsViewModelProvider(id);
     final details = ref.watch(provider);
+    final subscriber = details.asData?.value?.subscriber;
     return Column(
       children: [
         Padding(
@@ -40,11 +43,31 @@ class SubscriberDetailsPage extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  'Subscriber details',
-                  style: Theme.of(context).textTheme.headlineSmall,
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      'Subscriber details',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    if (subscriber != null)
+                      _RegionBadge(
+                        key: const Key('subscriber-region-badge'),
+                        isForeign: subscriber.isForeign,
+                      ),
+                  ],
                 ),
               ),
+              if (subscriber != null) ...[
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: () => _editSubscriber(context, ref, subscriber),
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Edit'),
+                ),
+              ],
             ],
           ),
         ),
@@ -142,6 +165,56 @@ class SubscriberDetailsPage extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _editSubscriber(
+    BuildContext context,
+    WidgetRef ref,
+    Subscriber subscriber,
+  ) async {
+    final updated = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => EditSubscriberForm(
+        repository: ref.read(subscriberRepositoryProvider),
+        subscriber: subscriber,
+      ),
+    );
+    if (updated == true && context.mounted) {
+      ref.invalidate(subscriberDetailsViewModelProvider(id));
+      ref.read(subscribersViewModelProvider).refresh();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Subscriber updated successfully')),
+      );
+    }
+  }
+}
+
+class _RegionBadge extends StatelessWidget {
+  const _RegionBadge({super.key, required this.isForeign});
+
+  final bool isForeign;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final background = isForeign
+        ? colorScheme.secondaryContainer
+        : colorScheme.surfaceContainerHighest;
+    final foreground = isForeign
+        ? colorScheme.onSecondaryContainer
+        : colorScheme.onSurfaceVariant;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        isForeign ? 'Foreign' : 'Domestic',
+        style: TextStyle(color: foreground, fontWeight: FontWeight.w600),
+      ),
     );
   }
 }

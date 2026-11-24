@@ -1,12 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'app_text_form_field.dart';
-import '../view_models/add_subscriber_form_view_model.dart';
+import '../view_models/subscriber_form_view_model.dart';
 
 class SubscriberDetailsSection extends StatelessWidget {
   const SubscriberDetailsSection({super.key, required this.viewModel});
 
-  final AddSubscriberFormViewModel viewModel;
+  final SubscriberFormViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -42,8 +42,8 @@ class SubscriberDetailsSection extends StatelessWidget {
         Text(
           'Subscriber location',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 6),
         SizedBox(
