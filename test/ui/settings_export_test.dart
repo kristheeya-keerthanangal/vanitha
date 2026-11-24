@@ -52,7 +52,7 @@ void main() {
   }
 
   Future<void> completeExport(WidgetTester tester) async {
-    await tester.tap(find.text('Complete export'));
+    await tester.tap(find.text('Export all'));
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 100)),
     );

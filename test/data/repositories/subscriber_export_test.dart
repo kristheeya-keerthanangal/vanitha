@@ -93,4 +93,35 @@ void main() {
       ]);
     },
   );
+
+  test(
+    'complete export includes foreign status, contacts, and lifetime subscription',
+    () async {
+      final foreignSubscriber = await repository.createSubscriber(
+        name: 'Foreign Reader',
+        isForeign: true,
+        email: 'foreign@example.com',
+        phone: '+44 7911 123456',
+        postalAddress: 'London',
+      );
+      final lifetimeSub = await subscriptionRepository.createSubscription(
+        subscriberId: foreignSubscriber.id,
+        edition: 'online',
+        planType: 'lifetime',
+        durationYears: 15,
+        startYear: 2026,
+        startMonth: 1,
+      );
+
+      final decoded =
+          jsonDecode(await repository.exportCompleteSubscribers()) as List;
+
+      expect(decoded.single['isForeign'], isTrue);
+      expect(decoded.single['email'], 'foreign@example.com');
+      expect(decoded.single['phone'], '+44 7911 123456');
+      expect(decoded.single['subscriptions'], [lifetimeSub.toJson()]);
+      expect(decoded.single['subscriptions'].first['planType'], 'lifetime');
+      expect(decoded.single['subscriptions'].first['durationYears'], 15);
+    },
+  );
 }

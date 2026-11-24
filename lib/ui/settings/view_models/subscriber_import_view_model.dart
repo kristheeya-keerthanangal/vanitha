@@ -40,6 +40,8 @@ class SubscriberImportViewModel extends ChangeNotifier {
   String? error;
   SubscriberImportPreview? preview;
   SubscriberImportResult? result;
+  CompleteImportPreview? completePreview;
+  CompleteImportResult? completeResult;
 
   Future<void> selectFile() async {
     if (isBusy || _disposed) return;
@@ -47,6 +49,8 @@ class SubscriberImportViewModel extends ChangeNotifier {
     error = null;
     result = null;
     preview = null;
+    completeResult = null;
+    completePreview = null;
     filename = null;
     notifyListeners();
     try {
@@ -71,9 +75,50 @@ class SubscriberImportViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> selectCompleteFile() async {
+    if (isBusy || _disposed) return;
+    isBusy = true;
+    error = null;
+    result = null;
+    preview = null;
+    completeResult = null;
+    completePreview = null;
+    filename = null;
+    notifyListeners();
+    try {
+      final file = await _pickFile();
+      if (_disposed || file == null) return;
+      final entries = parseCompleteSubscriberImport(file.contents);
+      final prepared = await _repository.previewCompleteImport(entries);
+      if (_disposed) return;
+      filename = file.name;
+      completePreview = prepared;
+    } on FormatException catch (exception) {
+      if (!_disposed) error = exception.message.toString();
+    } catch (_) {
+      if (!_disposed) {
+        error = 'Unable to read or prepare the complete import. Try again.';
+      }
+    } finally {
+      if (!_disposed) {
+        isBusy = false;
+        notifyListeners();
+      }
+    }
+  }
+
   void cancel() {
     if (isBusy || _disposed) return;
     preview = null;
+    completePreview = null;
+    filename = null;
+    error = null;
+    notifyListeners();
+  }
+
+  void cancelComplete() {
+    if (isBusy || _disposed) return;
+    completePreview = null;
     filename = null;
     error = null;
     notifyListeners();
@@ -97,6 +142,37 @@ class SubscriberImportViewModel extends ChangeNotifier {
     } catch (_) {
       if (!_disposed) {
         error = 'Unable to import subscribers. No subscribers were added.';
+      }
+    } finally {
+      if (!_disposed) {
+        isBusy = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> importComplete() async {
+    final prepared = completePreview;
+    if (isBusy ||
+        _disposed ||
+        prepared == null ||
+        prepared.subscribersToInsert == 0) {
+      return;
+    }
+    isBusy = true;
+    error = null;
+    notifyListeners();
+    try {
+      final imported = await _repository.importCompleteSubscribers(prepared);
+      if (_disposed) return;
+      completeResult = imported;
+      completePreview = null;
+      filename = null;
+      onImported();
+    } catch (_) {
+      if (!_disposed) {
+        error =
+            'Unable to import subscribers and subscriptions. No records were added.';
       }
     } finally {
       if (!_disposed) {

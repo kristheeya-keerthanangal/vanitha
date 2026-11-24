@@ -27,28 +27,66 @@ class SettingsPage extends ConsumerWidget {
               'Exact duplicates are skipped. Existing records are kept.',
             ),
             const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: model.isBusy || model.preview != null
-                  ? null
-                  : () async {
-                      await model.selectFile();
-                      if (!context.mounted || model.preview == null) return;
-                      await showDialog<void>(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (_) => _ImportConfirmationDialog(model: model),
-                      );
-                      model.cancel();
-                    },
-              icon: model.isBusy
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.file_upload_outlined),
-              label: const Text('Import subscribers'),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                FilledButton.icon(
+                  onPressed: model.isBusy ||
+                          model.preview != null ||
+                          model.completePreview != null
+                      ? null
+                      : () async {
+                          await model.selectFile();
+                          if (!context.mounted || model.preview == null) return;
+                          await showDialog<void>(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (_) =>
+                                _ImportConfirmationDialog(model: model),
+                          );
+                          model.cancel();
+                        },
+                  icon: model.isBusy && model.completePreview == null
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.file_upload_outlined),
+                  label: const Text('Import subscribers'),
+                ),
+                FilledButton.icon(
+                  onPressed: model.isBusy ||
+                          model.preview != null ||
+                          model.completePreview != null
+                      ? null
+                      : () async {
+                          await model.selectCompleteFile();
+                          if (!context.mounted ||
+                              model.completePreview == null) {
+                            return;
+                          }
+                          await showDialog<void>(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (_) =>
+                                _CompleteImportConfirmationDialog(model: model),
+                          );
+                          model.cancelComplete();
+                        },
+                  icon: model.isBusy && model.preview == null
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.restore_page_outlined),
+                  label: const Text('Import all'),
+                ),
+              ],
             ),
-            if (model.error != null && model.preview == null) ...[
+            if (model.error != null &&
+                model.preview == null &&
+                model.completePreview == null) ...[
               const SizedBox(height: 16),
               Text(
                 model.error!,
@@ -60,6 +98,14 @@ class SettingsPage extends ConsumerWidget {
               Text(
                 '${result.inserted} ${result.inserted == 1 ? 'subscriber' : 'subscribers'} imported. '
                 '${result.skipped} ${result.skipped == 1 ? 'duplicate' : 'duplicates'} skipped.',
+              ),
+            ],
+            if (model.completeResult case final completeResult?) ...[
+              const SizedBox(height: 16),
+              Text(
+                '${completeResult.subscribersInserted} ${completeResult.subscribersInserted == 1 ? 'subscriber' : 'subscribers'} and '
+                '${completeResult.subscriptionsInserted} ${completeResult.subscriptionsInserted == 1 ? 'subscription' : 'subscriptions'} imported. '
+                '${completeResult.subscribersSkipped} ${completeResult.subscribersSkipped == 1 ? 'duplicate' : 'duplicates'} skipped.',
               ),
             ],
             const SizedBox(height: 24),
@@ -101,9 +147,9 @@ class _SubscriberExportSection extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           const Text(
-            'Complete export includes every subscriber field and their full '
-            'subscription history, including archived records. It is not '
-            'import-compatible.',
+            'Export all subscribers and their full subscription history, '
+            'including domestic/foreign status, contact details, and archived records. '
+            'Can be restored using Import all.',
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
@@ -114,7 +160,7 @@ class _SubscriberExportSection extends ConsumerWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.file_download_outlined),
-            label: const Text('Complete export'),
+            label: const Text('Export all'),
           ),
           if (model.message != null) ...[
             const SizedBox(height: 16),
@@ -200,6 +246,92 @@ class _ImportConfirmationDialog extends StatelessWidget {
                         )
                       : Text(
                           'Import ${preview.toInsert} ${preview.toInsert == 1 ? 'subscriber' : 'subscribers'}',
+                        ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CompleteImportConfirmationDialog extends StatelessWidget {
+  const _CompleteImportConfirmationDialog({required this.model});
+
+  final SubscriberImportViewModel model;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: model,
+      builder: (context, _) {
+        final preview = model.completePreview;
+        return PopScope(
+          canPop: !model.isBusy,
+          child: AlertDialog(
+            title: const Text('Import all?'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(model.filename ?? ''),
+                  const SizedBox(height: 16),
+                  Text('Total subscribers: ${preview?.totalSubscribers ?? 0}'),
+                  Text(
+                    'Subscribers to insert: ${preview?.subscribersToInsert ?? 0}',
+                  ),
+                  Text(
+                    'Duplicates to skip: ${preview?.subscribersSkipped ?? 0}',
+                  ),
+                  Text(
+                    'Subscriptions to insert: ${preview?.totalSubscriptionsToInsert ?? 0}',
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    preview?.subscribersToInsert == 0
+                        ? 'No new subscribers to import'
+                        : 'Are you sure you want to continue?',
+                  ),
+                  if (model.error != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      model.error!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: model.isBusy
+                    ? null
+                    : () => Navigator.of(context).pop(),
+                child: Text(
+                  preview?.subscribersToInsert == 0 ? 'Close' : 'Cancel',
+                ),
+              ),
+              if (preview != null && preview.subscribersToInsert > 0)
+                FilledButton(
+                  onPressed: model.isBusy
+                      ? null
+                      : () async {
+                          await model.importComplete();
+                          if (context.mounted && model.completeResult != null) {
+                            Navigator.of(context).pop();
+                          }
+                        },
+                  child: model.isBusy
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          'Import ${preview.subscribersToInsert} ${preview.subscribersToInsert == 1 ? 'subscriber' : 'subscribers'}',
                         ),
                 ),
             ],

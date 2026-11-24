@@ -64,6 +64,11 @@ void main() {
     await settle(tester);
   }
 
+  Future<void> selectCompleteFile(WidgetTester tester) async {
+    await tester.tap(find.text('Import all'));
+    await settle(tester);
+  }
+
   SubscriberImportFile file(List<Object?> rows) => SubscriberImportFile(
     name: 'subscribers.json',
     contents: jsonEncode(rows),
@@ -220,6 +225,60 @@ void main() {
       await settle(tester);
       expect(await database.select(database.subscribers).get(), hasLength(1));
       expect(find.byType(AlertDialog), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Import all dialog opens, displays subscribers and subscriptions count, and imports',
+    (tester) async {
+      final completeSample = {
+        'name': 'Foreign All Reader',
+        'isForeign': true,
+        'email': 'foreign@example.com',
+        'postalAddress': 'London, UK',
+        'subscriptions': [
+          {
+            'edition': 'online',
+            'planType': 'lifetime',
+            'durationYears': 15,
+            'startDate': '2026-01',
+            'expiryDate': '2040-12',
+          },
+        ],
+      };
+      await mount(
+        tester,
+        () async => SubscriberImportFile(
+          name: 'subscribers_complete.json',
+          contents: jsonEncode([completeSample]),
+        ),
+      );
+
+      await selectCompleteFile(tester);
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.text('Import all?'), findsOneWidget);
+      expect(find.text('Total subscribers: 1'), findsOneWidget);
+      expect(find.text('Subscribers to insert: 1'), findsOneWidget);
+      expect(find.text('Duplicates to skip: 0'), findsOneWidget);
+      expect(find.text('Subscriptions to insert: 1'), findsOneWidget);
+
+      await tester.tap(find.text('Import 1 subscriber'));
+      await settle(tester);
+
+      expect(find.byType(AlertDialog), findsNothing);
+      final subscribers = await database.select(database.subscribers).get();
+      expect(subscribers, hasLength(1));
+      expect(subscribers.first.name, 'Foreign All Reader');
+      expect(subscribers.first.isForeign, isTrue);
+
+      final subscriptions = await database.select(database.subscriptions).get();
+      expect(subscriptions, hasLength(1));
+      expect(subscriptions.first.planType, 'lifetime');
+
+      expect(
+        find.text('1 subscriber and 1 subscription imported. 0 duplicates skipped.'),
+        findsOneWidget,
+      );
     },
   );
 }

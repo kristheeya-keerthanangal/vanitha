@@ -100,4 +100,171 @@ void main() {
       '690106',
     ));
   });
+
+  group('parseCompleteSubscriberImport', () {
+    const completeSample = {
+      'id': 10,
+      'name': 'FOREIGN READER',
+      'email': 'foreign@example.com',
+      'phone': '+44 7911 123456',
+      'postalAddress': 'London, UK',
+      'postalCode': null,
+      'isForeign': true,
+      'createdAt': '2026-11-20T10:00:00.000Z',
+      'updatedAt': '2026-11-20T10:00:00.000Z',
+      'archivedAt': null,
+      'subscriptions': [
+        {
+          'id': 1,
+          'subscriberId': 10,
+          'edition': 'online',
+          'planType': 'lifetime',
+          'durationYears': 15,
+          'startDate': '2026-01',
+          'expiryDate': '2040-12',
+          'createdAt': '2026-11-20T10:00:00.000Z',
+          'updatedAt': '2026-11-20T10:00:00.000Z',
+          'archivedAt': null,
+        },
+        {
+          'id': 2,
+          'subscriberId': 10,
+          'edition': 'offline',
+          'planType': 'multi_year',
+          'durationYears': 3,
+          'startDate': '2026-01',
+          'expiryDate': '2028-12',
+          'createdAt': '2026-11-20T10:00:00.000Z',
+          'updatedAt': '2026-11-20T10:00:00.000Z',
+          'archivedAt': '2026-11-20T10:05:00.000Z',
+        },
+      ],
+    };
+
+    test('parses full subscriber with subscriptions, isForeign, and null postalCode', () {
+      final entries = parseCompleteSubscriberImport(
+        '\uFEFF${jsonEncode([completeSample])}',
+      );
+      expect(entries, hasLength(1));
+      final entry = entries.single;
+      expect(entry.name, 'FOREIGN READER');
+      expect(entry.email, 'foreign@example.com');
+      expect(entry.phone, '+44 7911 123456');
+      expect(entry.postalAddress, 'London, UK');
+      expect(entry.postalCode, isNull);
+      expect(entry.isForeign, isTrue);
+      expect(entry.subscriptions, hasLength(2));
+      expect(entry.subscriptions[0].edition, 'online');
+      expect(entry.subscriptions[0].planType, 'lifetime');
+      expect(entry.subscriptions[0].durationYears, 15);
+      expect(entry.subscriptions[1].edition, 'offline');
+      expect(entry.subscriptions[1].planType, 'multi_year');
+      expect(entry.subscriptions[1].durationYears, 3);
+      expect(entry.subscriptions[1].archivedAt, '2026-11-20T10:05:00.000Z');
+    });
+
+    test('parses wrapped object format with subscribers key', () {
+      final entries = parseCompleteSubscriberImport(
+        jsonEncode({'subscribers': [completeSample]}),
+      );
+      expect(entries, hasLength(1));
+      expect(entries.single.name, 'FOREIGN READER');
+    });
+
+    test('parses domestic subscriber and defaults isForeign to false when absent', () {
+      final entries = parseCompleteSubscriberImport(
+        jsonEncode([
+          {
+            'name': 'Domestic Reader',
+            'postalAddress': 'Ernakulam',
+            'postalCode': '682001',
+          },
+        ]),
+      );
+      expect(entries.single.isForeign, isFalse);
+      expect(entries.single.subscriptions, isEmpty);
+    });
+
+    for (final invalid in [
+      'not json',
+      '',
+      '{}',
+      '[]',
+      '[null]',
+      '{"subscribers": []}',
+    ]) {
+      test('rejects invalid JSON structure: $invalid', () {
+        expect(
+          () => parseCompleteSubscriberImport(invalid),
+          throwsFormatException,
+        );
+      });
+    }
+
+    test('rejects missing or blank subscriber name', () {
+      expect(
+        () => parseCompleteSubscriberImport(jsonEncode([{'name': ''}])),
+        throwsFormatException,
+      );
+      expect(
+        () => parseCompleteSubscriberImport(jsonEncode([{'email': 'a@b.com'}])),
+        throwsFormatException,
+      );
+    });
+
+    test('rejects invalid subscription edition', () {
+      final invalid = {
+        'name': 'Reader',
+        'subscriptions': [
+          {
+            'edition': 'digital',
+            'planType': 'annual',
+            'durationYears': 1,
+            'startDate': '2026-01',
+            'expiryDate': '2026-12',
+          },
+        ],
+      };
+      expect(
+        () => parseCompleteSubscriberImport(jsonEncode([invalid])),
+        throwsFormatException,
+      );
+    });
+
+    test('rejects mismatched planType and durationYears', () {
+      final invalidAnnual = {
+        'name': 'Reader',
+        'subscriptions': [
+          {
+            'edition': 'online',
+            'planType': 'annual',
+            'durationYears': 2,
+            'startDate': '2026-01',
+            'expiryDate': '2027-12',
+          },
+        ],
+      };
+      expect(
+        () => parseCompleteSubscriberImport(jsonEncode([invalidAnnual])),
+        throwsFormatException,
+      );
+
+      final invalidLifetime = {
+        'name': 'Reader',
+        'subscriptions': [
+          {
+            'edition': 'online',
+            'planType': 'lifetime',
+            'durationYears': 10,
+            'startDate': '2026-01',
+            'expiryDate': '2035-12',
+          },
+        ],
+      };
+      expect(
+        () => parseCompleteSubscriberImport(jsonEncode([invalidLifetime])),
+        throwsFormatException,
+      );
+    });
+  });
 }

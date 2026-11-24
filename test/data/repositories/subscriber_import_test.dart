@@ -168,4 +168,105 @@ void main() {
       expect(await database.select(database.auditLogs).get(), logs);
     },
   );
+
+  group('complete import', () {
+    test(
+      'imports subscribers with foreign status, contact info, and linked subscriptions',
+      () async {
+        await repository.createSubscriber(
+          name: 'Existing Domestic',
+          postalAddress: 'Town Center',
+          postalCode: '682001',
+          email: 'existing@example.com',
+          phone: '+91 9999999999',
+        );
+
+        final entries = [
+          CompleteSubscriberImportEntry(
+            name: 'Existing Domestic',
+            postalAddress: 'Town Center',
+            postalCode: '682001',
+            email: 'existing@example.com',
+            phone: '+91 9999999999',
+            isForeign: false,
+            subscriptions: [
+              const CompleteSubscriptionImportEntry(
+                edition: 'online',
+                planType: 'annual',
+                durationYears: 1,
+                startDate: '2026-01',
+                expiryDate: '2026-12',
+              ),
+            ],
+          ),
+          CompleteSubscriberImportEntry(
+            name: 'Foreign Reader',
+            postalAddress: '123 Baker St, London',
+            postalCode: null,
+            email: 'london@example.com',
+            phone: '+44 7911 123456',
+            isForeign: true,
+            subscriptions: [
+              const CompleteSubscriptionImportEntry(
+                edition: 'online',
+                planType: 'lifetime',
+                durationYears: 15,
+                startDate: '2026-01',
+                expiryDate: '2040-12',
+              ),
+              const CompleteSubscriptionImportEntry(
+                edition: 'offline',
+                planType: 'multi_year',
+                durationYears: 2,
+                startDate: '2026-01',
+                expiryDate: '2027-12',
+                archivedAt: '2026-06-01T12:00:00Z',
+              ),
+            ],
+          ),
+        ];
+
+        final preview = await repository.previewCompleteImport(entries);
+        expect(preview.totalSubscribers, 2);
+        expect(preview.subscribersToInsert, 1);
+        expect(preview.subscribersSkipped, 1);
+        expect(preview.totalSubscriptionsToInsert, 2);
+
+        final result = await repository.importCompleteSubscribers(preview);
+        expect(result.subscribersInserted, 1);
+        expect(result.subscribersSkipped, 1);
+        expect(result.subscriptionsInserted, 2);
+
+        final subscribers = await database.select(database.subscribers).get();
+        expect(subscribers, hasLength(2));
+        final imported = subscribers.firstWhere(
+          (s) => s.name == 'Foreign Reader',
+        );
+        expect(imported.isForeign, isTrue);
+        expect(imported.postalCode, isNull);
+        expect(imported.email, 'london@example.com');
+        expect(imported.phone, '+44 7911 123456');
+
+        final subscriptions =
+            await database.select(database.subscriptions).get();
+        expect(subscriptions, hasLength(2));
+        expect(
+          subscriptions.every((s) => s.subscriberId == imported.id),
+          isTrue,
+        );
+        final lifetimeSub = subscriptions.firstWhere(
+          (s) => s.planType == 'lifetime',
+        );
+        expect(lifetimeSub.durationYears, 15);
+        expect(lifetimeSub.edition, 'online');
+        final multiSub = subscriptions.firstWhere(
+          (s) => s.planType == 'multi_year',
+        );
+        expect(multiSub.archivedAt, '2026-06-01T12:00:00Z');
+
+        final audits = await database.select(database.auditLogs).get();
+        expect(audits, hasLength(2));
+      },
+    );
+  });
 }

@@ -358,6 +358,115 @@ class SubscriberRepository {
     };
   }
 
+  Future<CompleteImportPreview> previewCompleteImport(
+    List<CompleteSubscriberImportEntry> entries,
+  ) async {
+    final seen = await _completeImportIdentities();
+    final toInsert = <CompleteSubscriberImportEntry>[];
+    for (final entry in entries) {
+      if (seen.add(entry.identity)) {
+        toInsert.add(entry);
+      }
+    }
+    return CompleteImportPreview(
+      totalSubscribers: entries.length,
+      entries: toInsert,
+    );
+  }
+
+  Future<Set<(String, String, String, String, String)>>
+  _completeImportIdentities() async {
+    final table = _database.subscribers;
+    final query = _database.selectOnly(table)
+      ..addColumns([
+        table.name,
+        table.postalAddress,
+        table.postalCode,
+        table.email,
+        table.phone,
+      ])
+      ..where(table.archivedAt.isNull());
+    final rows = await query.get();
+    return {
+      for (final row in rows)
+        (
+          row.read(table.name)!.trim(),
+          row.read(table.postalAddress)?.trim() ?? '',
+          row.read(table.postalCode)?.trim() ?? '',
+          row.read(table.email)?.trim() ?? '',
+          row.read(table.phone)?.trim() ?? '',
+        ),
+    };
+  }
+
+  Future<CompleteImportResult> importCompleteSubscribers(
+    CompleteImportPreview preview,
+  ) {
+    return _database.transaction(() async {
+      final seen = await _completeImportIdentities();
+      var subscribersInserted = 0;
+      var subscriptionsInserted = 0;
+      final now = _now();
+
+      for (final entry in preview.entries) {
+        if (!seen.add(entry.identity)) continue;
+
+        final subscriberId = await _database
+            .into(_database.subscribers)
+            .insert(
+              SubscribersCompanion.insert(
+                name: entry.name,
+                email: Value(_optional(entry.email)),
+                phone: Value(_optional(entry.phone)),
+                postalAddress: Value(_optional(entry.postalAddress)),
+                postalCode: Value(_optional(entry.postalCode)),
+                isForeign: Value(entry.isForeign),
+                createdAt: Value(entry.createdAt ?? now),
+                updatedAt: Value(entry.updatedAt ?? now),
+                archivedAt: Value(entry.archivedAt),
+              ),
+            );
+        subscribersInserted++;
+
+        final savedSubscriber = await getSubscriber(
+          subscriberId,
+          includeArchived: true,
+        );
+        if (savedSubscriber != null) {
+          await _writeAudit(
+            subscriberId: subscriberId,
+            updated: savedSubscriber,
+          );
+        }
+
+        for (final sub in entry.subscriptions) {
+          await _database
+              .into(_database.subscriptions)
+              .insert(
+                SubscriptionsCompanion.insert(
+                  subscriberId: subscriberId,
+                  edition: sub.edition,
+                  planType: sub.planType,
+                  durationYears: sub.durationYears,
+                  startDate: sub.startDate,
+                  expiryDate: sub.expiryDate,
+                  createdAt: Value(sub.createdAt ?? now),
+                  updatedAt: Value(sub.updatedAt ?? now),
+                  archivedAt: Value(sub.archivedAt),
+                ),
+              );
+          subscriptionsInserted++;
+        }
+      }
+
+      return CompleteImportResult(
+        subscribersInserted: subscribersInserted,
+        subscribersSkipped: preview.totalSubscribers - subscribersInserted,
+        subscriptionsInserted: subscriptionsInserted,
+      );
+    });
+  }
+
   Future<Subscriber?> getSubscriber(int id, {bool includeArchived = false}) {
     final query = _database.select(_database.subscribers)
       ..where((subscriber) => subscriber.id.equals(id));
