@@ -49,7 +49,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
     planType = value;
     durationYears = switch (value) {
       'annual' => '1',
-      'lifetime' => '10',
+      'lifetime' => '15',
       _ => '',
     };
     notifyListeners();
@@ -146,7 +146,7 @@ class AddSubscriberFormViewModel extends ChangeNotifier {
   int? _durationForPlan(String selectedPlan) {
     return switch (selectedPlan) {
       'annual' => 1,
-      'lifetime' => 10,
+      'lifetime' => 15,
       'multi_year' =>
         validateDuration(durationYears) == null
             ? int.tryParse(durationYears.trim())

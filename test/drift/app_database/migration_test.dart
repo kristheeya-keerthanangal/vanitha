@@ -12,6 +12,7 @@ import 'generated/schema_v6.dart' as v6;
 import 'generated/schema_v7.dart' as v7;
 import 'generated/schema_v8.dart' as v8;
 import 'generated/schema_v9.dart' as v9;
+import 'generated/schema_v10.dart' as v10;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -393,4 +394,68 @@ void main() {
       );
     },
   );
+
+  test('v9 to v10 updates lifetime subscriptions to 15 years', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 9,
+      newVersion: 10,
+      createOld: v9.DatabaseAtV9.new,
+      createNew: v10.DatabaseAtV10.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch.insertAll(oldDb.subscribers, [
+          const v9.SubscribersData(
+            id: 17,
+            name: 'Reader One',
+            createdAt: '2026-01-01',
+            updatedAt: '2026-01-01',
+          ),
+        ]);
+        batch.insertAll(oldDb.subscriptions, [
+          const v9.SubscriptionsData(
+            id: 31,
+            subscriberId: 17,
+            edition: 'online',
+            planType: 'annual',
+            durationYears: 1,
+            startDate: '2026-01-01',
+            expiryDate: '2027-01-01',
+            createdAt: '2026-01-01',
+            updatedAt: '2026-01-01',
+          ),
+          const v9.SubscriptionsData(
+            id: 32,
+            subscriberId: 17,
+            edition: 'offline',
+            planType: 'lifetime',
+            durationYears: 10,
+            startDate: '2026-01-01',
+            expiryDate: '2036-01-01',
+            createdAt: '2026-01-01',
+            updatedAt: '2026-01-01',
+          ),
+        ]);
+      },
+      validateItems: (db) async {
+        final subscriptions = await (db.select(
+          db.subscriptions,
+        )..orderBy([(row) => OrderingTerm.asc(row.id)])).get();
+        expect(subscriptions, hasLength(2));
+        final annual = subscriptions[0];
+        expect(annual.id, 31);
+        expect(annual.durationYears, 1);
+        expect(annual.expiryDate, '2027-01-01');
+
+        final lifetime = subscriptions[1];
+        expect(lifetime.id, 32);
+        expect(lifetime.durationYears, 15);
+        expect(lifetime.expiryDate, '2041-01-01');
+
+        expect(
+          await db.customSelect('PRAGMA foreign_key_check').get(),
+          isEmpty,
+        );
+      },
+    );
+  });
 }

@@ -1,0 +1,54 @@
+# GitLab CI/CD Pipeline for Flutter
+# Replicates the behavior of .github/workflows/flutter.yml
+
+stages:
+  - test
+  - build
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+test:
+  stage: test
+  image: ghcr.io/cirruslabs/flutter:stable
+  before_script:
+    - flutter --version
+  script:
+    - flutter pub get
+    - flutter analyze
+    - flutter test
+  cache:
+    key: "flutter-test-$CI_COMMIT_REF_SLUG"
+    paths:
+      - .dart_tool/
+      - .pub-cache/
+
+build-windows:
+  stage: build
+  needs: [test]
+  tags:
+    - saas-windows-medium-amd64 # For GitLab SaaS Windows runners. Change to your runner tag (e.g. 'windows') if self-hosted.
+  before_script:
+    - |
+      if (-not (Get-Command flutter -ErrorAction SilentlyContinue)) {
+        if (-not (Test-Path "$env:USERPROFILE\flutter\bin")) {
+          Write-Host "Installing Flutter (stable)..."
+          git clone --depth 1 -b stable https://github.com/flutter/flutter.git $env:USERPROFILE\flutter
+        }
+        $env:Path = "$env:USERPROFILE\flutter\bin;$env:Path"
+      }
+      flutter doctor -v
+  script:
+    - if (Test-Path "$env:USERPROFILE\flutter\bin") { $env:Path = "$env:USERPROFILE\flutter\bin;$env:Path" }
+    - flutter pub get
+    - flutter build windows --release
+    - New-Item -ItemType Directory -Force -Path dist | Out-Null
+    - Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath dist/vanithabodhini-windows-x64.zip
+  artifacts:
+    name: "vanithabodhini-windows-x64"
+    expire_in: 30 days
+    paths:
+      - dist/vanithabodhini-windows-x64.zip
+      - build/windows/x64/runner/Release/vanithabodhini.exe

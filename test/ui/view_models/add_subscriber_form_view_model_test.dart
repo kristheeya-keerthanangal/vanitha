@@ -55,4 +55,18 @@ void main() {
     expect(viewModel.submitError, 'Enter a duration of 50 years or less');
     expect(await database.select(database.subscribers).get(), isEmpty);
   });
+
+  test('sets 15 years duration for lifetime plan and saves it', () async {
+    viewModel.setPlanType('lifetime');
+    expect(viewModel.durationYears, '15');
+    expect(viewModel.showsDuration, isFalse);
+    expect(await viewModel.save(), isTrue);
+
+    final subscription = await database
+        .select(database.subscriptions)
+        .getSingle();
+    expect(subscription.planType, 'lifetime');
+    expect(subscription.durationYears, 15);
+    expect(subscription.expiryDate, '2041-01-01');
+  });
 }

@@ -126,8 +126,8 @@ void main() {
 
     expect(annual.durationYears, 1);
     expect(annual.expiryDate, '2027-02-10');
-    expect(lifetime.durationYears, 10);
-    expect(lifetime.expiryDate, '2036-02-10');
+    expect(lifetime.durationYears, 15);
+    expect(lifetime.expiryDate, '2041-02-10');
   });
 
   test('rejects multi-year durations over 50 years', () async {
@@ -183,8 +183,8 @@ void main() {
       expect(multiYear.durationYears, 4);
       expect(multiYear.expiryDate, '2028-02-03');
       expect(lifetime.edition, 'offline');
-      expect(lifetime.durationYears, 10);
-      expect(lifetime.expiryDate, '2039-02-03');
+      expect(lifetime.durationYears, 15);
+      expect(lifetime.expiryDate, '2044-02-03');
     },
   );
 
@@ -274,7 +274,7 @@ void main() {
       subscriberId: subscriberId,
       edition: 'online',
       planType: 'lifetime',
-      durationYears: 10,
+      durationYears: 15,
       startDate: DateTime(2026, 1, 1),
     );
 

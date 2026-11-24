@@ -45,7 +45,9 @@ class RenewSubscriptionViewModel extends ChangeNotifier {
         subscriberId: subscriberId,
         edition: edition,
         planType: planType,
-        durationYears: planType == 'multi_year' ? int.parse(duration) : 1,
+        durationYears: planType == 'multi_year'
+            ? int.parse(duration)
+            : (planType == 'lifetime' ? 15 : 1),
         startDate: startDate,
       );
       return true;

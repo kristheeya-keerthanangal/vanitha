@@ -244,7 +244,7 @@ class SubscriptionRepository {
       case 'annual':
         return 1;
       case 'lifetime':
-        return 10;
+        return 15;
       case 'multi_year':
         if (requestedDuration > 50) {
           throw ArgumentError(

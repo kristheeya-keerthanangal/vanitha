@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'vanithabodhini'));
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -83,12 +83,13 @@ class AppDatabase extends _$AppDatabase {
       return;
     }
 
+    final schema7 = Schema7(database: this);
     await m.createTable(migrationSnapshots);
     if (from < 6) {
       await _snapshotTable('subscribers', from);
     }
     if (from < 3) {
-      await m.createTable(subscriptions);
+      await m.createTable(schema7.subscriptions);
     } else if (from < 4) {
       await _snapshotTable('subscriptions', from);
     }
@@ -124,16 +125,16 @@ class AppDatabase extends _$AppDatabase {
       }
       await _rebuildTable(
         m,
-        subscriptions,
-        newColumns: [subscriptions.archivedAt],
+        schema7.subscriptions,
+        newColumns: [schema7.subscriptions.archivedAt],
       );
     } else if (from >= 4) {
-      await m.addColumn(subscriptions, subscriptions.archivedAt);
+      await m.addColumn(schema7.subscriptions, schema7.subscriptions.archivedAt);
     }
 
     // Retired subscriber columns are snapshotted above. Rebuild while keeping
     // all shared values and the IDs referenced by subscriptions and audit logs.
-    await _rebuildTable(m, Schema7(database: this).subscribers);
+    await _rebuildTable(m, schema7.subscribers);
   }
 
   OnUpgrade get _schemaUpgrade => stepByStep(
@@ -170,6 +171,20 @@ class AppDatabase extends _$AppDatabase {
       }
       await _rebuildTable(m, schema.subscribers);
     },
+    from9To10: (m, schema) async {
+      await _rebuildTable(
+        m,
+        schema.subscriptions,
+        columnTransformer: {
+          schema.subscriptions.durationYears: const CustomExpression<int>(
+            "CASE WHEN plan_type = 'lifetime' THEN 15 ELSE duration_years END",
+          ),
+          schema.subscriptions.expiryDate: const CustomExpression<String>(
+            "CASE WHEN plan_type = 'lifetime' THEN date(start_date, '+15 years') ELSE expiry_date END",
+          ),
+        },
+      );
+    },
     from7To8: (m, schema) async {
       // Payment status is no longer part of the subscription model. Rebuild
       // the table so existing subscriptions retain all other data while the
@@ -196,6 +211,7 @@ class AppDatabase extends _$AppDatabase {
     Migrator m,
     TableInfo table, {
     List<GeneratedColumn> newColumns = const [],
+    Map<GeneratedColumn, Expression> columnTransformer = const {},
   }) async {
     // Drift copies rows, but rebuilding AUTOINCREMENT tables otherwise loses
     // the highest number previously issued if that row has since been deleted.
@@ -203,7 +219,13 @@ class AppDatabase extends _$AppDatabase {
       'SELECT seq FROM sqlite_sequence WHERE name = ?',
       variables: [Variable<String>(table.actualTableName)],
     ).getSingleOrNull();
-    await m.alterTable(TableMigration(table, newColumns: newColumns));
+    await m.alterTable(
+      TableMigration(
+        table,
+        newColumns: newColumns,
+        columnTransformer: columnTransformer,
+      ),
+    );
     if (sequence != null) {
       final value = sequence.read<int>('seq');
       await customStatement(

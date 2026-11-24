@@ -1,7 +1,7 @@
 # Database migrations
 
 The database uses Drift guided migrations from schema version 6 onward. The
-version 6, 7, 8, and 9 schema exports are in `drift_schemas/app_database/`, and Drift
+version 6, 7, 8, 9, and 10 schema exports are in `drift_schemas/app_database/`, and Drift
 generates the versioned schema helpers and migration verification database in
 `lib/data/app_database.steps.dart` and `test/drift/app_database/generated/`.
 
@@ -46,3 +46,12 @@ and previously issued subscriber numbers. Versions 2 through 5 first rebuild
 subscribers against the historical version 7 schema so their locality values
 reach the version 9 migration intact. Empty version 1 databases create the
 current schema directly.
+
+## Version 10: Lifetime subscription duration
+
+Lifetime subscription duration is changed from 10 years to 15 years. The CHECK
+constraint on `subscriptions.duration_years` is updated to require
+`duration_years = 15` for `lifetime` plans. The 9-to-10 migration updates
+existing lifetime subscriptions to `duration_years = 15` and recalculates
+`expiry_date` to `start_date` + 15 years before rebuilding the table with the
+new constraint.
