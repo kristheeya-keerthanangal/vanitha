@@ -50,6 +50,7 @@ void main() {
       isTrue,
     );
     expect(find.text('Edition'), findsOneWidget);
+    expect(find.text('Offline'), findsOneWidget);
     expect(find.text('Plan type'), findsOneWidget);
     expect(find.widgetWithText(TextFormField, 'Start month'), findsOneWidget);
     expect(

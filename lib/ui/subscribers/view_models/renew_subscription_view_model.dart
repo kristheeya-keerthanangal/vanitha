@@ -11,7 +11,7 @@ class RenewSubscriptionViewModel extends ChangeNotifier {
   final int subscriberId;
   final SubscriptionRenewal rules;
   DateTime startDate;
-  String edition = 'online';
+  String edition = 'offline';
   String planType = 'annual';
   String duration = '2';
   bool isSaving = false;
