@@ -27,7 +27,7 @@ class SubscriptionRenewal {
     locked = latestExpiryIndex != null && currentDateIndex <= latestExpiryIndex;
 
     if (latestExpiryIndex == null) {
-      firstYear = 2020;
+      firstYear = 2000;
       firstMonth = 1;
       startYear = currentYear;
       startMonth = currentMonth;

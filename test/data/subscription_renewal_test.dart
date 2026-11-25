@@ -62,8 +62,9 @@ void main() {
       expect(rules.hasUpcoming, isFalse);
       expect(rules.locked, isFalse);
       expect(rules.startDate, DateTime(2026, 10));
-      expect(rules.firstDate, DateTime(2020));
-      expect(rules.allows(DateTime(2019, 12)), isFalse);
+      expect(rules.firstDate, DateTime(2000));
+      expect(rules.allows(DateTime(1999, 12)), isFalse);
+      expect(rules.allows(DateTime(2015, 6)), isTrue);
       expect(rules.allows(today), isTrue);
       expect(rules.allows(DateTime(2026, 11)), isFalse);
     }

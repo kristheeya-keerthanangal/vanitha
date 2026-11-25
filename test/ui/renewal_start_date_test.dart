@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vanithabodhini/data/subscription_renewal.dart';
 import 'package:vanithabodhini/ui/subscribers/widgets/start_date_form_field.dart';
 
 void main() {
@@ -47,4 +48,31 @@ void main() {
     expect(picker.lastDate, DateTime(2026, 10));
     expect(picker.initialDate, DateTime(2026, 10));
   });
+
+  testWidgets(
+    'renewal picker allows dates before 2020 for unsubscribed subscriber',
+    (tester) async {
+      final rules = SubscriptionRenewal([]);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StartMonthFormField(
+              value: rules.startDate,
+              firstDate: rules.firstDate,
+              lastDate: rules.lastDate,
+              onChanged: (_) {},
+              validator: (_) => null,
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byType(TextFormField));
+      await tester.pumpAndSettle();
+      final picker = tester.widget<MonthPickerDialog>(
+        find.byType(MonthPickerDialog),
+      );
+      expect(picker.firstDate, DateTime(2000));
+      expect(find.byType(MonthPickerDialog), findsOneWidget);
+    },
+  );
 }

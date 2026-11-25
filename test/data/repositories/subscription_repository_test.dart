@@ -96,6 +96,19 @@ void main() {
     );
   });
 
+  test('unsubscribed renewal allows past dates before 2020', () async {
+    final renewed = await repository.renewSubscription(
+      subscriberId: subscriberId,
+      edition: 'online',
+      planType: 'annual',
+      durationYears: 1,
+      startYear: 2018,
+      startMonth: 5,
+    );
+    expect(renewed.startDate, '2018-05');
+    expect(renewed.expiryDate, '2019-04');
+  });
+
   test('creates a subscription and calculates its expiry date', () async {
     final created = await repository.createSubscription(
       subscriberId: subscriberId,
