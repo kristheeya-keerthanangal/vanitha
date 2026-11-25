@@ -161,6 +161,7 @@ void main() {
 
       expect(testBackupService.backupCalls, 1);
       expect(find.text('Backup completed successfully.'), findsOneWidget);
+      expect(exited, isFalse);
     });
   });
 

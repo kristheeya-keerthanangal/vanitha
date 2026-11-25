@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
+import '../pincode_matcher.dart';
 import '../subscriber_import.dart';
 import '../subscription_expiry.dart';
 import '../subscription_status.dart';
@@ -161,6 +162,7 @@ class SubscriberRepository {
     SubscriberSort sortBy = SubscriberSort.name,
     SubscriberFilter filterBy = SubscriberFilter.all,
     SubscriberOriginFilter originFilter = SubscriberOriginFilter.all,
+    List<PostalOfficeRule>? postalOfficeRules,
     bool ascending = true,
   }) {
     if (offset < 0 || ![10, 25, 50].contains(limit)) {
@@ -168,7 +170,8 @@ class SubscriberRepository {
     }
     final filter = _subscribersFilter(search) &
         _statusFilter(filterBy) &
-        _originFilter(originFilter);
+        _originFilter(originFilter) &
+        _postalOfficeFilter(postalOfficeRules);
     return _database.transaction(() async {
       final count = _database.subscribers.id.count();
       final countQuery = _database.selectOnly(_database.subscribers)
@@ -271,6 +274,14 @@ class SubscriberRepository {
       SubscriberOriginFilter.domestic => _database.subscribers.isForeign.not(),
       SubscriberOriginFilter.foreign => _database.subscribers.isForeign,
     };
+  }
+
+  Expression<bool> _postalOfficeFilter(List<PostalOfficeRule>? rules) {
+    if (rules == null) return const Constant(true);
+    return const PincodeMatcher().subscriberMatchesOffice(
+      _database.subscribers.postalCode,
+      rules,
+    );
   }
 
   Future<Subscriber> createSubscriber({

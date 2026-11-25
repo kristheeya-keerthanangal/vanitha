@@ -2,20 +2,31 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/app_database.dart';
+import '../../../data/repositories/postal_office_repository.dart';
 import '../../../data/repositories/subscriber_repository.dart';
 import '../../../providers/database_provider.dart';
 
 final subscribersViewModelProvider = Provider<SubscribersViewModel>((ref) {
-  final model = SubscribersViewModel(ref.watch(subscriberRepositoryProvider));
+  final model = SubscribersViewModel(
+    ref.watch(subscriberRepositoryProvider),
+    ref.watch(postalOfficeRepositoryProvider),
+  );
   ref.onDispose(model.dispose);
   return model;
 });
 
 class SubscribersViewModel extends ChangeNotifier {
-  SubscribersViewModel(this._repository) {
+  SubscribersViewModel(
+    this._repository, [
+    this._postalOfficeRepository,
+  ]) {
+    _loadPostalOffices();
     refresh();
   }
+
   final SubscriberRepository _repository;
+  final PostalOfficeRepository? _postalOfficeRepository;
+
   List<Subscriber> rows = [];
   Map<int, SubscriberStatus> statuses = {};
   int total = 0;
@@ -31,6 +42,41 @@ class SubscribersViewModel extends ChangeNotifier {
   bool _disposed = false;
   SubscriberFilter selectedFilter = SubscriberFilter.all;
   SubscriberOriginFilter selectedOriginFilter = SubscriberOriginFilter.all;
+
+  List<PostalOffice> activePostalOffices = [];
+  int? selectedPostalOfficeId;
+  List<PostalOfficeRule>? _selectedPostalOfficeRules;
+
+  PostalOffice? get selectedPostalOffice {
+    final id = selectedPostalOfficeId;
+    if (id == null) return null;
+    return activePostalOffices.where((o) => o.id == id).firstOrNull;
+  }
+
+  Future<void> _loadPostalOffices() async {
+    if (_postalOfficeRepository == null) return;
+    try {
+      activePostalOffices = await _postalOfficeRepository.getActiveOffices();
+      if (!_disposed) notifyListeners();
+    } catch (_) {}
+  }
+
+  void postalOfficeFilterChanged(int? officeId) {
+    if (selectedPostalOfficeId == officeId) return;
+    selectedPostalOfficeId = officeId;
+    offset = 0;
+    _applyPostalOfficeFilter(officeId);
+  }
+
+  Future<void> _applyPostalOfficeFilter(int? officeId) async {
+    if (officeId != null && _postalOfficeRepository != null) {
+      _selectedPostalOfficeRules =
+          await _postalOfficeRepository.getRulesForOffice(officeId);
+    } else {
+      _selectedPostalOfficeRules = null;
+    }
+    refresh();
+  }
 
   void searchChanged(String value) {
     search = value;
@@ -87,6 +133,7 @@ class SubscribersViewModel extends ChangeNotifier {
         sortBy: sort,
         filterBy: selectedFilter,
         originFilter: selectedOriginFilter,
+        postalOfficeRules: _selectedPostalOfficeRules,
         ascending: ascending,
       );
       if (_disposed || request != _request) return;
@@ -101,6 +148,7 @@ class SubscribersViewModel extends ChangeNotifier {
           sortBy: sort,
           filterBy: selectedFilter,
           originFilter: selectedOriginFilter,
+          postalOfficeRules: _selectedPostalOfficeRules,
           ascending: ascending,
         );
       }

@@ -154,9 +154,19 @@ void main() {
       expect(find.text('Exporting subscribers…'), findsOneWidget);
       expect(
         tester
-            .widgetList<OutlinedButton>(find.byType(OutlinedButton))
-            .every((button) => button.onPressed == null),
-        isTrue,
+            .widget<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, 'Exporting subscribers…'),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, 'Export all'),
+            )
+            .onPressed,
+        isNull,
       );
       final model = container.read(subscriberExportViewModelProvider);
       await model.export();

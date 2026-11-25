@@ -6,11 +6,12 @@ import 'package:vanithabodhini/data/app_database.dart';
 import 'package:vanithabodhini/providers/database_provider.dart';
 import 'package:vanithabodhini/main.dart';
 import 'package:vanithabodhini/providers/router_provider.dart';
+import 'package:vanithabodhini/ui/postal_offices/postal_offices_page.dart';
 import 'package:vanithabodhini/ui/settings_page.dart';
 import 'package:vanithabodhini/ui/subscribers/subscribers_page.dart';
 
 void main() {
-  testWidgets('opens settings from the last navigation destination', (
+  testWidgets('opens settings from navigation rail', (
     tester,
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -23,6 +24,7 @@ void main() {
     );
 
     final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
+    expect((rail.destinations[4].label as Text).data, 'Postal offices');
     expect((rail.destinations.last.label as Text).data, 'Settings');
 
     await tester.tap(find.text('Settings'));
@@ -32,13 +34,23 @@ void main() {
     expect(find.text('Import subscribers'), findsOneWidget);
     expect(
       tester.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
+      5,
+    );
+
+    await tester.tap(find.text('Postal offices'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PostalOfficesPage), findsOneWidget);
+    expect(find.text('Add postal office'), findsOneWidget);
+    expect(
+      tester.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
       4,
     );
 
     await tester.tap(find.text('Dashboard'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(SettingsPage), findsNothing);
+    expect(find.byType(PostalOfficesPage), findsNothing);
     expect(
       tester.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
       0,
@@ -64,7 +76,7 @@ void main() {
     expect(find.byType(SettingsPage), findsOneWidget);
     expect(
       tester.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
-      4,
+      5,
     );
   });
 

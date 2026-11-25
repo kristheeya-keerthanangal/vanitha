@@ -6,6 +6,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'app_database.steps.dart';
 import 'database_locator.dart';
 import 'tables/migration_snapshots.dart';
+import 'tables/postal_offices.dart';
 import 'tables/subscribers.dart';
 import 'tables/subscriptions.dart';
 
@@ -13,7 +14,14 @@ part 'app_database.g.dart';
 
 /// The application's local SQLite database.
 @DriftDatabase(
-  tables: [Subscribers, AuditLogs, Subscriptions, MigrationSnapshots],
+  tables: [
+    Subscribers,
+    AuditLogs,
+    Subscriptions,
+    MigrationSnapshots,
+    PostalOffices,
+    PostalOfficeRules,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
@@ -28,7 +36,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -214,6 +222,10 @@ class AppDatabase extends _$AppDatabase {
     },
     from11To12: (m, schema) async {
       await m.addColumn(schema.subscribers, schema.subscribers.isForeign);
+    },
+    from12To13: (m, schema) async {
+      await m.createTable(schema.postalOffices);
+      await m.createTable(schema.postalOfficeRules);
     },
     from7To8: (m, schema) async {
       // Payment status is no longer part of the subscription model. Rebuild

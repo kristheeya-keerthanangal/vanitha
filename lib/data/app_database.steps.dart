@@ -951,6 +951,216 @@ i1.GeneratedColumn<int> _column_27(String aliasedName) =>
       $customConstraints: 'NOT NULL DEFAULT 0 CHECK (is_foreign IN (0, 1))',
       defaultValue: const i1.CustomExpression('0'),
     );
+
+final class Schema13 extends i0.VersionedSchema {
+  Schema13({required super.database}) : super(version: 13);
+  @override
+  late final List<i1.DatabaseSchemaEntity> entities = [
+    subscribers,
+    auditLogs,
+    subscriptions,
+    migrationSnapshots,
+    postalOffices,
+    postalOfficeRules,
+    idxSubscribersName,
+    idxSubscriptionsSubscriber,
+    idxSubscriptionsExpiryDate,
+  ];
+  late final Shape6 subscribers = Shape6(
+    source: i0.VersionedTable(
+      entityName: 'subscribers',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [
+        _column_0,
+        _column_1,
+        _column_2,
+        _column_3,
+        _column_4,
+        _column_7,
+        _column_27,
+        _column_9,
+        _column_10,
+        _column_11,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape1 auditLogs = Shape1(
+    source: i0.VersionedTable(
+      entityName: 'audit_logs',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [_column_0, _column_12, _column_13, _column_14, _column_15],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape4 subscriptions = Shape4(
+    source: i0.VersionedTable(
+      entityName: 'subscriptions',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [
+        _column_0,
+        _column_12,
+        _column_16,
+        _column_17,
+        _column_26,
+        _column_19,
+        _column_20,
+        _column_9,
+        _column_10,
+        _column_11,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape3 migrationSnapshots = Shape3(
+    source: i0.VersionedTable(
+      entityName: 'migration_snapshots',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(source_table, row_id, source_version)'],
+      columns: [_column_22, _column_23, _column_24, _column_25],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape7 postalOffices = Shape7(
+    source: i0.VersionedTable(
+      entityName: 'postal_offices',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [_column_0, _column_1, _column_28, _column_9, _column_10],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape8 postalOfficeRules = Shape8(
+    source: i0.VersionedTable(
+      entityName: 'postal_office_rules',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [
+        _column_0,
+        _column_29,
+        _column_30,
+        _column_31,
+        _column_32,
+        _column_33,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  final i1.Index idxSubscribersName = i1.Index(
+    'idx_subscribers_name',
+    'CREATE INDEX idx_subscribers_name ON subscribers (name COLLATE NOCASE)',
+  );
+  final i1.Index idxSubscriptionsSubscriber = i1.Index(
+    'idx_subscriptions_subscriber',
+    'CREATE INDEX idx_subscriptions_subscriber ON subscriptions (subscriber_id)',
+  );
+  final i1.Index idxSubscriptionsExpiryDate = i1.Index(
+    'idx_subscriptions_expiry_date',
+    'CREATE INDEX idx_subscriptions_expiry_date ON subscriptions (expiry_date)',
+  );
+}
+
+class Shape7 extends i0.VersionedTable {
+  Shape7({required super.source, required super.alias}) : super.aliased();
+  i1.GeneratedColumn<int> get id =>
+      columnsByName['id']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<String> get name =>
+      columnsByName['name']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<int> get isActive =>
+      columnsByName['is_active']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<String> get createdAt =>
+      columnsByName['created_at']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get updatedAt =>
+      columnsByName['updated_at']! as i1.GeneratedColumn<String>;
+}
+
+i1.GeneratedColumn<int> _column_28(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'is_active',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))',
+      defaultValue: const i1.CustomExpression('1'),
+    );
+
+class Shape8 extends i0.VersionedTable {
+  Shape8({required super.source, required super.alias}) : super.aliased();
+  i1.GeneratedColumn<int> get id =>
+      columnsByName['id']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get postalOfficeId =>
+      columnsByName['postal_office_id']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<String> get operation =>
+      columnsByName['operation']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get matchMethod =>
+      columnsByName['match_method']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get startValue =>
+      columnsByName['start_value']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get endValue =>
+      columnsByName['end_value']! as i1.GeneratedColumn<String>;
+}
+
+i1.GeneratedColumn<int> _column_29(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'postal_office_id',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints:
+          'NOT NULL REFERENCES postal_offices(id)ON DELETE CASCADE',
+    );
+i1.GeneratedColumn<String> _column_30(String aliasedName) =>
+    i1.GeneratedColumn<String>(
+      'operation',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.string,
+      $customConstraints:
+          'NOT NULL CHECK (operation IN (\'include\', \'exclude\'))',
+    );
+i1.GeneratedColumn<String> _column_31(String aliasedName) =>
+    i1.GeneratedColumn<String>(
+      'match_method',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.string,
+      $customConstraints:
+          'NOT NULL CHECK (match_method IN (\'prefix\', \'range\', \'exact\'))',
+    );
+i1.GeneratedColumn<String> _column_32(
+  String aliasedName,
+) => i1.GeneratedColumn<String>(
+  'start_value',
+  aliasedName,
+  false,
+  type: i1.DriftSqlType.string,
+  $customConstraints:
+      'NOT NULL CHECK (LENGTH(start_value) >= 1 AND LENGTH(start_value) <= 6)',
+);
+i1.GeneratedColumn<String> _column_33(String aliasedName) =>
+    i1.GeneratedColumn<String>(
+      'end_value',
+      aliasedName,
+      true,
+      type: i1.DriftSqlType.string,
+      $customConstraints:
+          'NULL CHECK (end_value IS NULL OR(LENGTH(end_value) = 6))',
+    );
 i0.MigrationStepWithVersion migrationSteps({
   required Future<void> Function(i1.Migrator m, Schema7 schema) from6To7,
   required Future<void> Function(i1.Migrator m, Schema8 schema) from7To8,
@@ -958,6 +1168,7 @@ i0.MigrationStepWithVersion migrationSteps({
   required Future<void> Function(i1.Migrator m, Schema10 schema) from9To10,
   required Future<void> Function(i1.Migrator m, Schema11 schema) from10To11,
   required Future<void> Function(i1.Migrator m, Schema12 schema) from11To12,
+  required Future<void> Function(i1.Migrator m, Schema13 schema) from12To13,
 }) {
   return (currentVersion, database) async {
     switch (currentVersion) {
@@ -991,6 +1202,11 @@ i0.MigrationStepWithVersion migrationSteps({
         final migrator = i1.Migrator(database, schema);
         await from11To12(migrator, schema);
         return 12;
+      case 12:
+        final schema = Schema13(database: database);
+        final migrator = i1.Migrator(database, schema);
+        await from12To13(migrator, schema);
+        return 13;
       default:
         throw ArgumentError.value('Unknown migration from $currentVersion');
     }
@@ -1004,6 +1220,7 @@ i1.OnUpgrade stepByStep({
   required Future<void> Function(i1.Migrator m, Schema10 schema) from9To10,
   required Future<void> Function(i1.Migrator m, Schema11 schema) from10To11,
   required Future<void> Function(i1.Migrator m, Schema12 schema) from11To12,
+  required Future<void> Function(i1.Migrator m, Schema13 schema) from12To13,
 }) => i0.VersionedSchema.stepByStepHelper(
   step: migrationSteps(
     from6To7: from6To7,
@@ -1012,5 +1229,6 @@ i1.OnUpgrade stepByStep({
     from9To10: from9To10,
     from10To11: from10To11,
     from11To12: from11To12,
+    from12To13: from12To13,
   ),
 );

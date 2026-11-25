@@ -7,7 +7,7 @@ import 'package:vanithabodhini/data/app_database.dart';
 
 void main() {
   for (final fromVersion in [2, 3, 4, 5, 6]) {
-    test('preserves data when upgrading from schema $fromVersion to 12', () async {
+    test('preserves data when upgrading from schema $fromVersion to 13', () async {
       final executor = NativeDatabase.memory(
         setup: (db) {
           final hasSubscriberType = fromVersion < 5;
@@ -171,7 +171,7 @@ void main() {
       expect(
         (await database.customSelect('PRAGMA user_version').getSingle())
             .read<int>('user_version'),
-        12,
+        13,
       );
       final indexes = await database
           .customSelect("SELECT name FROM sqlite_master WHERE type = 'index'")

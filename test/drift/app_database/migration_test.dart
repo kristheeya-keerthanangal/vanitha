@@ -15,6 +15,7 @@ import 'generated/schema_v9.dart' as v9;
 import 'generated/schema_v10.dart' as v10;
 import 'generated/schema_v11.dart' as v11;
 import 'generated/schema_v12.dart' as v12;
+import 'generated/schema_v13.dart' as v13;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -579,6 +580,45 @@ void main() {
         expect(subscriber.id, 17);
         expect(subscriber.name, 'Existing Subscriber');
         expect(subscriber.isForeign, 0);
+
+        expect(
+          await db.customSelect('PRAGMA foreign_key_check').get(),
+          isEmpty,
+        );
+      },
+    );
+  });
+
+  test('v12 to v13 adds postal_offices and postal_office_rules without data loss', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 12,
+      newVersion: 13,
+      createOld: v12.DatabaseAtV12.new,
+      createNew: v13.DatabaseAtV13.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch.insertAll(oldDb.subscribers, [
+          const v12.SubscribersData(
+            id: 17,
+            name: 'Existing Subscriber',
+            email: 'reader@example.com',
+            createdAt: '2026-01-01',
+            updatedAt: '2026-01-01',
+            isForeign: 0,
+          ),
+        ]);
+      },
+      validateItems: (db) async {
+        final subscribers = await db.select(db.subscribers).get();
+        expect(subscribers, hasLength(1));
+        expect(subscribers.single.id, 17);
+        expect(subscribers.single.name, 'Existing Subscriber');
+
+        final offices = await db.select(db.postalOffices).get();
+        expect(offices, isEmpty);
+
+        final rules = await db.select(db.postalOfficeRules).get();
+        expect(rules, isEmpty);
 
         expect(
           await db.customSelect('PRAGMA foreign_key_check').get(),

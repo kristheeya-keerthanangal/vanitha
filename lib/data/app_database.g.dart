@@ -1937,6 +1937,787 @@ class MigrationSnapshotsCompanion extends UpdateCompanion<MigrationSnapshot> {
   }
 }
 
+class $PostalOfficesTable extends PostalOffices
+    with TableInfo<$PostalOfficesTable, PostalOffice> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PostalOfficesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (LENGTH(TRIM(name)) > 0)',
+  );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<String> createdAt = GeneratedColumn<String>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT CURRENT_TIMESTAMP',
+    defaultValue: const CustomExpression('CURRENT_TIMESTAMP'),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT CURRENT_TIMESTAMP',
+    defaultValue: const CustomExpression('CURRENT_TIMESTAMP'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    isActive,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'postal_offices';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PostalOffice> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PostalOffice map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PostalOffice(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PostalOfficesTable createAlias(String alias) {
+    return $PostalOfficesTable(attachedDatabase, alias);
+  }
+}
+
+class PostalOffice extends DataClass implements Insertable<PostalOffice> {
+  final int id;
+  final String name;
+  final bool isActive;
+  final String createdAt;
+  final String updatedAt;
+  const PostalOffice({
+    required this.id,
+    required this.name,
+    required this.isActive,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['is_active'] = Variable<bool>(isActive);
+    map['created_at'] = Variable<String>(createdAt);
+    map['updated_at'] = Variable<String>(updatedAt);
+    return map;
+  }
+
+  PostalOfficesCompanion toCompanion(bool nullToAbsent) {
+    return PostalOfficesCompanion(
+      id: Value(id),
+      name: Value(name),
+      isActive: Value(isActive),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory PostalOffice.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PostalOffice(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      createdAt: serializer.fromJson<String>(json['createdAt']),
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'isActive': serializer.toJson<bool>(isActive),
+      'createdAt': serializer.toJson<String>(createdAt),
+      'updatedAt': serializer.toJson<String>(updatedAt),
+    };
+  }
+
+  PostalOffice copyWith({
+    int? id,
+    String? name,
+    bool? isActive,
+    String? createdAt,
+    String? updatedAt,
+  }) => PostalOffice(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    isActive: isActive ?? this.isActive,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  PostalOffice copyWithCompanion(PostalOfficesCompanion data) {
+    return PostalOffice(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PostalOffice(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('isActive: $isActive, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, isActive, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PostalOffice &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.isActive == this.isActive &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class PostalOfficesCompanion extends UpdateCompanion<PostalOffice> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<bool> isActive;
+  final Value<String> createdAt;
+  final Value<String> updatedAt;
+  const PostalOfficesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  PostalOfficesCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.isActive = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  }) : name = Value(name);
+  static Insertable<PostalOffice> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<bool>? isActive,
+    Expression<String>? createdAt,
+    Expression<String>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (isActive != null) 'is_active': isActive,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  PostalOfficesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<bool>? isActive,
+    Value<String>? createdAt,
+    Value<String>? updatedAt,
+  }) {
+    return PostalOfficesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<String>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PostalOfficesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('isActive: $isActive, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PostalOfficeRulesTable extends PostalOfficeRules
+    with TableInfo<$PostalOfficeRulesTable, PostalOfficeRule> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PostalOfficeRulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _postalOfficeIdMeta = const VerificationMeta(
+    'postalOfficeId',
+  );
+  @override
+  late final GeneratedColumn<int> postalOfficeId = GeneratedColumn<int>(
+    'postal_office_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES postal_offices (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _operationMeta = const VerificationMeta(
+    'operation',
+  );
+  @override
+  late final GeneratedColumn<String> operation = GeneratedColumn<String>(
+    'operation',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints:
+        'NOT NULL CHECK (operation IN (\'include\', \'exclude\'))',
+  );
+  static const VerificationMeta _matchMethodMeta = const VerificationMeta(
+    'matchMethod',
+  );
+  @override
+  late final GeneratedColumn<String> matchMethod = GeneratedColumn<String>(
+    'match_method',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints:
+        'NOT NULL CHECK (match_method IN (\'prefix\', \'range\', \'exact\'))',
+  );
+  static const VerificationMeta _startValueMeta = const VerificationMeta(
+    'startValue',
+  );
+  @override
+  late final GeneratedColumn<String> startValue = GeneratedColumn<String>(
+    'start_value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints:
+        'NOT NULL CHECK (LENGTH(start_value) >= 1 AND LENGTH(start_value) <= 6)',
+  );
+  static const VerificationMeta _endValueMeta = const VerificationMeta(
+    'endValue',
+  );
+  @override
+  late final GeneratedColumn<String> endValue = GeneratedColumn<String>(
+    'end_value',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'NULL CHECK (end_value IS NULL OR (LENGTH(end_value) = 6))',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    postalOfficeId,
+    operation,
+    matchMethod,
+    startValue,
+    endValue,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'postal_office_rules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PostalOfficeRule> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('postal_office_id')) {
+      context.handle(
+        _postalOfficeIdMeta,
+        postalOfficeId.isAcceptableOrUnknown(
+          data['postal_office_id']!,
+          _postalOfficeIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_postalOfficeIdMeta);
+    }
+    if (data.containsKey('operation')) {
+      context.handle(
+        _operationMeta,
+        operation.isAcceptableOrUnknown(data['operation']!, _operationMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_operationMeta);
+    }
+    if (data.containsKey('match_method')) {
+      context.handle(
+        _matchMethodMeta,
+        matchMethod.isAcceptableOrUnknown(
+          data['match_method']!,
+          _matchMethodMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_matchMethodMeta);
+    }
+    if (data.containsKey('start_value')) {
+      context.handle(
+        _startValueMeta,
+        startValue.isAcceptableOrUnknown(data['start_value']!, _startValueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startValueMeta);
+    }
+    if (data.containsKey('end_value')) {
+      context.handle(
+        _endValueMeta,
+        endValue.isAcceptableOrUnknown(data['end_value']!, _endValueMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PostalOfficeRule map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PostalOfficeRule(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      postalOfficeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}postal_office_id'],
+      )!,
+      operation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}operation'],
+      )!,
+      matchMethod: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}match_method'],
+      )!,
+      startValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}start_value'],
+      )!,
+      endValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}end_value'],
+      ),
+    );
+  }
+
+  @override
+  $PostalOfficeRulesTable createAlias(String alias) {
+    return $PostalOfficeRulesTable(attachedDatabase, alias);
+  }
+}
+
+class PostalOfficeRule extends DataClass
+    implements Insertable<PostalOfficeRule> {
+  final int id;
+  final int postalOfficeId;
+  final String operation;
+  final String matchMethod;
+  final String startValue;
+  final String? endValue;
+  const PostalOfficeRule({
+    required this.id,
+    required this.postalOfficeId,
+    required this.operation,
+    required this.matchMethod,
+    required this.startValue,
+    this.endValue,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['postal_office_id'] = Variable<int>(postalOfficeId);
+    map['operation'] = Variable<String>(operation);
+    map['match_method'] = Variable<String>(matchMethod);
+    map['start_value'] = Variable<String>(startValue);
+    if (!nullToAbsent || endValue != null) {
+      map['end_value'] = Variable<String>(endValue);
+    }
+    return map;
+  }
+
+  PostalOfficeRulesCompanion toCompanion(bool nullToAbsent) {
+    return PostalOfficeRulesCompanion(
+      id: Value(id),
+      postalOfficeId: Value(postalOfficeId),
+      operation: Value(operation),
+      matchMethod: Value(matchMethod),
+      startValue: Value(startValue),
+      endValue: endValue == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endValue),
+    );
+  }
+
+  factory PostalOfficeRule.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PostalOfficeRule(
+      id: serializer.fromJson<int>(json['id']),
+      postalOfficeId: serializer.fromJson<int>(json['postalOfficeId']),
+      operation: serializer.fromJson<String>(json['operation']),
+      matchMethod: serializer.fromJson<String>(json['matchMethod']),
+      startValue: serializer.fromJson<String>(json['startValue']),
+      endValue: serializer.fromJson<String?>(json['endValue']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'postalOfficeId': serializer.toJson<int>(postalOfficeId),
+      'operation': serializer.toJson<String>(operation),
+      'matchMethod': serializer.toJson<String>(matchMethod),
+      'startValue': serializer.toJson<String>(startValue),
+      'endValue': serializer.toJson<String?>(endValue),
+    };
+  }
+
+  PostalOfficeRule copyWith({
+    int? id,
+    int? postalOfficeId,
+    String? operation,
+    String? matchMethod,
+    String? startValue,
+    Value<String?> endValue = const Value.absent(),
+  }) => PostalOfficeRule(
+    id: id ?? this.id,
+    postalOfficeId: postalOfficeId ?? this.postalOfficeId,
+    operation: operation ?? this.operation,
+    matchMethod: matchMethod ?? this.matchMethod,
+    startValue: startValue ?? this.startValue,
+    endValue: endValue.present ? endValue.value : this.endValue,
+  );
+  PostalOfficeRule copyWithCompanion(PostalOfficeRulesCompanion data) {
+    return PostalOfficeRule(
+      id: data.id.present ? data.id.value : this.id,
+      postalOfficeId: data.postalOfficeId.present
+          ? data.postalOfficeId.value
+          : this.postalOfficeId,
+      operation: data.operation.present ? data.operation.value : this.operation,
+      matchMethod: data.matchMethod.present
+          ? data.matchMethod.value
+          : this.matchMethod,
+      startValue: data.startValue.present
+          ? data.startValue.value
+          : this.startValue,
+      endValue: data.endValue.present ? data.endValue.value : this.endValue,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PostalOfficeRule(')
+          ..write('id: $id, ')
+          ..write('postalOfficeId: $postalOfficeId, ')
+          ..write('operation: $operation, ')
+          ..write('matchMethod: $matchMethod, ')
+          ..write('startValue: $startValue, ')
+          ..write('endValue: $endValue')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    postalOfficeId,
+    operation,
+    matchMethod,
+    startValue,
+    endValue,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PostalOfficeRule &&
+          other.id == this.id &&
+          other.postalOfficeId == this.postalOfficeId &&
+          other.operation == this.operation &&
+          other.matchMethod == this.matchMethod &&
+          other.startValue == this.startValue &&
+          other.endValue == this.endValue);
+}
+
+class PostalOfficeRulesCompanion extends UpdateCompanion<PostalOfficeRule> {
+  final Value<int> id;
+  final Value<int> postalOfficeId;
+  final Value<String> operation;
+  final Value<String> matchMethod;
+  final Value<String> startValue;
+  final Value<String?> endValue;
+  const PostalOfficeRulesCompanion({
+    this.id = const Value.absent(),
+    this.postalOfficeId = const Value.absent(),
+    this.operation = const Value.absent(),
+    this.matchMethod = const Value.absent(),
+    this.startValue = const Value.absent(),
+    this.endValue = const Value.absent(),
+  });
+  PostalOfficeRulesCompanion.insert({
+    this.id = const Value.absent(),
+    required int postalOfficeId,
+    required String operation,
+    required String matchMethod,
+    required String startValue,
+    this.endValue = const Value.absent(),
+  }) : postalOfficeId = Value(postalOfficeId),
+       operation = Value(operation),
+       matchMethod = Value(matchMethod),
+       startValue = Value(startValue);
+  static Insertable<PostalOfficeRule> custom({
+    Expression<int>? id,
+    Expression<int>? postalOfficeId,
+    Expression<String>? operation,
+    Expression<String>? matchMethod,
+    Expression<String>? startValue,
+    Expression<String>? endValue,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (postalOfficeId != null) 'postal_office_id': postalOfficeId,
+      if (operation != null) 'operation': operation,
+      if (matchMethod != null) 'match_method': matchMethod,
+      if (startValue != null) 'start_value': startValue,
+      if (endValue != null) 'end_value': endValue,
+    });
+  }
+
+  PostalOfficeRulesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? postalOfficeId,
+    Value<String>? operation,
+    Value<String>? matchMethod,
+    Value<String>? startValue,
+    Value<String?>? endValue,
+  }) {
+    return PostalOfficeRulesCompanion(
+      id: id ?? this.id,
+      postalOfficeId: postalOfficeId ?? this.postalOfficeId,
+      operation: operation ?? this.operation,
+      matchMethod: matchMethod ?? this.matchMethod,
+      startValue: startValue ?? this.startValue,
+      endValue: endValue ?? this.endValue,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (postalOfficeId.present) {
+      map['postal_office_id'] = Variable<int>(postalOfficeId.value);
+    }
+    if (operation.present) {
+      map['operation'] = Variable<String>(operation.value);
+    }
+    if (matchMethod.present) {
+      map['match_method'] = Variable<String>(matchMethod.value);
+    }
+    if (startValue.present) {
+      map['start_value'] = Variable<String>(startValue.value);
+    }
+    if (endValue.present) {
+      map['end_value'] = Variable<String>(endValue.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PostalOfficeRulesCompanion(')
+          ..write('id: $id, ')
+          ..write('postalOfficeId: $postalOfficeId, ')
+          ..write('operation: $operation, ')
+          ..write('matchMethod: $matchMethod, ')
+          ..write('startValue: $startValue, ')
+          ..write('endValue: $endValue')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1945,6 +2726,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SubscriptionsTable subscriptions = $SubscriptionsTable(this);
   late final $MigrationSnapshotsTable migrationSnapshots =
       $MigrationSnapshotsTable(this);
+  late final $PostalOfficesTable postalOffices = $PostalOfficesTable(this);
+  late final $PostalOfficeRulesTable postalOfficeRules =
+      $PostalOfficeRulesTable(this);
   late final Index idxSubscribersName = Index(
     'idx_subscribers_name',
     'CREATE INDEX idx_subscribers_name ON subscribers (name COLLATE NOCASE)',
@@ -1966,10 +2750,22 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     auditLogs,
     subscriptions,
     migrationSnapshots,
+    postalOffices,
+    postalOfficeRules,
     idxSubscribersName,
     idxSubscriptionsSubscriber,
     idxSubscriptionsExpiryDate,
   ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'postal_offices',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('postal_office_rules', kind: UpdateKind.delete)],
+    ),
+  ]);
 }
 
 typedef $$SubscribersTableCreateCompanionBuilder =
@@ -3406,6 +4202,663 @@ typedef $$MigrationSnapshotsTableProcessedTableManager =
       MigrationSnapshot,
       PrefetchHooks Function()
     >;
+typedef $$PostalOfficesTableCreateCompanionBuilder =
+    PostalOfficesCompanion Function({
+      Value<int> id,
+      required String name,
+      Value<bool> isActive,
+      Value<String> createdAt,
+      Value<String> updatedAt,
+    });
+typedef $$PostalOfficesTableUpdateCompanionBuilder =
+    PostalOfficesCompanion Function({
+      Value<int> id,
+      Value<String> name,
+      Value<bool> isActive,
+      Value<String> createdAt,
+      Value<String> updatedAt,
+    });
+
+final class $$PostalOfficesTableReferences
+    extends BaseReferences<_$AppDatabase, $PostalOfficesTable, PostalOffice> {
+  $$PostalOfficesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$PostalOfficeRulesTable, List<PostalOfficeRule>>
+  _postalOfficeRulesRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.postalOfficeRules,
+        aliasName: 'postal_offices__id__postal_office_rules__postal_office_id',
+      );
+
+  $$PostalOfficeRulesTableProcessedTableManager get postalOfficeRulesRefs {
+    final manager = $$PostalOfficeRulesTableTableManager(
+      $_db,
+      $_db.postalOfficeRules,
+    ).filter((f) => f.postalOfficeId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _postalOfficeRulesRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$PostalOfficesTableFilterComposer
+    extends Composer<_$AppDatabase, $PostalOfficesTable> {
+  $$PostalOfficesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> postalOfficeRulesRefs(
+    Expression<bool> Function($$PostalOfficeRulesTableFilterComposer f) f,
+  ) {
+    final $$PostalOfficeRulesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.postalOfficeRules,
+      getReferencedColumn: (t) => t.postalOfficeId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PostalOfficeRulesTableFilterComposer(
+            $db: $db,
+            $table: $db.postalOfficeRules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PostalOfficesTableOrderingComposer
+    extends Composer<_$AppDatabase, $PostalOfficesTable> {
+  $$PostalOfficesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PostalOfficesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PostalOfficesTable> {
+  $$PostalOfficesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<String> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> postalOfficeRulesRefs<T extends Object>(
+    Expression<T> Function($$PostalOfficeRulesTableAnnotationComposer a) f,
+  ) {
+    final $$PostalOfficeRulesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.postalOfficeRules,
+          getReferencedColumn: (t) => t.postalOfficeId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PostalOfficeRulesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.postalOfficeRules,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$PostalOfficesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PostalOfficesTable,
+          PostalOffice,
+          $$PostalOfficesTableFilterComposer,
+          $$PostalOfficesTableOrderingComposer,
+          $$PostalOfficesTableAnnotationComposer,
+          $$PostalOfficesTableCreateCompanionBuilder,
+          $$PostalOfficesTableUpdateCompanionBuilder,
+          (PostalOffice, $$PostalOfficesTableReferences),
+          PostalOffice,
+          PrefetchHooks Function({bool postalOfficeRulesRefs})
+        > {
+  $$PostalOfficesTableTableManager(_$AppDatabase db, $PostalOfficesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PostalOfficesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PostalOfficesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PostalOfficesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<String> createdAt = const Value.absent(),
+                Value<String> updatedAt = const Value.absent(),
+              }) => PostalOfficesCompanion(
+                id: id,
+                name: name,
+                isActive: isActive,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                Value<bool> isActive = const Value.absent(),
+                Value<String> createdAt = const Value.absent(),
+                Value<String> updatedAt = const Value.absent(),
+              }) => PostalOfficesCompanion.insert(
+                id: id,
+                name: name,
+                isActive: isActive,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$PostalOfficesTable, PostalOffice>(table),
+                  $$PostalOfficesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({postalOfficeRulesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (postalOfficeRulesRefs) db.postalOfficeRules,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (postalOfficeRulesRefs)
+                    await $_getPrefetchedDataByColumns<
+                      PostalOffice,
+                      $PostalOfficesTable,
+                      PostalOfficeRule,
+                      $PostalOfficeRulesTable
+                    >(
+                      currentTable: table,
+                      referencedTable: $$PostalOfficesTableReferences
+                          ._postalOfficeRulesRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$PostalOfficesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).postalOfficeRulesRefs,
+                      currentColumn: 'id',
+                      referencedColumn: 'postal_office_id',
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PostalOfficesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PostalOfficesTable,
+      PostalOffice,
+      $$PostalOfficesTableFilterComposer,
+      $$PostalOfficesTableOrderingComposer,
+      $$PostalOfficesTableAnnotationComposer,
+      $$PostalOfficesTableCreateCompanionBuilder,
+      $$PostalOfficesTableUpdateCompanionBuilder,
+      (PostalOffice, $$PostalOfficesTableReferences),
+      PostalOffice,
+      PrefetchHooks Function({bool postalOfficeRulesRefs})
+    >;
+typedef $$PostalOfficeRulesTableCreateCompanionBuilder =
+    PostalOfficeRulesCompanion Function({
+      Value<int> id,
+      required int postalOfficeId,
+      required String operation,
+      required String matchMethod,
+      required String startValue,
+      Value<String?> endValue,
+    });
+typedef $$PostalOfficeRulesTableUpdateCompanionBuilder =
+    PostalOfficeRulesCompanion Function({
+      Value<int> id,
+      Value<int> postalOfficeId,
+      Value<String> operation,
+      Value<String> matchMethod,
+      Value<String> startValue,
+      Value<String?> endValue,
+    });
+
+final class $$PostalOfficeRulesTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $PostalOfficeRulesTable,
+          PostalOfficeRule
+        > {
+  $$PostalOfficeRulesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $PostalOfficesTable _postalOfficeIdTable(_$AppDatabase db) => db
+      .postalOffices
+      .createAlias('postal_office_rules__postal_office_id__postal_offices__id');
+
+  $$PostalOfficesTableProcessedTableManager get postalOfficeId {
+    final $_column = $_itemColumn<int>('postal_office_id')!;
+
+    final manager = $$PostalOfficesTableTableManager(
+      $_db,
+      $_db.postalOffices,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_postalOfficeIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$PostalOfficeRulesTableFilterComposer
+    extends Composer<_$AppDatabase, $PostalOfficeRulesTable> {
+  $$PostalOfficeRulesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get operation => $composableBuilder(
+    column: $table.operation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get matchMethod => $composableBuilder(
+    column: $table.matchMethod,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get startValue => $composableBuilder(
+    column: $table.startValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get endValue => $composableBuilder(
+    column: $table.endValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$PostalOfficesTableFilterComposer get postalOfficeId {
+    final $$PostalOfficesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.postalOfficeId,
+      referencedTable: $db.postalOffices,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PostalOfficesTableFilterComposer(
+            $db: $db,
+            $table: $db.postalOffices,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PostalOfficeRulesTableOrderingComposer
+    extends Composer<_$AppDatabase, $PostalOfficeRulesTable> {
+  $$PostalOfficeRulesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get operation => $composableBuilder(
+    column: $table.operation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get matchMethod => $composableBuilder(
+    column: $table.matchMethod,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get startValue => $composableBuilder(
+    column: $table.startValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get endValue => $composableBuilder(
+    column: $table.endValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$PostalOfficesTableOrderingComposer get postalOfficeId {
+    final $$PostalOfficesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.postalOfficeId,
+      referencedTable: $db.postalOffices,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PostalOfficesTableOrderingComposer(
+            $db: $db,
+            $table: $db.postalOffices,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PostalOfficeRulesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PostalOfficeRulesTable> {
+  $$PostalOfficeRulesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get operation =>
+      $composableBuilder(column: $table.operation, builder: (column) => column);
+
+  GeneratedColumn<String> get matchMethod => $composableBuilder(
+    column: $table.matchMethod,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get startValue => $composableBuilder(
+    column: $table.startValue,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get endValue =>
+      $composableBuilder(column: $table.endValue, builder: (column) => column);
+
+  $$PostalOfficesTableAnnotationComposer get postalOfficeId {
+    final $$PostalOfficesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.postalOfficeId,
+      referencedTable: $db.postalOffices,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PostalOfficesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.postalOffices,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PostalOfficeRulesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PostalOfficeRulesTable,
+          PostalOfficeRule,
+          $$PostalOfficeRulesTableFilterComposer,
+          $$PostalOfficeRulesTableOrderingComposer,
+          $$PostalOfficeRulesTableAnnotationComposer,
+          $$PostalOfficeRulesTableCreateCompanionBuilder,
+          $$PostalOfficeRulesTableUpdateCompanionBuilder,
+          (PostalOfficeRule, $$PostalOfficeRulesTableReferences),
+          PostalOfficeRule,
+          PrefetchHooks Function({bool postalOfficeId})
+        > {
+  $$PostalOfficeRulesTableTableManager(
+    _$AppDatabase db,
+    $PostalOfficeRulesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PostalOfficeRulesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PostalOfficeRulesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PostalOfficeRulesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> postalOfficeId = const Value.absent(),
+                Value<String> operation = const Value.absent(),
+                Value<String> matchMethod = const Value.absent(),
+                Value<String> startValue = const Value.absent(),
+                Value<String?> endValue = const Value.absent(),
+              }) => PostalOfficeRulesCompanion(
+                id: id,
+                postalOfficeId: postalOfficeId,
+                operation: operation,
+                matchMethod: matchMethod,
+                startValue: startValue,
+                endValue: endValue,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int postalOfficeId,
+                required String operation,
+                required String matchMethod,
+                required String startValue,
+                Value<String?> endValue = const Value.absent(),
+              }) => PostalOfficeRulesCompanion.insert(
+                id: id,
+                postalOfficeId: postalOfficeId,
+                operation: operation,
+                matchMethod: matchMethod,
+                startValue: startValue,
+                endValue: endValue,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$PostalOfficeRulesTable, PostalOfficeRule>(table),
+                  $$PostalOfficeRulesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({postalOfficeId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (postalOfficeId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.postalOfficeId,
+                                referencedTable:
+                                    $$PostalOfficeRulesTableReferences
+                                        ._postalOfficeIdTable(db),
+                                referencedColumn:
+                                    $$PostalOfficeRulesTableReferences
+                                        ._postalOfficeIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PostalOfficeRulesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PostalOfficeRulesTable,
+      PostalOfficeRule,
+      $$PostalOfficeRulesTableFilterComposer,
+      $$PostalOfficeRulesTableOrderingComposer,
+      $$PostalOfficeRulesTableAnnotationComposer,
+      $$PostalOfficeRulesTableCreateCompanionBuilder,
+      $$PostalOfficeRulesTableUpdateCompanionBuilder,
+      (PostalOfficeRule, $$PostalOfficeRulesTableReferences),
+      PostalOfficeRule,
+      PrefetchHooks Function({bool postalOfficeId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3418,4 +4871,8 @@ class $AppDatabaseManager {
       $$SubscriptionsTableTableManager(_db, _db.subscriptions);
   $$MigrationSnapshotsTableTableManager get migrationSnapshots =>
       $$MigrationSnapshotsTableTableManager(_db, _db.migrationSnapshots);
+  $$PostalOfficesTableTableManager get postalOffices =>
+      $$PostalOfficesTableTableManager(_db, _db.postalOffices);
+  $$PostalOfficeRulesTableTableManager get postalOfficeRules =>
+      $$PostalOfficeRulesTableTableManager(_db, _db.postalOfficeRules);
 }
