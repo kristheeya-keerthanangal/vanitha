@@ -170,7 +170,7 @@ void main() {
   test(
     'rejects newer databases without changing their version or data',
     () async {
-      final database = AppDatabase(_version3Database(file, version: 13));
+      final database = AppDatabase(_version3Database(file, version: 14));
       try {
         await expectLater(
           database.customSelect('SELECT 1').get(),
@@ -179,12 +179,12 @@ void main() {
       } finally {
         await database.close();
       }
-      final original = _OriginalDatabase(NativeDatabase(file), 13);
+      final original = _OriginalDatabase(NativeDatabase(file), 14);
       try {
         expect(
           (await original.customSelect('PRAGMA user_version').getSingle())
               .read<int>('user_version'),
-          13,
+          14,
         );
         expect(
           (await original

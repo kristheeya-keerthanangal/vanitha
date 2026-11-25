@@ -1,7 +1,7 @@
 # Database migrations
 
 The database uses Drift guided migrations from schema version 6 onward. The
-version 6, 7, 8, 9, 10, 11, and 12 schema exports are in `drift_schemas/app_database/`, and Drift
+version 6 through 13 schema exports are in `drift_schemas/app_database/`, and Drift
 generates the versioned schema helpers and migration verification database in
 `lib/data/app_database.steps.dart` and `test/drift/app_database/generated/`.
 
@@ -78,3 +78,23 @@ Subscribers include an `is_foreign` boolean column (default `0`, Domestic).
 The 11-to-12 migration adds the column using SQLite's native `ALTER TABLE
 subscribers ADD COLUMN is_foreign INTEGER NOT NULL DEFAULT 0`, preserving all
 existing subscriber records without requiring a table rebuild.
+
+## Version 13: Postal offices and pincode rules
+
+Introduces postal office management and pincode rule-based subscription filtering.
+Two new tables are added:
+- `postal_offices`: Stores postal office records with `id`, `name`, `is_active`,
+  and `created_at` timestamp.
+- `postal_office_rules`: Stores associated pincode rules with `id`, `postal_office_id`
+  (foreign key referencing `postal_offices.id` with `CASCADE` delete), `operation`
+  (`include` or `exclude`), `match_method` (`prefix`, `range`, or `exact`), `start_value`
+  (6-character string), `end_value` (nullable, for ranges), and `created_at` timestamp.
+
+The 12-to-13 migration uses Drift's `createTable` helper for both tables:
+```dart
+await m.createTable(schema.postalOffices);
+await m.createTable(schema.postalOfficeRules);
+```
+All existing subscribers, subscriptions, editions, payments, and historical data
+are preserved completely intact without modification or data loss.
+

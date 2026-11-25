@@ -9,6 +9,8 @@ import '../ui/subscribers/subscriber_details_page.dart';
 import '../ui/archived/archived_subscriptions_page.dart';
 import '../ui/archived/archived_subscription_details_page.dart';
 import '../ui/mailing_list/mailing_list_page.dart';
+import '../ui/postal_offices/postal_offices_page.dart';
+import '../ui/postal_offices/postal_office_form_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
@@ -20,6 +22,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           state,
           AppShell(
             selectedIndex: state.uri.path.startsWith('/settings')
+                ? 5
+                : state.uri.path.startsWith('/postal-offices')
                 ? 4
                 : state.uri.path.startsWith('/mailing-list')
                 ? 3
@@ -36,6 +40,27 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/dashboard',
             pageBuilder: (_, state) =>
                 _noTransitionPage(state, const DashboardPage()),
+          ),
+          GoRoute(
+            path: '/postal-offices',
+            pageBuilder: (_, state) =>
+                _noTransitionPage(state, const PostalOfficesPage()),
+            routes: [
+              GoRoute(
+                path: 'new',
+                pageBuilder: (_, state) =>
+                    _noTransitionPage(state, const PostalOfficeFormPage()),
+              ),
+              GoRoute(
+                path: ':id',
+                pageBuilder: (_, state) => _noTransitionPage(
+                  state,
+                  PostalOfficeFormPage(
+                    id: int.tryParse(state.pathParameters['id'] ?? '') ?? -1,
+                  ),
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: '/settings',

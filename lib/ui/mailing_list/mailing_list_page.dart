@@ -311,6 +311,15 @@ class _MailingSettings extends StatelessWidget {
         },
         onChanged: model.outputBusy ? null : model.changeFilter,
       ),
+      _setting<int?>(
+        label: 'Postal office',
+        value: model.selectedPostalOfficeId,
+        options: {
+          null: 'All',
+          for (final office in model.activePostalOffices) office.id: office.name,
+        },
+        onChanged: model.outputBusy ? null : model.changePostalOffice,
+      ),
       _setting<String>(
         label: 'Font size',
         value: 'Automatic',
@@ -333,6 +342,7 @@ class _MailingSettings extends StatelessWidget {
   }) => SizedBox(
     width: 220,
     child: DropdownButtonFormField<T>(
+      key: ValueKey('${label}_${value}_${options.keys.join(',')}'),
       initialValue: value,
       isExpanded: true,
       decoration: InputDecoration(labelText: label),
@@ -343,7 +353,7 @@ class _MailingSettings extends StatelessWidget {
       onChanged: onChanged == null
           ? null
           : (value) {
-              if (value != null) onChanged(value);
+              if (value is T) onChanged(value);
             },
     ),
   );

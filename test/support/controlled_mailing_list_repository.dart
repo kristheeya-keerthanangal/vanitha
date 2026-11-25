@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:vanithabodhini/data/app_database.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
 
 class ControlledMailingListRepository extends SubscriberRepository {
@@ -7,12 +8,15 @@ class ControlledMailingListRepository extends SubscriberRepository {
 
   final requests = <Completer<List<MailingListEntry>>>[];
   final filters = <MailingListFilter>[];
+  final postalOfficeRulesList = <List<PostalOfficeRule>?>[];
 
   @override
   Future<List<MailingListEntry>> getMailingList({
     MailingListFilter filter = MailingListFilter.active,
+    List<PostalOfficeRule>? postalOfficeRules,
   }) {
     filters.add(filter);
+    postalOfficeRulesList.add(postalOfficeRules);
     final request = Completer<List<MailingListEntry>>();
     requests.add(request);
     return request.future;

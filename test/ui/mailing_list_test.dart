@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vanithabodhini/data/app_database.dart';
+import 'package:vanithabodhini/data/repositories/postal_office_repository.dart';
 import 'package:vanithabodhini/main.dart';
 import 'package:vanithabodhini/mailing/mailing_pdf.dart';
 import 'package:vanithabodhini/providers/database_provider.dart';
@@ -397,6 +398,48 @@ void main() {
     await tester.tap(find.text('All').last);
     await tester.pump();
     expect(repository.filters.last, MailingListFilter.all);
+    repository.requests.last.complete(mailingEntries);
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('allows filtering by postal office', (tester) async {
+    final postalOfficeRepo = PostalOfficeRepository(database);
+    await postalOfficeRepo.saveOfficeWithRules(
+      name: 'Kannur RMS',
+      isActive: true,
+      rules: [
+        PostalOfficeRulesCompanion.insert(
+          postalOfficeId: 0,
+          operation: 'include',
+          matchMethod: 'prefix',
+          startValue: '670',
+        ),
+      ],
+    );
+
+    await pumpPage(tester);
+    await load(tester);
+    expect(repository.postalOfficeRulesList.last, isNull);
+
+    final dropdown = find.byType(DropdownButton<int?>);
+    await tester.ensureVisible(dropdown);
+
+    await tester.tap(dropdown);
+    await tester.pumpAndSettle();
+    expect(find.text('Kannur RMS'), findsOneWidget);
+
+    await tester.tap(find.text('Kannur RMS').last);
+    await tester.pump();
+    expect(repository.postalOfficeRulesList.last, isNotNull);
+    expect(repository.postalOfficeRulesList.last!.first.startValue, '670');
+    repository.requests.last.complete([mailingEntries.first]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(dropdown);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All').last);
+    await tester.pump();
+    expect(repository.postalOfficeRulesList.last, isNull);
     repository.requests.last.complete(mailingEntries);
     await tester.pumpAndSettle();
   });

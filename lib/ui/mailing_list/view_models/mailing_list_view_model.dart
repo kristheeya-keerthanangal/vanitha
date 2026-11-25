@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../data/app_database.dart';
+import '../../../data/repositories/postal_office_repository.dart';
 import '../../../data/repositories/subscriber_repository.dart';
 import '../../../mailing/mailing_layout.dart';
 import '../../../mailing/mailing_pdf.dart';
@@ -27,6 +29,7 @@ final mailingListViewModelProvider = Provider.autoDispose<MailingListViewModel>(
   (ref) {
     final model = MailingListViewModel(
       ref.watch(subscriberRepositoryProvider),
+      postalOfficeRepository: ref.watch(postalOfficeRepositoryProvider),
       pdf: ref.watch(mailingPdfProvider),
       file: ref.watch(mailingPdfFileProvider),
       printer: ref.watch(mailingPdfPrinterProvider),
@@ -39,16 +42,19 @@ final mailingListViewModelProvider = Provider.autoDispose<MailingListViewModel>(
 class MailingListViewModel extends ChangeNotifier {
   MailingListViewModel(
     this._repository, {
+    this.postalOfficeRepository,
     MailingPdf? pdf,
     MailingPdfFile? file,
     MailingPdfPrinter? printer,
   }) : _pdf = pdf ?? MailingPdf(),
        _file = file ?? MailingPdfFile(),
        _printer = printer ?? MailingPdfPrinter() {
+    _loadPostalOffices();
     refresh();
   }
 
   final SubscriberRepository _repository;
+  final PostalOfficeRepository? postalOfficeRepository;
   final MailingPdf _pdf;
   final MailingPdfFile _file;
   final MailingPdfPrinter _printer;
@@ -59,6 +65,16 @@ class MailingListViewModel extends ChangeNotifier {
       _rows.where((row) => row.hasIncompleteMailingDetails).toList();
   int get total => _rows.length;
   int get incompleteCount => incompleteRows.length;
+
+  List<PostalOffice> activePostalOffices = [];
+  int? selectedPostalOfficeId;
+  List<PostalOfficeRule>? _selectedPostalOfficeRules;
+
+  PostalOffice? get selectedPostalOffice {
+    final id = selectedPostalOfficeId;
+    if (id == null) return null;
+    return activePostalOffices.where((o) => o.id == id).firstOrNull;
+  }
 
   MailingOrientation orientation = MailingOrientation.portrait;
   MailingLabelSize labelSize = MailingLabelSize.small;
@@ -126,6 +142,43 @@ class MailingListViewModel extends ChangeNotifier {
     refresh();
   }
 
+  Future<void> changePostalOffice(int? officeId) async {
+    if (outputBusy || selectedPostalOfficeId == officeId) return;
+    selectedPostalOfficeId = officeId;
+    _invalidatePreview();
+    fittingFailures = const [];
+    loading = true;
+    notifyListeners();
+    if (officeId != null && postalOfficeRepository != null) {
+      try {
+        _selectedPostalOfficeRules =
+            await postalOfficeRepository!.getRulesForOffice(officeId);
+      } catch (_) {
+        _selectedPostalOfficeRules = null;
+      }
+    } else {
+      _selectedPostalOfficeRules = null;
+    }
+    await _fetchRows();
+  }
+
+  Future<void> _loadPostalOffices() async {
+    if (postalOfficeRepository == null) return;
+    try {
+      final offices = await postalOfficeRepository!.getActiveOffices();
+      if (_disposed) return;
+      activePostalOffices = offices;
+      if (selectedPostalOfficeId != null &&
+          !offices.any((o) => o.id == selectedPostalOfficeId)) {
+        selectedPostalOfficeId = null;
+        _selectedPostalOfficeRules = null;
+        await _fetchRows();
+      } else {
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
   void _orderRows() {
     final sorted = [..._entries];
     if (ordering == MailingOrdering.postalCode) {
@@ -146,6 +199,19 @@ class MailingListViewModel extends ChangeNotifier {
 
   Future<void> refresh() async {
     if (outputBusy) return;
+    _loadPostalOffices();
+    if (selectedPostalOfficeId != null && postalOfficeRepository != null) {
+      try {
+        _selectedPostalOfficeRules =
+            await postalOfficeRepository!.getRulesForOffice(
+              selectedPostalOfficeId!,
+            );
+      } catch (_) {}
+    }
+    await _fetchRows();
+  }
+
+  Future<void> _fetchRows() async {
     final request = ++_request;
     loading = true;
     error = null;
@@ -153,7 +219,10 @@ class MailingListViewModel extends ChangeNotifier {
     fittingFailures = const [];
     notifyListeners();
     try {
-      final entries = await _repository.getMailingList(filter: filter);
+      final entries = await _repository.getMailingList(
+        filter: filter,
+        postalOfficeRules: _selectedPostalOfficeRules,
+      );
       if (_disposed || request != _request) return;
       _entries = entries;
       _orderRows();

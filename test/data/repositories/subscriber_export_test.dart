@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vanithabodhini/data/app_database.dart';
+import 'package:vanithabodhini/data/repositories/postal_office_repository.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
 import 'package:vanithabodhini/data/repositories/subscription_repository.dart';
 
@@ -78,8 +79,9 @@ void main() {
           .archiveSubscription(firstSubscription.id);
       final archivedSubscriber = await repository.archiveSubscriber(second.id);
 
-      final decoded =
-          jsonDecode(await repository.exportCompleteSubscribers()) as List;
+      final json = jsonDecode(await repository.exportCompleteSubscribers())
+          as Map<String, dynamic>;
+      final decoded = json['subscribers'] as List;
 
       expect(decoded, [
         {
@@ -113,8 +115,9 @@ void main() {
         startMonth: 1,
       );
 
-      final decoded =
-          jsonDecode(await repository.exportCompleteSubscribers()) as List;
+      final json = jsonDecode(await repository.exportCompleteSubscribers())
+          as Map<String, dynamic>;
+      final decoded = json['subscribers'] as List;
 
       expect(decoded.single['isForeign'], isTrue);
       expect(decoded.single['email'], 'foreign@example.com');
@@ -122,6 +125,41 @@ void main() {
       expect(decoded.single['subscriptions'], [lifetimeSub.toJson()]);
       expect(decoded.single['subscriptions'].first['planType'], 'lifetime');
       expect(decoded.single['subscriptions'].first['durationYears'], 15);
+    },
+  );
+
+  test(
+    'complete export includes postal offices and their rules',
+    () async {
+      final officeRepo = PostalOfficeRepository(database);
+      final office = await officeRepo.createOffice(name: 'Kannur RMS');
+      await officeRepo.addRule(
+        postalOfficeId: office.id,
+        operation: 'include',
+        matchMethod: 'prefix',
+        startValue: '670',
+      );
+      await officeRepo.addRule(
+        postalOfficeId: office.id,
+        operation: 'exclude',
+        matchMethod: 'exact',
+        startValue: '670002',
+      );
+
+      final json = jsonDecode(await repository.exportCompleteSubscribers())
+          as Map<String, dynamic>;
+      final offices = json['postalOffices'] as List;
+      expect(offices, hasLength(1));
+      expect(offices.first['name'], 'Kannur RMS');
+      expect(offices.first['isActive'], isTrue);
+      final rules = offices.first['rules'] as List;
+      expect(rules, hasLength(2));
+      expect(rules[0]['operation'], 'include');
+      expect(rules[0]['matchMethod'], 'prefix');
+      expect(rules[0]['startValue'], '670');
+      expect(rules[1]['operation'], 'exclude');
+      expect(rules[1]['matchMethod'], 'exact');
+      expect(rules[1]['startValue'], '670002');
     },
   );
 }

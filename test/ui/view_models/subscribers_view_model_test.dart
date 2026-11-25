@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vanithabodhini/data/app_database.dart';
+import 'package:vanithabodhini/data/repositories/postal_office_repository.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
 import 'package:vanithabodhini/ui/subscribers/view_models/subscribers_view_model.dart';
 
@@ -12,6 +13,7 @@ class ControlledRepository extends SubscriberRepository {
   final searches = <String>[];
   final filters = <SubscriberFilter>[];
   final originFilters = <SubscriberOriginFilter>[];
+  final officeRules = <List<PostalOfficeRule>?>[];
   @override
   Future<SubscriberPage> getSubscribersPage({
     int offset = 0,
@@ -20,12 +22,14 @@ class ControlledRepository extends SubscriberRepository {
     SubscriberSort sortBy = SubscriberSort.name,
     SubscriberFilter filterBy = SubscriberFilter.all,
     SubscriberOriginFilter originFilter = SubscriberOriginFilter.all,
+    List<PostalOfficeRule>? postalOfficeRules,
     bool ascending = true,
   }) {
     offsets.add(offset);
     searches.add(search);
     filters.add(filterBy);
     originFilters.add(originFilter);
+    officeRules.add(postalOfficeRules);
     final request = Completer<SubscriberPage>();
     requests.add(request);
     return request.future;
@@ -151,5 +155,39 @@ void main() {
     await retry;
     expect(model.error, isNull);
     expect(model.loading, false);
+  });
+
+  test('postal office filter resets paging and queries with rules', () async {
+    final officeRepo = PostalOfficeRepository(database);
+    final office = await officeRepo.createOffice(name: 'Kasaragod RMS');
+    await officeRepo.addRule(
+      postalOfficeId: office.id,
+      operation: 'include',
+      matchMethod: 'prefix',
+      startValue: '671',
+    );
+
+    final postalModel = SubscribersViewModel(
+      repository,
+      officeRepo,
+    );
+    addTearDown(postalModel.dispose);
+
+    repository.requests.last.complete(const SubscriberPage(rows: [], total: 100));
+    await tick();
+    postalModel.changePage(25);
+    repository.requests.last.complete(const SubscriberPage(rows: [], total: 100));
+    await tick();
+
+    postalModel.postalOfficeFilterChanged(office.id);
+    await tick();
+
+    expect(postalModel.selectedPostalOfficeId, office.id);
+    expect(postalModel.offset, 0);
+    expect(repository.offsets.last, 0);
+    expect(repository.officeRules.last?.first.startValue, '671');
+    repository.requests.last.complete(const SubscriberPage(rows: [], total: 12));
+    await tick();
+    expect(postalModel.total, 12);
   });
 }

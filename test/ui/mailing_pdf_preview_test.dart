@@ -55,6 +55,7 @@ void main() {
     canRaster = true;
     container = ProviderContainer(
       overrides: [
+        databaseProvider.overrideWithValue(database),
         subscriberRepositoryProvider.overrideWithValue(repository),
         mailingPdfProvider.overrideWithValue(pdf),
         mailingPdfFileProvider.overrideWithValue(file),

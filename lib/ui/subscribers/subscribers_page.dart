@@ -71,6 +71,46 @@ class SubscribersPage extends ConsumerWidget {
                   onSelectionChanged: (selection) =>
                       model.originFilterChanged(selection.single),
                 ),
+                if (model.activePostalOffices.isNotEmpty)
+                  SizedBox(
+                    width: 240,
+                    child: DropdownButtonFormField<int?>(
+                      key: ValueKey(model.selectedPostalOfficeId),
+                      initialValue: model.selectedPostalOfficeId,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: 'Postal office',
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        suffixIcon: model.selectedPostalOfficeId != null
+                            ? IconButton(
+                                tooltip: 'Clear postal office filter',
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: () =>
+                                    model.postalOfficeFilterChanged(null),
+                              )
+                            : null,
+                      ),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('All postal offices'),
+                        ),
+                        for (final office in model.activePostalOffices)
+                          DropdownMenuItem<int?>(
+                            value: office.id,
+                            child: Text(
+                              office.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: model.postalOfficeFilterChanged,
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 24),
@@ -93,6 +133,11 @@ class SubscribersPage extends ConsumerWidget {
 
   String _emptyMessage(SubscribersViewModel model) {
     if (model.search.trim().isNotEmpty) return 'No matching subscribers.';
+    if (model.selectedPostalOfficeId != null) {
+      final officeName =
+          model.selectedPostalOffice?.name ?? 'selected postal office';
+      return 'No subscribers found for $officeName.';
+    }
     final origin = model.selectedOriginFilter;
     final status = model.selectedFilter;
     if (origin == SubscriberOriginFilter.foreign) {

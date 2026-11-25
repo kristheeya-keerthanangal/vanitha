@@ -47,6 +47,20 @@ void main() {
             expiryDate: '2026-12-31',
           ),
         );
+    final officeId = await database.into(database.postalOffices).insert(
+          PostalOfficesCompanion.insert(
+            name: 'Kannur RMS',
+            isActive: const drift.Value(true),
+          ),
+        );
+    await database.into(database.postalOfficeRules).insert(
+          PostalOfficeRulesCompanion.insert(
+            postalOfficeId: officeId,
+            operation: 'include',
+            matchMethod: 'prefix',
+            startValue: '670',
+          ),
+        );
   });
 
   tearDown(() async {
@@ -86,6 +100,8 @@ void main() {
       expect(jsonString, contains('Priya Sharma'));
       expect(jsonString, contains('123 MG Road'));
       expect(jsonString, contains('560001'));
+      expect(jsonString, contains('Kannur RMS'));
+      expect(jsonString, contains('670'));
 
       // Verify zip archive contents
       final zipBytes = result.zipFile.readAsBytesSync();
@@ -106,6 +122,10 @@ void main() {
         expect(rows.length, 1);
         expect(rows.first['name'], 'Priya Sharma');
         expect(rows.first['postal_address'], '123 MG Road');
+
+        final officeRows = checkDb.select('SELECT name FROM postal_offices');
+        expect(officeRows.length, 1);
+        expect(officeRows.first['name'], 'Kannur RMS');
 
         final integrity = checkDb.select('PRAGMA quick_check');
         expect(integrity.first['quick_check'], 'ok');

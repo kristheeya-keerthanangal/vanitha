@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../postal_offices/view_models/postal_offices_view_model.dart';
 import '../../subscribers/view_models/subscribers_view_model.dart';
 import '../../../../data/repositories/subscriber_repository.dart';
 import '../../../../data/subscriber_import.dart';
@@ -17,7 +18,10 @@ final subscriberImportViewModelProvider =
       final model = SubscriberImportViewModel(
         ref.watch(subscriberRepositoryProvider),
         ref.watch(subscriberImportFilePickerProvider),
-        onImported: () => ref.read(subscribersViewModelProvider).refresh(),
+        onImported: () {
+          ref.read(subscribersViewModelProvider).refresh();
+          ref.read(postalOfficesViewModelProvider).refresh();
+        },
       );
       ref.onDispose(model.dispose);
       return model;
@@ -89,7 +93,13 @@ class SubscriberImportViewModel extends ChangeNotifier {
       final file = await _pickFile();
       if (_disposed || file == null) return;
       final entries = parseCompleteSubscriberImport(file.contents);
-      final prepared = await _repository.previewCompleteImport(entries);
+      final postalOffices = entries is CompleteImportData
+          ? entries.postalOffices
+          : const <CompletePostalOfficeImportEntry>[];
+      final prepared = await _repository.previewCompleteImport(
+        entries,
+        postalOffices: postalOffices,
+      );
       if (_disposed) return;
       filename = file.name;
       completePreview = prepared;
@@ -156,7 +166,7 @@ class SubscriberImportViewModel extends ChangeNotifier {
     if (isBusy ||
         _disposed ||
         prepared == null ||
-        prepared.subscribersToInsert == 0) {
+        !prepared.hasItemsToInsert) {
       return;
     }
     isBusy = true;

@@ -383,4 +383,79 @@ void main() {
       [subscriber.id],
     );
   });
+
+  test('filters mailing list entries by postal office rules', () async {
+    final subscriptions = SubscriptionRepository(database);
+
+    final sub1 = await repository.createSubscriber(
+      name: 'Kannur Reader',
+      postalAddress: 'Kannur Town',
+      postalCode: '670001',
+    );
+    final sub2 = await repository.createSubscriber(
+      name: 'Thalassery Excluded',
+      postalAddress: 'Thalassery Town',
+      postalCode: '670102',
+    );
+    final sub3 = await repository.createSubscriber(
+      name: 'Kasaragod Reader',
+      postalAddress: 'Kasaragod Town',
+      postalCode: '671121',
+    );
+    final sub4 = await repository.createSubscriber(
+      name: 'Missing Pincode Reader',
+      postalAddress: 'Unknown Street',
+      postalCode: null,
+    );
+
+    final today = DateTime.now();
+    for (final sub in [sub1, sub2, sub3, sub4]) {
+      await subscriptions.createSubscription(
+        subscriberId: sub.id,
+        edition: 'offline',
+        planType: 'annual',
+        durationYears: 1,
+        startYear: today.year,
+        startMonth: today.month,
+      );
+    }
+
+    final kannurRules = [
+      const PostalOfficeRule(
+        id: 1,
+        postalOfficeId: 10,
+        operation: 'include',
+        matchMethod: 'prefix',
+        startValue: '670',
+        endValue: null,
+      ),
+      const PostalOfficeRule(
+        id: 2,
+        postalOfficeId: 10,
+        operation: 'exclude',
+        matchMethod: 'exact',
+        startValue: '670102',
+        endValue: null,
+      ),
+    ];
+
+    // With rules: includes 670 prefix except 670102
+    final kannurList = await repository.getMailingList(
+      postalOfficeRules: kannurRules,
+    );
+    expect(kannurList.map((e) => e.subscriberId), [sub1.id]);
+
+    // Office with no include rules matches no subscribers
+    final emptyRulesList = await repository.getMailingList(
+      postalOfficeRules: const [],
+    );
+    expect(emptyRulesList, isEmpty);
+
+    // null rules returns all active subscribers
+    final allList = await repository.getMailingList(postalOfficeRules: null);
+    expect(
+      allList.map((e) => e.subscriberId).toSet(),
+      {sub1.id, sub2.id, sub3.id, sub4.id},
+    );
+  });
 }

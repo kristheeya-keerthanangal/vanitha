@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vanithabodhini/data/app_database.dart';
+import 'package:vanithabodhini/data/repositories/postal_office_repository.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
 import 'package:vanithabodhini/data/repositories/subscription_repository.dart';
 import 'package:vanithabodhini/main.dart';
@@ -369,6 +370,93 @@ void main() {
       expect(model.rows.map((s) => s.id).toSet(), {domesticId});
       expect(find.text('Domestic Reader'), findsOneWidget);
       expect(find.text('Foreign Reader'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'postal office dropdown dynamically filters subscribers and can be cleared',
+    (tester) async {
+      final database = AppDatabase(NativeDatabase.memory());
+      final container = ProviderContainer(
+        overrides: [databaseProvider.overrideWithValue(database)],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await database.close();
+      });
+
+      final subRepo = SubscriberRepository(database);
+      final officeRepo = PostalOfficeRepository(database);
+
+      late int kasaragodId;
+      late int kannurId;
+      late int officeId;
+
+      await tester.runAsync(() async {
+        final sub1 = await subRepo.createSubscriber(
+          name: 'Kasaragod Subscriber',
+          postalCode: '671001',
+        );
+        final sub2 = await subRepo.createSubscriber(
+          name: 'Kannur Subscriber',
+          postalCode: '670001',
+        );
+        kasaragodId = sub1.id;
+        kannurId = sub2.id;
+
+        final office = await officeRepo.createOffice(name: 'Kasaragod RMS');
+        officeId = office.id;
+        await officeRepo.addRule(
+          postalOfficeId: office.id,
+          operation: 'include',
+          matchMethod: 'prefix',
+          startValue: '671',
+        );
+      });
+
+      container.read(routerProvider).go('/subscribers');
+      await tester.pumpWidget(
+        UncontrolledProviderScope(container: container, child: const MainApp()),
+      );
+      final model = container.read(subscribersViewModelProvider);
+      await tester.runAsync(model.refresh);
+      await tester.pumpAndSettle();
+
+      expect(model.total, 2);
+      expect(find.text('Kasaragod Subscriber'), findsOneWidget);
+      expect(find.text('Kannur Subscriber'), findsOneWidget);
+
+      // Verify dropdown is present
+      final dropdownFinder = find.widgetWithText(DropdownButtonFormField<int?>, 'All postal offices');
+      expect(dropdownFinder, findsOneWidget);
+
+      // Select Kasaragod RMS
+      await tester.tap(dropdownFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Kasaragod RMS').last);
+      await tester.runAsync(model.refresh);
+      await tester.pumpAndSettle();
+
+      expect(model.selectedPostalOfficeId, officeId);
+      expect(model.total, 1);
+      expect(model.rows.map((s) => s.id).toSet(), {kasaragodId});
+      expect(model.rows.map((s) => s.id).toSet(), isNot(contains(kannurId)));
+      expect(find.text('Kasaragod Subscriber'), findsOneWidget);
+      expect(find.text('Kannur Subscriber'), findsNothing);
+
+      // Clear filter using the clear icon button
+      final clearButton = find.byTooltip('Clear postal office filter');
+      expect(clearButton, findsOneWidget);
+      await tester.tap(clearButton);
+      await tester.runAsync(model.refresh);
+      await tester.pumpAndSettle();
+
+      expect(model.selectedPostalOfficeId, isNull);
+      expect(model.total, 2);
+      expect(find.text('Kasaragod Subscriber'), findsOneWidget);
+      expect(find.text('Kannur Subscriber'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
     },

@@ -21,7 +21,7 @@ class SubscribersToolbar extends StatelessWidget {
           );
           const addButton = AddSubscriberButton();
 
-          if (constraints.maxWidth < 560) {
+          if (constraints.maxWidth < 600) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [heading, const SizedBox(height: 12), addButton],
@@ -31,7 +31,11 @@ class SubscribersToolbar extends StatelessWidget {
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
-            children: [heading, addButton],
+            children: [
+              Flexible(child: heading),
+              const SizedBox(width: 16),
+              addButton,
+            ],
           );
         },
       ),

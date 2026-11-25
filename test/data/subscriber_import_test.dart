@@ -171,6 +171,88 @@ void main() {
       expect(entries.single.name, 'FOREIGN READER');
     });
 
+    test('parses wrapped object format with subscribers and postalOffices', () {
+      final data = parseCompleteSubscriberImport(
+        jsonEncode({
+          'subscribers': [completeSample],
+          'postalOffices': [
+            {
+              'name': 'Kannur RMS',
+              'isActive': true,
+              'rules': [
+                {
+                  'operation': 'include',
+                  'matchMethod': 'prefix',
+                  'startValue': '670',
+                },
+                {
+                  'operation': 'exclude',
+                  'matchMethod': 'exact',
+                  'startValue': '670002',
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      expect(data, hasLength(1));
+      expect(data.single.name, 'FOREIGN READER');
+      expect(data is CompleteImportData, isTrue);
+      final offices = (data as CompleteImportData).postalOffices;
+      expect(offices, hasLength(1));
+      expect(offices.first.name, 'Kannur RMS');
+      expect(offices.first.isActive, isTrue);
+      expect(offices.first.rules, hasLength(2));
+      expect(offices.first.rules[0].operation, 'include');
+      expect(offices.first.rules[0].matchMethod, 'prefix');
+      expect(offices.first.rules[0].startValue, '670');
+      expect(offices.first.rules[1].operation, 'exclude');
+      expect(offices.first.rules[1].matchMethod, 'exact');
+      expect(offices.first.rules[1].startValue, '670002');
+    });
+
+    test('rejects postal office rule with invalid operation or matchMethod', () {
+      expect(
+        () => parseCompleteSubscriberImport(
+          jsonEncode({
+            'postalOffices': [
+              {
+                'name': 'Invalid Rule Office',
+                'rules': [
+                  {
+                    'operation': 'unknown',
+                    'matchMethod': 'prefix',
+                    'startValue': '670',
+                  },
+                ],
+              },
+            ],
+          }),
+        ),
+        throwsFormatException,
+      );
+
+      expect(
+        () => parseCompleteSubscriberImport(
+          jsonEncode({
+            'postalOffices': [
+              {
+                'name': 'Invalid Method Office',
+                'rules': [
+                  {
+                    'operation': 'include',
+                    'matchMethod': 'wildcard',
+                    'startValue': '670',
+                  },
+                ],
+              },
+            ],
+          }),
+        ),
+        throwsFormatException,
+      );
+    });
+
     test('parses domestic subscriber and defaults isForeign to false when absent', () {
       final entries = parseCompleteSubscriberImport(
         jsonEncode([
