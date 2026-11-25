@@ -40,7 +40,7 @@ class DatabaseLocator {
     Future<Directory> Function()? documentsDirectoryLookup,
   }) async {
     final env = environment ?? Platform.environment;
-    final baseDir = _resolveWindowsBaseDir(env);
+    final baseDir = resolveWindowsBaseDir(env);
     final targetDir = Directory(p.join(baseDir, appDirectoryName));
 
     if (!targetDir.existsSync()) {
@@ -61,7 +61,7 @@ class DatabaseLocator {
     return targetFile.path;
   }
 
-  static String _resolveWindowsBaseDir(Map<String, String> env) {
+  static String resolveWindowsBaseDir(Map<String, String> env) {
     final localAppData = env['LOCALAPPDATA'];
     if (localAppData != null && localAppData.trim().isNotEmpty) {
       return localAppData.trim();
