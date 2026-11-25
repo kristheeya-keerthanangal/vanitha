@@ -141,6 +141,7 @@ class SubscriberRepository {
   // Missing PIN codes come last; each group is ordered by name, then ID.
   Future<List<MailingListEntry>> getMailingList({
     MailingListFilter filter = MailingListFilter.active,
+    List<PostalOfficeRule>? postalOfficeRules,
   }) async {
     final table = _database.subscribers;
     final statusPredicate = switch (filter) {
@@ -164,7 +165,11 @@ class SubscriberRepository {
         table.postalAddress,
         table.postalCode,
       ])
-      ..where(table.archivedAt.isNull() & statusPredicate)
+      ..where(
+        table.archivedAt.isNull() &
+            statusPredicate &
+            _postalOfficeFilter(postalOfficeRules),
+      )
       ..orderBy([
         OrderingTerm.asc(table.name.collate(Collate.noCase)),
         OrderingTerm.asc(table.id),
