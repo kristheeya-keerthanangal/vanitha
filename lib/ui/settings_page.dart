@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers/backup_provider.dart';
 import 'settings/view_models/subscriber_import_view_model.dart';
 import 'settings/view_models/subscriber_export_view_model.dart';
 
@@ -110,6 +111,10 @@ class SettingsPage extends ConsumerWidget {
             ],
             const SizedBox(height: 24),
             const _SubscriberExportSection(),
+            const SizedBox(height: 32),
+            const Divider(),
+            const SizedBox(height: 24),
+            const _DatabaseBackupSection(),
           ],
         ),
       ),
@@ -339,5 +344,133 @@ class _CompleteImportConfirmationDialog extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class _DatabaseBackupSection extends ConsumerWidget {
+  const _DatabaseBackupSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final coordinator = ref.watch(backupCoordinatorProvider);
+
+    return ListenableBuilder(
+      listenable: coordinator,
+      builder: (context, _) {
+        final settings = coordinator.settings;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          Text('Database Backup', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          const Text(
+            'Configure daily backups of the database and data. '
+            'Backups are created when the app starts once per day. '
+            'You can select Google Drive for Desktop, OneDrive for Desktop, or any folder. '
+            'Backups are saved as verified zip archives containing both the SQLite database and a full JSON export. '
+            'The 30 most recent daily backups are retained.',
+          ),
+          const SizedBox(height: 16),
+          Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.folder_outlined),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          settings.isConfigured
+                              ? settings.backupDirectory!
+                              : 'No backup folder selected',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: settings.isConfigured
+                                ? null
+                                : Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        onPressed: coordinator.isBackingUp
+                            ? null
+                            : coordinator.selectBackupDirectory,
+                        icon: const Icon(Icons.folder_open),
+                        label: Text(
+                          settings.isConfigured
+                              ? 'Change folder'
+                              : 'Choose folder',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Daily backup on startup'),
+                    subtitle: const Text(
+                      'Automatically create a backup once per day when the application opens',
+                    ),
+                    value: settings.isEnabled,
+                    onChanged: coordinator.isBackingUp
+                        ? null
+                        : (val) => coordinator.setEnabled(val),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              FilledButton.icon(
+                onPressed: coordinator.isBackingUp || !settings.isConfigured
+                    ? null
+                    : () => coordinator.runBackup(),
+                icon: coordinator.isBackingUp
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.backup_outlined),
+                label: Text(
+                  coordinator.isBackingUp
+                      ? 'Backup in progress…'
+                      : 'Back up now',
+                ),
+              ),
+              if (settings.lastBackupTimestamp != null)
+                Text(
+                  'Last backup: ${settings.lastBackupTimestamp} (${settings.lastBackupStatus})',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+            ],
+          ),
+          if (coordinator.lastSuccessMessage != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              coordinator.lastSuccessMessage!,
+              style: const TextStyle(color: Colors.green),
+            ),
+          ],
+          if (coordinator.lastError != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              coordinator.lastError!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+        ],
+      );
+    },
+  );
   }
 }
