@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:convert';
 
 class SubscriberImportEntry {
@@ -153,18 +154,27 @@ List<CompleteSubscriberImportEntry> parseCompleteSubscriberImport(
   }
 
   final List<dynamic> list;
+  final List<dynamic> postalOfficesList;
   if (decoded is List) {
     list = decoded;
-  } else if (decoded is Map<String, dynamic> &&
-      decoded['subscribers'] is List) {
-    list = decoded['subscribers'] as List;
+    postalOfficesList = const [];
+  } else if (decoded is Map<String, dynamic>) {
+    final subs = decoded['subscribers'];
+    final offices = decoded['postalOffices'];
+    if (subs is! List && offices is! List) {
+      throw const FormatException(
+        'Expected a nonempty JSON array of subscribers or postalOffices.',
+      );
+    }
+    list = subs is List ? subs : const [];
+    postalOfficesList = offices is List ? offices : const [];
   } else {
     throw const FormatException(
       'Expected a nonempty JSON array of subscribers.',
     );
   }
 
-  if (list.isEmpty) {
+  if (list.isEmpty && postalOfficesList.isEmpty) {
     throw const FormatException(
       'Expected a nonempty JSON array of subscribers.',
     );
@@ -316,25 +326,235 @@ List<CompleteSubscriberImportEntry> parseCompleteSubscriberImport(
     );
   }
 
-  return List.unmodifiable(entries);
+  final postalOfficesEntries = <CompletePostalOfficeImportEntry>[];
+  for (var index = 0; index < postalOfficesList.length; index++) {
+    final row = postalOfficesList[index];
+    final label = 'Postal office ${index + 1}';
+    if (row is! Map<String, dynamic>) {
+      throw FormatException('$label must be an object.');
+    }
+
+    if (!row.containsKey('name')) {
+      throw FormatException('$label: missing field "name".');
+    }
+    final nameVal = row['name'];
+    if (nameVal is! String || nameVal.trim().isEmpty) {
+      throw FormatException('$label: "name" must be a nonempty string.');
+    }
+
+    bool isActive = true;
+    if (row.containsKey('isActive') && row['isActive'] != null) {
+      final val = row['isActive'];
+      if (val is! bool) {
+        throw FormatException('$label: "isActive" must be a boolean.');
+      }
+      isActive = val;
+    }
+
+    String? parseOptString(String field) {
+      if (!row.containsKey(field) || row[field] == null) return null;
+      final val = row[field];
+      if (val is! String) {
+        throw FormatException('$label: "$field" must be a string or null.');
+      }
+      return val.trim().isEmpty ? null : val.trim();
+    }
+
+    final createdAt = parseOptString('createdAt');
+    final updatedAt = parseOptString('updatedAt');
+
+    final rules = <CompletePostalOfficeRuleImportEntry>[];
+    if (row.containsKey('rules') && row['rules'] != null) {
+      final rulesData = row['rules'];
+      if (rulesData is! List) {
+        throw FormatException('$label: "rules" must be an array.');
+      }
+      for (var ruleIndex = 0; ruleIndex < rulesData.length; ruleIndex++) {
+        final rule = rulesData[ruleIndex];
+        final ruleLabel = '$label, rule ${ruleIndex + 1}';
+        if (rule is! Map<String, dynamic>) {
+          throw FormatException('$ruleLabel must be an object.');
+        }
+
+        final operation = rule['operation'];
+        if (operation is! String ||
+            (operation != 'include' && operation != 'exclude')) {
+          throw FormatException(
+            '$ruleLabel: "operation" must be "include" or "exclude".',
+          );
+        }
+
+        final matchMethod = rule['matchMethod'];
+        if (matchMethod is! String ||
+            (matchMethod != 'prefix' &&
+                matchMethod != 'range' &&
+                matchMethod != 'exact')) {
+          throw FormatException(
+            '$ruleLabel: "matchMethod" must be "prefix", "range", or "exact".',
+          );
+        }
+
+        final startValue = rule['startValue'];
+        if (startValue is! String || startValue.trim().isEmpty) {
+          throw FormatException(
+            '$ruleLabel: "startValue" must be a nonempty string.',
+          );
+        }
+
+        final trimmedStart = startValue.trim();
+        final endVal = rule.containsKey('endValue') && rule['endValue'] != null
+            ? (rule['endValue'] is String
+                ? (rule['endValue'] as String).trim()
+                : null)
+            : null;
+
+        if (matchMethod == 'prefix') {
+          if (!RegExp(r'^\d{1,6}$').hasMatch(trimmedStart)) {
+            throw FormatException(
+              '$ruleLabel: prefix startValue must be 1 to 6 digits.',
+            );
+          }
+        } else if (matchMethod == 'exact') {
+          if (!RegExp(r'^\d{6}$').hasMatch(trimmedStart)) {
+            throw FormatException(
+              '$ruleLabel: exact startValue must be exactly 6 digits.',
+            );
+          }
+        } else if (matchMethod == 'range') {
+          if (!RegExp(r'^\d{6}$').hasMatch(trimmedStart)) {
+            throw FormatException(
+              '$ruleLabel: range startValue must be exactly 6 digits.',
+            );
+          }
+          if (endVal == null || !RegExp(r'^\d{6}$').hasMatch(endVal)) {
+            throw FormatException(
+              '$ruleLabel: range endValue must be exactly 6 digits.',
+            );
+          }
+          if (trimmedStart.compareTo(endVal) > 0) {
+            throw FormatException(
+              '$ruleLabel: startValue cannot be greater than endValue.',
+            );
+          }
+        }
+
+        rules.add(
+          CompletePostalOfficeRuleImportEntry(
+            operation: operation,
+            matchMethod: matchMethod,
+            startValue: trimmedStart,
+            endValue: matchMethod == 'range' ? endVal : null,
+          ),
+        );
+      }
+    }
+
+    postalOfficesEntries.add(
+      CompletePostalOfficeImportEntry(
+        name: nameVal.trim(),
+        isActive: isActive,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+        rules: rules,
+      ),
+    );
+  }
+
+  return CompleteImportData(
+    subscribers: entries,
+    postalOffices: List.unmodifiable(postalOfficesEntries),
+  );
+}
+
+class CompletePostalOfficeRuleImportEntry {
+  const CompletePostalOfficeRuleImportEntry({
+    required this.operation,
+    required this.matchMethod,
+    required this.startValue,
+    this.endValue,
+  });
+
+  final String operation;
+  final String matchMethod;
+  final String startValue;
+  final String? endValue;
+}
+
+class CompletePostalOfficeImportEntry {
+  CompletePostalOfficeImportEntry({
+    required String name,
+    this.isActive = true,
+    this.createdAt,
+    this.updatedAt,
+    this.rules = const [],
+  }) : name = name.trim() {
+    if (this.name.isEmpty) {
+      throw ArgumentError('Postal office name must not be blank');
+    }
+  }
+
+  final String name;
+  final bool isActive;
+  final String? createdAt;
+  final String? updatedAt;
+  final List<CompletePostalOfficeRuleImportEntry> rules;
+
+  String get identity => name.trim().toLowerCase();
+}
+
+class CompleteImportData extends ListBase<CompleteSubscriberImportEntry> {
+  CompleteImportData({
+    required List<CompleteSubscriberImportEntry> subscribers,
+    this.postalOffices = const [],
+  }) : _subscribers = List.unmodifiable(subscribers);
+
+  final List<CompleteSubscriberImportEntry> _subscribers;
+  final List<CompletePostalOfficeImportEntry> postalOffices;
+
+  @override
+  int get length => _subscribers.length;
+
+  @override
+  set length(int newLength) =>
+      throw UnsupportedError('Cannot modify unmodifiable list');
+
+  @override
+  CompleteSubscriberImportEntry operator [](int index) => _subscribers[index];
+
+  @override
+  void operator []=(int index, CompleteSubscriberImportEntry value) =>
+      throw UnsupportedError('Cannot modify unmodifiable list');
 }
 
 class CompleteImportPreview {
   CompleteImportPreview({
     required this.totalSubscribers,
     required List<CompleteSubscriberImportEntry> entries,
+    this.totalPostalOffices = 0,
+    this.postalOffices = const [],
   }) : entries = List.unmodifiable(entries);
 
   final int totalSubscribers;
   final List<CompleteSubscriberImportEntry> entries;
+  final int totalPostalOffices;
+  final List<CompletePostalOfficeImportEntry> postalOffices;
 
   int get subscribersToInsert => entries.length;
   int get subscribersSkipped => totalSubscribers - subscribersToInsert;
+  int get postalOfficesToInsert => postalOffices.length;
+  int get postalOfficesSkipped => totalPostalOffices - postalOfficesToInsert;
 
   int get totalSubscriptionsToInsert => entries.fold<int>(
     0,
     (count, entry) => count + entry.subscriptions.length,
   );
+  int get totalRulesToInsert => postalOffices.fold<int>(
+    0,
+    (count, office) => count + office.rules.length,
+  );
+
+  bool get hasItemsToInsert =>
+      subscribersToInsert > 0 || postalOfficesToInsert > 0;
 }
 
 class CompleteImportResult {
@@ -342,9 +562,15 @@ class CompleteImportResult {
     required this.subscribersInserted,
     required this.subscribersSkipped,
     required this.subscriptionsInserted,
+    this.postalOfficesInserted = 0,
+    this.postalOfficesSkipped = 0,
+    this.rulesInserted = 0,
   });
 
   final int subscribersInserted;
   final int subscribersSkipped;
   final int subscriptionsInserted;
+  final int postalOfficesInserted;
+  final int postalOfficesSkipped;
+  final int rulesInserted;
 }

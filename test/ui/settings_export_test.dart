@@ -113,12 +113,15 @@ void main() {
 
     await completeExport(tester);
 
-    expect(jsonDecode(saved!), [
-      {
-        ...subscriber.toJson(),
-        'subscriptions': [subscription.toJson()],
-      },
-    ]);
+    expect(jsonDecode(saved!), {
+      'subscribers': [
+        {
+          ...subscriber.toJson(),
+          'subscriptions': [subscription.toJson()],
+        },
+      ],
+      'postalOffices': [],
+    });
     expect(find.text('Complete export saved.'), findsOneWidget);
   });
 

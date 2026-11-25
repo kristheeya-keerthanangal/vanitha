@@ -484,7 +484,14 @@ class _PostalOfficeFormPageState extends ConsumerState<PostalOfficeFormPage> {
   Future<void> _save() async {
     final success = await _model.save();
     if (success && mounted) {
-      Navigator.of(context).maybePop(true);
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) {
+        navigator.pop(true);
+      } else {
+        try {
+          context.go('/postal-offices');
+        } catch (_) {}
+      }
     }
   }
 }

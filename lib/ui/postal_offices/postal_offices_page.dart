@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../shared/empty_state.dart';
 import '../shared/error_state.dart';
 import '../shared/loading_state.dart';
+import '../subscribers/view_models/subscribers_view_model.dart';
 import 'view_models/postal_offices_view_model.dart';
 
 class PostalOfficesPage extends ConsumerWidget {
@@ -32,7 +33,12 @@ class PostalOfficesPage extends ConsumerWidget {
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 FilledButton.icon(
-                  onPressed: () => context.push('/postal-offices/new'),
+                  onPressed: () async {
+                    await context.push('/postal-offices/new');
+                    if (context.mounted) {
+                      model.refresh();
+                    }
+                  },
                   icon: const Icon(Icons.add),
                   label: const Text('Add postal office'),
                 ),
@@ -125,7 +131,7 @@ class PostalOfficesPage extends ConsumerWidget {
                             icon: const Icon(Icons.delete_outline),
                             tooltip: 'Delete office',
                             color: Theme.of(context).colorScheme.error,
-                            onPressed: () => _confirmDelete(context, model, office.id, office.name),
+                            onPressed: () => _confirmDelete(context, ref, model, office.id, office.name),
                           ),
                         ],
                       ),
@@ -145,6 +151,7 @@ class PostalOfficesPage extends ConsumerWidget {
 
   Future<void> _confirmDelete(
     BuildContext context,
+    WidgetRef ref,
     PostalOfficesViewModel model,
     int id,
     String name,
@@ -175,6 +182,9 @@ class PostalOfficesPage extends ConsumerWidget {
 
     if (confirmed == true) {
       await model.deleteOffice(id);
+      try {
+        ref.read(subscribersViewModelProvider).refresh();
+      } catch (_) {}
     }
   }
 }

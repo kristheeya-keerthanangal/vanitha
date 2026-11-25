@@ -162,4 +162,46 @@ void main() {
     expect(savedRules[1].operation, 'exclude');
     expect(savedRules[1].startValue, '670002');
   });
+
+  testWidgets('PostalOfficesPage navigates to add office and immediately shows newly created office upon return', (tester) async {
+    final router = GoRouter(
+      initialLocation: '/postal-offices',
+      routes: [
+        GoRoute(
+          path: '/postal-offices',
+          builder: (_, _) => const Scaffold(body: PostalOfficesPage()),
+          routes: [
+            GoRoute(
+              path: 'new',
+              builder: (_, _) => const PostalOfficeFormPage(),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(buildTestWidget(child: const SizedBox.shrink(), router: router));
+    await tester.pumpAndSettle();
+
+    expect(find.text('No postal offices configured. Add your first postal office to get started.'), findsOneWidget);
+
+    // Tap Add postal office
+    await tester.tap(find.text('Add postal office'));
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(TextFormField, 'Office name *'), findsOneWidget);
+
+    // Enter name
+    await tester.enterText(find.widgetWithText(TextFormField, 'Office name *'), 'Thalassery STO');
+    await tester.pumpAndSettle();
+
+    // Tap Create office
+    await tester.ensureVisible(find.text('Create office'));
+    await tester.tap(find.text('Create office'));
+    await tester.pumpAndSettle();
+
+    // Check we are back on PostalOfficesPage and Thalassery STO is visible immediately
+    expect(find.text('Thalassery STO'), findsOneWidget);
+    expect(find.text('No postal offices configured. Add your first postal office to get started.'), findsNothing);
+  });
 }

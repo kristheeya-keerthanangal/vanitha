@@ -18,6 +18,13 @@ class PostalOfficesViewModel extends ChangeNotifier {
   }
 
   final PostalOfficeRepository _repository;
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   List<PostalOffice> offices = [];
   Map<int, int> ruleCounts = {};
@@ -26,6 +33,7 @@ class PostalOfficesViewModel extends ChangeNotifier {
   bool isDeleting = false;
 
   Future<void> refresh() async {
+    if (_disposed) return;
     loading = true;
     error = null;
     notifyListeners();
@@ -33,14 +41,18 @@ class PostalOfficesViewModel extends ChangeNotifier {
     try {
       final fetchedOffices = await _repository.getAllOffices();
       final fetchedCounts = await _repository.getRuleCountsByOffice();
+      if (_disposed) return;
       offices = fetchedOffices;
       ruleCounts = fetchedCounts;
     } catch (_) {
+      if (_disposed) return;
       error = 'Unable to load postal offices.';
     }
 
-    loading = false;
-    notifyListeners();
+    if (!_disposed) {
+      loading = false;
+      notifyListeners();
+    }
   }
 
   Future<bool> deleteOffice(int id) async {

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vanithabodhini/data/app_database.dart';
+import 'package:vanithabodhini/data/repositories/postal_office_repository.dart';
 import 'package:vanithabodhini/data/repositories/subscriber_repository.dart';
 import 'package:vanithabodhini/data/repositories/subscription_repository.dart';
 import 'package:vanithabodhini/data/subscriber_import.dart';
@@ -266,6 +267,64 @@ void main() {
 
         final audits = await database.select(database.auditLogs).get();
         expect(audits, hasLength(2));
+      },
+    );
+
+    test(
+      'complete import imports postal offices and rules, skipping duplicate offices',
+      () async {
+        final officeRepo = PostalOfficeRepository(database);
+        await officeRepo.createOffice(name: 'Existing RMS');
+
+        final preview = await repository.previewCompleteImport(
+          [],
+          postalOffices: [
+            CompletePostalOfficeImportEntry(
+              name: 'Existing RMS',
+              rules: [
+                const CompletePostalOfficeRuleImportEntry(
+                  operation: 'include',
+                  matchMethod: 'prefix',
+                  startValue: '671',
+                ),
+              ],
+            ),
+            CompletePostalOfficeImportEntry(
+              name: 'New STO',
+              isActive: false,
+              rules: [
+                const CompletePostalOfficeRuleImportEntry(
+                  operation: 'include',
+                  matchMethod: 'range',
+                  startValue: '670101',
+                  endValue: '670107',
+                ),
+              ],
+            ),
+          ],
+        );
+
+        expect(preview.totalPostalOffices, 2);
+        expect(preview.postalOfficesToInsert, 1);
+        expect(preview.postalOfficesSkipped, 1);
+        expect(preview.totalRulesToInsert, 1);
+
+        final result = await repository.importCompleteSubscribers(preview);
+        expect(result.postalOfficesInserted, 1);
+        expect(result.postalOfficesSkipped, 1);
+        expect(result.rulesInserted, 1);
+
+        final allOffices = await officeRepo.getAllOffices();
+        expect(allOffices, hasLength(2));
+        final newOffice = allOffices.firstWhere((o) => o.name == 'New STO');
+        expect(newOffice.isActive, isFalse);
+
+        final rules = await officeRepo.getRulesForOffice(newOffice.id);
+        expect(rules, hasLength(1));
+        expect(rules.first.operation, 'include');
+        expect(rules.first.matchMethod, 'range');
+        expect(rules.first.startValue, '670101');
+        expect(rules.first.endValue, '670107');
       },
     );
   });

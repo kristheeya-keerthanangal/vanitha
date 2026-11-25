@@ -105,7 +105,8 @@ class SettingsPage extends ConsumerWidget {
               const SizedBox(height: 16),
               Text(
                 '${completeResult.subscribersInserted} ${completeResult.subscribersInserted == 1 ? 'subscriber' : 'subscribers'} and '
-                '${completeResult.subscriptionsInserted} ${completeResult.subscriptionsInserted == 1 ? 'subscription' : 'subscriptions'} imported. '
+                '${completeResult.subscriptionsInserted} ${completeResult.subscriptionsInserted == 1 ? 'subscription' : 'subscriptions'}'
+                '${completeResult.postalOfficesInserted > 0 ? ', and ${completeResult.postalOfficesInserted} ${completeResult.postalOfficesInserted == 1 ? 'postal office' : 'postal offices'}' : ''} imported. '
                 '${completeResult.subscribersSkipped} ${completeResult.subscribersSkipped == 1 ? 'duplicate' : 'duplicates'} skipped.',
               ),
             ],
@@ -272,6 +273,7 @@ class _CompleteImportConfirmationDialog extends StatelessWidget {
       listenable: model,
       builder: (context, _) {
         final preview = model.completePreview;
+        final hasItemsToInsert = preview?.hasItemsToInsert ?? false;
         return PopScope(
           canPop: !model.isBusy,
           child: AlertDialog(
@@ -293,10 +295,22 @@ class _CompleteImportConfirmationDialog extends StatelessWidget {
                   Text(
                     'Subscriptions to insert: ${preview?.totalSubscriptionsToInsert ?? 0}',
                   ),
+                  if ((preview?.totalPostalOffices ?? 0) > 0) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Total postal offices: ${preview?.totalPostalOffices ?? 0}',
+                    ),
+                    Text(
+                      'Postal offices to insert: ${preview?.postalOfficesToInsert ?? 0}',
+                    ),
+                    Text(
+                      'Rules to insert: ${preview?.totalRulesToInsert ?? 0}',
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Text(
-                    preview?.subscribersToInsert == 0
-                        ? 'No new subscribers to import'
+                    !hasItemsToInsert
+                        ? 'No new records to import'
                         : 'Are you sure you want to continue?',
                   ),
                   if (model.error != null) ...[
@@ -316,11 +330,9 @@ class _CompleteImportConfirmationDialog extends StatelessWidget {
                 onPressed: model.isBusy
                     ? null
                     : () => Navigator.of(context).pop(),
-                child: Text(
-                  preview?.subscribersToInsert == 0 ? 'Close' : 'Cancel',
-                ),
+                child: Text(!hasItemsToInsert ? 'Close' : 'Cancel'),
               ),
-              if (preview != null && preview.subscribersToInsert > 0)
+              if (preview != null && hasItemsToInsert)
                 FilledButton(
                   onPressed: model.isBusy
                       ? null
@@ -336,7 +348,9 @@ class _CompleteImportConfirmationDialog extends StatelessWidget {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : Text(
-                          'Import ${preview.subscribersToInsert} ${preview.subscribersToInsert == 1 ? 'subscriber' : 'subscribers'}',
+                          preview.postalOfficesToInsert > 0
+                              ? 'Import all'
+                              : 'Import ${preview.subscribersToInsert} ${preview.subscribersToInsert == 1 ? 'subscriber' : 'subscribers'}',
                         ),
                 ),
             ],

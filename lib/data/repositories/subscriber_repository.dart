@@ -72,11 +72,12 @@ class SubscriberRepository {
     ).convert([for (final subscriber in subscribers) subscriber.toJson()]);
   }
 
-  /// Exports every subscriber together with all of their subscriptions.
+  /// Exports every subscriber together with all of their subscriptions,
+  /// as well as all postal offices and their pincode rules.
   ///
   /// The regular subscriber export remains import-compatible. This complete
-  /// export is intended as a full backup, so it includes archived subscribers
-  /// and archived subscriptions too.
+  /// export is intended as a full backup, so it includes archived subscribers,
+  /// archived subscriptions, postal offices, and pincode rules.
   Future<String> exportCompleteSubscribers() async {
     final subscriberQuery = _database.select(_database.subscribers)
       ..orderBy([(row) => OrderingTerm.asc(row.id)]);
@@ -85,8 +86,19 @@ class SubscriberRepository {
         (row) => OrderingTerm.asc(row.subscriberId),
         (row) => OrderingTerm.asc(row.id),
       ]);
+    final postalOfficeQuery = _database.select(_database.postalOffices)
+      ..orderBy([(row) => OrderingTerm.asc(row.id)]);
+    final ruleQuery = _database.select(_database.postalOfficeRules)
+      ..orderBy([
+        (row) => OrderingTerm.asc(row.postalOfficeId),
+        (row) => OrderingTerm.asc(row.id),
+      ]);
+
     final subscribers = await subscriberQuery.get();
     final subscriptions = await subscriptionQuery.get();
+    final postalOffices = await postalOfficeQuery.get();
+    final rules = await ruleQuery.get();
+
     final subscriptionsBySubscriber = <int, List<Subscription>>{};
     for (final subscription in subscriptions) {
       subscriptionsBySubscriber
@@ -94,17 +106,36 @@ class SubscriberRepository {
           .add(subscription);
     }
 
-    return const JsonEncoder.withIndent('  ').convert([
-      for (final subscriber in subscribers)
-        {
-          ...subscriber.toJson(),
-          'subscriptions': [
-            for (final subscription
-                in subscriptionsBySubscriber[subscriber.id] ?? const [])
-              subscription.toJson(),
-          ],
-        },
-    ]);
+    final rulesByOffice = <int, List<PostalOfficeRule>>{};
+    for (final rule in rules) {
+      rulesByOffice
+          .putIfAbsent(rule.postalOfficeId, () => [])
+          .add(rule);
+    }
+
+    return const JsonEncoder.withIndent('  ').convert({
+      'subscribers': [
+        for (final subscriber in subscribers)
+          {
+            ...subscriber.toJson(),
+            'subscriptions': [
+              for (final subscription
+                  in subscriptionsBySubscriber[subscriber.id] ?? const [])
+                subscription.toJson(),
+            ],
+          },
+      ],
+      'postalOffices': [
+        for (final office in postalOffices)
+          {
+            ...office.toJson(),
+            'rules': [
+              for (final rule in rulesByOffice[office.id] ?? const [])
+                rule.toJson(),
+            ],
+          },
+      ],
+    });
   }
 
   // Missing PIN codes come last; each group is ordered by name, then ID.
@@ -370,8 +401,9 @@ class SubscriberRepository {
   }
 
   Future<CompleteImportPreview> previewCompleteImport(
-    List<CompleteSubscriberImportEntry> entries,
-  ) async {
+    List<CompleteSubscriberImportEntry> entries, {
+    List<CompletePostalOfficeImportEntry> postalOffices = const [],
+  }) async {
     final seen = await _completeImportIdentities();
     final toInsert = <CompleteSubscriberImportEntry>[];
     for (final entry in entries) {
@@ -379,9 +411,24 @@ class SubscriberRepository {
         toInsert.add(entry);
       }
     }
+
+    final existingOffices =
+        await _database.select(_database.postalOffices).get();
+    final seenOffices = {
+      for (final office in existingOffices) office.name.trim().toLowerCase(),
+    };
+    final officesToInsert = <CompletePostalOfficeImportEntry>[];
+    for (final office in postalOffices) {
+      if (seenOffices.add(office.identity)) {
+        officesToInsert.add(office);
+      }
+    }
+
     return CompleteImportPreview(
       totalSubscribers: entries.length,
       entries: toInsert,
+      totalPostalOffices: postalOffices.length,
+      postalOffices: officesToInsert,
     );
   }
 
@@ -470,10 +517,51 @@ class SubscriberRepository {
         }
       }
 
+      final existingOffices =
+          await _database.select(_database.postalOffices).get();
+      final seenOffices = {
+        for (final office in existingOffices) office.name.trim().toLowerCase(),
+      };
+      var postalOfficesInserted = 0;
+      var rulesInserted = 0;
+
+      for (final office in preview.postalOffices) {
+        if (!seenOffices.add(office.identity)) continue;
+
+        final officeId = await _database
+            .into(_database.postalOffices)
+            .insert(
+              PostalOfficesCompanion.insert(
+                name: office.name,
+                isActive: Value(office.isActive),
+                createdAt: Value(office.createdAt ?? now),
+                updatedAt: Value(office.updatedAt ?? now),
+              ),
+            );
+        postalOfficesInserted++;
+
+        for (final rule in office.rules) {
+          await _database.into(_database.postalOfficeRules).insert(
+                PostalOfficeRulesCompanion.insert(
+                  postalOfficeId: officeId,
+                  operation: rule.operation,
+                  matchMethod: rule.matchMethod,
+                  startValue: rule.startValue,
+                  endValue: Value(rule.endValue),
+                ),
+              );
+          rulesInserted++;
+        }
+      }
+
       return CompleteImportResult(
         subscribersInserted: subscribersInserted,
         subscribersSkipped: preview.totalSubscribers - subscribersInserted,
         subscriptionsInserted: subscriptionsInserted,
+        postalOfficesInserted: postalOfficesInserted,
+        postalOfficesSkipped:
+            preview.totalPostalOffices - postalOfficesInserted,
+        rulesInserted: rulesInserted,
       );
     });
   }
